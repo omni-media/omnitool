@@ -1,0 +1,29 @@
+{
+  "name": "omnitool",
+  "version": "1.0.0",
+  "description": "open source video processing tools",
+  "main": "x/index.js",
+  "files": [
+    "x",
+    "s"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+		"start": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "tools",
+    "video",
+    "processing"
+  ],
+  "author": "zenkyu",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@types/dom-webcodecs": "^0.1.11"
+  }
+}

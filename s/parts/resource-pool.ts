@@ -1,22 +1,35 @@
 
-
-import {Hex, Map2} from "@benev/slate"
+import {Barname, Hex, Map2} from "@benev/slate"
 import {Id} from "./basics.js"
 import {Resource} from "./resource.js"
 
-export class ResourcePool {
-	#map = new Map2<Id, Resource.Any>()
+export class ResourcePool extends Map2<Id, Resource.Any> {
 
-	require(id: Id) {
-		return this.#map.require(id)
-	}
+	async loadMedia(bytes: Uint8Array, name?: string) {
 
-	async loadMedia(bytes: Uint8Array) {
-		const hash = await crypto.subtle.digest("SHA-256", bytes)
-		const id = Hex.string(new Uint8Array(hash))
-		if (!this.#map.has(id)) {
-			const resource: Resource.Media = {kind: "media", bytes}
-			this.#map.set(id, resource)
+		// determine id by hashing the actual bytes
+		const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
+		const id = Hex.string(hash)
+
+		// use deterministic barname like `magser_pinryl` as fallback for filename
+		// these random barnames just help humans recognize things better than hex hash
+		const filename = name ?? Barname.string(hash.slice(0, 4))
+
+		// never store the same file twice
+
+		// if it already exists, update the filename
+		if (this.has(id)) {
+			const existing = this.require(id)
+			existing.filename = filename
 		}
+
+		// if it doesn't exist, add it
+		else {
+			const resource: Resource.Media = {kind: "media", filename, bytes}
+			this.set(id, resource)
+		}
+
+		return id
 	}
 }
+

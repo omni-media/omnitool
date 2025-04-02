@@ -3,10 +3,10 @@
 		"strict": true,
 		"rootDir": "s",
 		"outDir": "x",
-		"target": "ESNext",
-		"lib": ["esnext", "dom", "webworker"],
-		"module": "ESNext",
-		"moduleResolution": "node",
+		"target": "es2023",
+		"lib": ["es2023", "dom"],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
@@ -21,6 +21,5 @@
 	],
 	"exclude": [
 		"s/**/_*"
-	],
+	]
 }
-

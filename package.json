@@ -1,6 +1,6 @@
 {
 	"name": "@omnimedia/omnitool",
-	"version": "0.0.0-0",
+	"version": "1.1.0-0",
 	"description": "open source video processing tools",
 	"main": "x/index.js",
 	"files": [

@@ -1,10 +1,11 @@
+
 # 🚧 Work In Progress
 
 > **Note:** Omni Tools is under development. Expect breaking changes, evolving APIs, and experimental features.
 
 ---
 
-# Omni Tools
+# 🎬 Omnitool
 
 > Code-first video editing toolkit behind [Omniclip](https://omniclip.app) — build timelines, render videos, and automate workflows.
 

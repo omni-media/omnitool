@@ -5,6 +5,7 @@ export namespace Resource {
 		filename: string
 		bytes: Uint8Array
 	}
+
 	export type Any = Media
 }
 

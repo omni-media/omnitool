@@ -1,32 +1,49 @@
 
-import {Id} from "./basics.js"
+import {Id, Hash} from "./basics.js"
+
+export enum Kind {
+	Sequence,
+	Stack,
+	Clip,
+	Text,
+	Transition,
+}
+
+export enum Effect {
+	Crossfade,
+}
 
 export namespace Item {
 	export type Sequence = {
-		kind: "sequence"
+		id: Id
+		kind: Kind.Sequence
 		children: Id[]
 	}
 
 	export type Stack = {
-		kind: "stack"
+		id: Id
+		kind: Kind.Stack
 		children: Id[]
 	}
 
 	export type Clip = {
-		kind: "clip"
-		media: Id
+		id: Id
+		kind: Kind.Clip
+		mediaHash: Hash
 		start: number
 		duration: number
 	}
 
 	export type Text = {
-		kind: "text"
+		id: Id
+		kind: Kind.Text
 		content: string
 	}
 
 	export type Transition = {
-		kind: "transition"
-		effect: "crossfade"
+		id: Id
+		kind: Kind.Transition
+		effect: Effect.Crossfade
 		duration: number
 	}
 

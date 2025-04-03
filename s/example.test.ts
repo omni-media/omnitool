@@ -1,19 +1,39 @@
 
-import {makeTimeline} from "./sugar/sketch.js"
-import {ResourcePool} from "./parts/resource-pool.js"
+import "@benev/slate/x/node.js"
+import {Omni} from "./sugar/omni.js"
+import {dummyData} from "./utils/dummy-data.js"
 
-const resources = new ResourcePool()
-const media1 = await resources.storeMedia(new Uint8Array([1, 2, 3, 4]))
-const media2 = await resources.storeMedia(new Uint8Array([1, 2, 3, 4]))
+//
+// create an omni context
+//
 
-const timeline = makeTimeline(o => o.sequence(
-	o.clip(media1, 0, 1),
+const omni = new Omni()
+
+//
+// load in some media resources
+//
+
+const {mediaA, mediaB} = await omni.load({
+	mediaA: dummyData(),
+	mediaB: dummyData(),
+})
+
+//
+// create a timeline
+//
+
+const timeline = omni.timeline(o => o.sequence(
+	o.clip(mediaA),
 	o.transition.crossfade(600),
 	o.stack(
-		o.clip(media2, 0, 1),
+		o.clip(mediaB),
 		o.text("hello world"),
 	),
 ))
 
-console.log(timeline)
+//
+// log the timeline
+//
+
+console.log(JSON.stringify(timeline, undefined, "  "))
 

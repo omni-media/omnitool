@@ -13,7 +13,7 @@
 		"watch": "tsc --watch",
 		"http": "http-server",
 		"start": "run-p http watch",
-		"test": "exit 0"
+		"test": "node x/example.test.js"
 	},
 	"keywords": [
 		"tools",

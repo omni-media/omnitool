@@ -1,24 +1,27 @@
 
 import {Map2} from "@benev/slate"
-import {Id} from "./basics.js"
+import {Hash} from "./basics.js"
+import {Media} from "./media.js"
 import {Resource} from "./resource.js"
-import {hashify} from "../utils/hashify.js"
+import {Datafile} from "../utils/datafile.js"
 
-export class ResourcePool extends Map2<Id, Resource.Any> {
+export class ResourcePool {
+	#map = new Map2<Hash, Resource.Any>
 
 	/** store a media file (avoids duplicates via hash) */
-	async storeMedia(bytes: Uint8Array, name?: string) {
-		const {id, nickname} = await hashify(bytes)
-		const filename = name ?? nickname
+	async store(datafile: Datafile) {
+		const media = await Media.analyze(datafile)
+		const {hash} = media.datafile.checksum
+		const {filename, bytes} = media.datafile
 
-		if (this.has(id)) {
-			const alreadyExists = this.require(id)
+		if (this.#map.has(hash)) {
+			const alreadyExists = this.#map.require(hash)
 			alreadyExists.filename = filename
 		}
 		else
-			this.set(id, {kind: "media", filename, bytes})
+			this.#map.set(hash, {kind: "media", filename, bytes})
 
-		return id
+		return media
 	}
 }
 

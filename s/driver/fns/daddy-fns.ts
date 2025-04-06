@@ -5,8 +5,8 @@ import {DriverDaddyFns, DriverWorkerFns} from "./types.js"
 
 /** driver functions that live on the main thread */
 export const makeDriverDaddyFns = (
-		main: Remote<DriverWorkerFns>,
-		logistics: Logistics,
+		_worker: Remote<DriverWorkerFns>,
+		_logistics: Logistics,
 		readyprom: DeferPromise<void>
 	) => fns<DriverDaddyFns>({
 

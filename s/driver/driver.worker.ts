@@ -1,12 +1,13 @@
 
 //
-// this is a web worker.
+// this is a web worker
 //
 
 import {endpoint, Messenger} from "renraku"
 import {DriverDaddyFns} from "./fns/types.js"
 import {makeDriverWorkerFns} from "./fns/worker-fns.js"
 
+// setting up the renraku messenger with the fns
 const messenger = new Messenger<DriverDaddyFns>({
 	timeout: 120_000,
 	remotePortal: new Messenger.MessagePortal(self),

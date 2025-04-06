@@ -29,6 +29,6 @@
 	},
 	"dependencies": {
 		"@benev/slate": "^0.3.0",
-		"renraku": "^0.5.0-0"
+		"renraku": "^0.5.0-1"
 	}
 }

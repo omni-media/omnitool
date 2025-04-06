@@ -4,7 +4,7 @@ import {setupDriver} from "./setup-driver.js"
 
 export async function example() {
 	const driver = await setupDriver()
-	const dummyData = new Uint8Array([1, 2, 3, 4])
+	const dummyData = new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF])
 
 	// making calls
 	await driver.remote.mux(dummyData)

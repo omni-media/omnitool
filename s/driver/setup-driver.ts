@@ -11,6 +11,7 @@ export async function setupDriver() {
 	const worker = new Worker(path, {type: "module"})
 	const readyprom = deferPromise<void>()
 
+	// setting up the renraku messenger with the fns
 	const messenger = new Messenger<DriverWorkerFns>({
 		timeout: 120_000,
 		remotePortal: new Messenger.MessagePortal(worker),
@@ -22,6 +23,7 @@ export async function setupDriver() {
 	// wait for the worker to report that it's done loading
 	await readyprom.promise
 
+	// returning remote access to the worker's fns, and a disposer for shutdown
 	return {
 		remote: messenger.remote as Remote<DriverWorkerFns>,
 		dispose: () => {

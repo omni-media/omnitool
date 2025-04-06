@@ -1,4 +1,8 @@
 
+//
+// this is a web worker.
+//
+
 import {endpoint, Messenger} from "renraku"
 import {DriverDaddyFns} from "./fns/types.js"
 import {makeDriverWorkerFns} from "./fns/worker-fns.js"

@@ -5,6 +5,7 @@ import {endpoint, Messenger, Remote} from "renraku"
 import {DriverWorkerFns} from "./fns/types.js"
 import {makeDriverDaddyFns} from "./fns/daddy-fns.js"
 
+/** spin up a worker-based driver */
 export async function setupDriver() {
 	const path = new URL("./worker.js", import.meta.url)
 	const worker = new Worker(path, {type: "module"})

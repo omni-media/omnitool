@@ -34,15 +34,15 @@ export const makeDriverWorkerFns = (
 		}
 	},
 
-	demuxer: async function ({ bytes, start, end }): Promise<Demuxer> {
+	demuxer: async function ({bytes, start, end, id}): Promise<Demuxer> {
+		const webdemuxer = new WebDemuxer({
+			wasmLoaderPath: import.meta.resolve("web-demuxer/dist/wasm-files/ffmpeg.min.js")
+		})
+		const file = new File([bytes], "123")
+		await webdemuxer.load(file)
+
 		return {
 			async start() {
-				const webdemuxer = new WebDemuxer({
-					wasmLoaderPath: import.meta.resolve("web-demuxer/dist/wasm-files/ffmpeg.min.js")
-				})
-
-				const file = new File([bytes], "123")
-				await webdemuxer.load(file)
 				const config = await webdemuxer.getVideoDecoderConfig()
 
 				await daddy.decoderConfigResult[advanced]({ transfer: [config] })(config)
@@ -60,7 +60,7 @@ export const makeDriverWorkerFns = (
 					if (done) break
 
 					const chunk = webdemuxer.genEncodedVideoChunk(value)
-					await daddy.demuxResult[advanced]({ transfer: [chunk] })(chunk)
+					await daddy.demuxResult[advanced]({ transfer: [chunk] })(chunk, id)
 				}
 			}
 		}

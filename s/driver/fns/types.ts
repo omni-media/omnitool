@@ -5,7 +5,7 @@ export type MuxerHandler = {
 /** driver functions that live on the main thread */
 export type DriverDaddyFns = {
 	ready(): Promise<void>
-	demuxResult(data: EncodedVideoChunk): Promise<void>
+	demuxResult(data: EncodedVideoChunk, id: string): Promise<void>
 	decoderConfigResult(config: VideoDecoderConfig): Promise<void>
 	muxResult(data: Uint8Array): Promise<void>
 	encodeResult(data: EncodedVideoChunk): Promise<void>
@@ -21,7 +21,12 @@ export type DriverWorkerFns = {
 	composite(opts: CompositeOpts): Promise<VideoFrame>
 }
 
-interface DemuxerOpts {
+export interface DriverAPI {
+	createDemuxer(opts: Omit<DemuxerOpts, "id">): Promise<Demuxer>
+}
+
+export interface DemuxerOpts {
+	id: string
 	bytes: Uint8Array
 	start?: number
 	end?: number

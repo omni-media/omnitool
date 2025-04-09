@@ -1,5 +1,5 @@
 // import "@benev/slate/x/node.js"
-import {Workers} from "@e280/comrade"
+import {Workers, Remote} from "@e280/comrade"
 
 import type {MySchematic} from "./fns/worker.js"
 
@@ -15,7 +15,7 @@ export async function setupDriver() {
 	})
 
 	return {
-		remote: workers.remote,
+		remote: workers.remote as Remote<MySchematic["workerFns"]>,
 		dispose: () => {
 			// workers.terminate()
 		}

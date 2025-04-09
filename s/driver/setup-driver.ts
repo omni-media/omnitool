@@ -1,34 +1,23 @@
-import {deferPromise} from "@benev/slate"
-import {endpoint, Messenger} from "renraku"
+// import "@benev/slate/x/node.js"
+import {Workers} from "@e280/comrade"
 
-import {DriverWorkerFns} from "./fns/types.js"
-import {DriverMachine} from "./driver-machine.js"
+import type {MySchematic} from "./fns/worker.js"
 
 /** spin up a worker-based driver */
 export async function setupDriver() {
-	const path = new URL("./worker.js", import.meta.url)
-	const worker = new Worker(path, {type: "module"})
-	const readyprom = deferPromise<void>()
-
-	let machine!: DriverMachine
-
-	const messenger = new Messenger<DriverWorkerFns>({
-		timeout: 120_000,
-		remotePortal: new Messenger.MessagePortal(worker),
-		getLocalEndpoint: (remote, logistics) => {
-			const result = DriverMachine.withDaddy(remote, readyprom)
-			machine = result.machine
-			return endpoint(result.daddy)
-		}
+	const workers = await Workers.setup<MySchematic>({
+		workerUrl: new URL("./fns/worker.js", import.meta.url),
+		setupMainFns: () => ({
+			async whatever(a: number, b: number) {
+				return a * b
+			},
+		}),
 	})
 
-	await readyprom.promise
-
 	return {
-		machine,
+		remote: workers.remote,
 		dispose: () => {
-			messenger.dispose()
-			worker.terminate()
+			// workers.terminate()
 		}
 	}
 }

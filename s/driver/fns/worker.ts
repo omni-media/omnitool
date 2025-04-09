@@ -1,15 +1,19 @@
 import {WebDemuxer} from "web-demuxer"
+import {worker, AsSchematic} from "@e280/comrade"
 import {Muxer, ArrayBufferTarget} from 'mp4-muxer'
-import {advanced, fns, Logistics, Remote} from "renraku"
 
 import {encoderDefaultConfig} from "../constants.js"
-import {DriverDaddyFns, DriverWorkerFns, CompositeOpts, Decoder, Encoder, MuxOpts, Muxer as XMuxer, EncoderOpts, Demuxer} from "./types.js"
+import {DriverWorkerFns, CompositeOpts, Decoder, Encoder, MuxOpts, Muxer as XMuxer, EncoderOpts} from "./types.js"
+
+export type MySchematic = AsSchematic<{
+	workerFns: DriverWorkerFns
+	mainFns: {
+		whatever(a: number, b: number): Promise<number>
+	}
+}>
 
 /** driver functions that live on the web worker */
-export const makeDriverWorkerFns = (
-		daddy: Remote<DriverDaddyFns>,
-		logistics: Logistics,
-	) => fns<DriverWorkerFns>({
+const main = await worker<MySchematic>((main, rig) => ({
 	muxer: async function (opts: MuxOpts): Promise<XMuxer> {
 		const muxer = new Muxer({
 			target: new ArrayBufferTarget(),
@@ -29,47 +33,44 @@ export const makeDriverWorkerFns = (
 			async finalize() {
 				muxer.finalize()
 				const output = new Uint8Array(muxer.target.buffer)
-				await daddy.muxResult[advanced]({ transfer: [output.buffer] })(output)
+				rig.transfer = [output.buffer]
 			}
 		}
 	},
 
-	demuxer: async function ({bytes, start, end, id}): Promise<Demuxer> {
+	async demux({bytes, start, end, id}) {
 		const webdemuxer = new WebDemuxer({
 			wasmLoaderPath: import.meta.resolve("web-demuxer/dist/wasm-files/ffmpeg.min.js")
 		})
 		const file = new File([bytes], "123")
 		await webdemuxer.load(file)
+		const config = await webdemuxer.getVideoDecoderConfig()
 
-		return {
-			async start() {
-				const config = await webdemuxer.getVideoDecoderConfig()
+		// await daddy.decoderConfigResult[advanced]({ transfer: [config] })(config)
 
-				await daddy.decoderConfigResult[advanced]({ transfer: [config] })(config)
+		const oneSecondOffset = 1000
+		const reader = webdemuxer
+			.readAVPacket(
+				start ? (start - oneSecondOffset) / 1000 : undefined,
+				end ? (end + oneSecondOffset) / 1000 : undefined
+			)
+			.getReader()
 
-				const oneSecondOffset = 1000
-				const reader = webdemuxer
-					.readAVPacket(
-						start ? (start - oneSecondOffset) / 1000 : undefined,
-						end ? (end + oneSecondOffset) / 1000 : undefined
-					)
-					.getReader()
+		while (true) {
+			const { done, value } = await reader.read()
+			if (done) break
 
-				while (true) {
-					const { done, value } = await reader.read()
-					if (done) break
-
-					const chunk = webdemuxer.genEncodedVideoChunk(value)
-					await daddy.demuxResult[advanced]({ transfer: [chunk] })(chunk, id)
-				}
-			}
+			const chunk = webdemuxer.genEncodedVideoChunk(value)
+			rig.transfer = [chunk]
 		}
+
+		return {id}
 	},
 
 	decoder: async function (opts): Promise<Decoder> {
 		const decoder = new VideoDecoder({
 			async output(frame) {
-				await daddy.decodeResult[advanced]({ transfer: [frame] })(frame)
+				rig.transfer = [frame]
 				frame.close()
 			},
 			error: (e) => console.error("Decoder error:", e)
@@ -91,7 +92,7 @@ export const makeDriverWorkerFns = (
 	encoder: async function (config: EncoderOpts): Promise<Encoder> {
 		const encoder = new VideoEncoder({
 			async output(chunk) {
-				await daddy.encodeResult[advanced]({ transfer: [chunk] })(chunk)
+				rig.transfer = [chunk]
 			},
 			error(e) {
 				console.error("Encoder error:", e)
@@ -119,4 +120,5 @@ export const makeDriverWorkerFns = (
 		// use Pixi.js or canvas for this
 		return frame
 	}
-})
+
+}))

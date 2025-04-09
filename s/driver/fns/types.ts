@@ -17,7 +17,7 @@ export type DriverWorkerFns = {
 	decoder(opts: DecoderOpts): Promise<Decoder>
 	encoder(opts: EncoderOpts): Promise<Encoder>
 	muxer(opts: MuxOpts): Promise<Muxer>
-	demuxer(opts: DemuxerOpts): Promise<Demuxer>
+	demux(opts: DemuxerOpts): any
 	composite(opts: CompositeOpts): Promise<VideoFrame>
 }
 

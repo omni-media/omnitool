@@ -9,10 +9,15 @@
 	],
 	"type": "module",
 	"scripts": {
-		"build": "tsc",
-		"watch": "tsc --watch",
-		"http": "http-server",
-		"start": "run-p http watch",
+		"build": "rm -rf x && run-s build-code build-ssg links",
+		"build-code": "turtle build --out=x",
+		"build-ssg": "turtle ssg --in=s,x --out=x",
+		"start": "run-p start-http start-turtle",
+		"start-http": "http-server x",
+		"start-turtle": "turtle watch --in=s,x --out=x -v",
+		"links": "run-s links-s links-assets",
+		"links-s": "ln -s \"$(realpath s)\" x/s",
+		"links-assets": "ln -s \"$(realpath assets)\" x/assets",
 		"test": "node x/example.test.js"
 	},
 	"keywords": [
@@ -23,14 +28,15 @@
 	"author": "zenkyu",
 	"license": "ISC",
 	"devDependencies": {
+		"@benev/turtle": "^0.6.8",
 		"http-server": "^14.1.1",
 		"npm-run-all": "^4.1.5",
 		"typescript": "^5.8.3"
 	},
 	"dependencies": {
 		"@benev/slate": "^0.3.0",
+		"@e280/comrade": "^0.0.0-0",
 		"mp4-muxer": "^5.2.1",
-		"renraku": "^0.5.0-1",
 		"web-demuxer": "^2.3.3"
 	}
 }

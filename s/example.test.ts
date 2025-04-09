@@ -1,5 +1,5 @@
 
-import "@benev/slate/x/node.js"
+// import "@benev/slate/x/node.js"
 import {Omni} from "./sugar/omni.js"
 import {dummyData} from "./utils/dummy-data.js"
 

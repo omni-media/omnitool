@@ -1,4 +1,4 @@
-import {Remote} from "@e280/comrade"
+import {Work, WorkShell} from "@e280/comrade"
 import {generate_id} from "@benev/slate"
 
 import {MySchematic} from "./fns/worker.js"
@@ -10,11 +10,15 @@ export class DriverMachine implements DriverAPI {
 	#decoderOperations = new Map<string, Operation<VideoFrame>>()
 	#encoderOperations = new Map<string, Operation<EncodedVideoChunk>>()
 
-	constructor(private remote: Remote<MySchematic["work"]>) {}
+	constructor(private shell: WorkShell<MySchematic>) {}
+
+	get work(): Work<MySchematic> {
+		return this.shell.work
+	}
 
 	static setupHost(setDriver: (driver: DriverMachine) => void) {
-		return (remote: Remote<MySchematic["work"]>, _rig: any): MySchematic["host"] => {
-			const driver = new DriverMachine(remote)
+		return (shell: WorkShell<MySchematic>, _rig: any): MySchematic["host"] => {
+			const driver = new DriverMachine(shell)
 			setDriver(driver)
 			return driver.#createMainFns()
 		}
@@ -49,13 +53,13 @@ export class DriverMachine implements DriverAPI {
 			id => this.#demuxOperations.delete(id)
 		)
 
-		await this.remote.demuxer.init({id: op.id, bytes})
+		await this.work.demuxer.init({id: op.id, bytes})
 
 		return {
-			start: () => this.remote.demuxer.start({id: op.id}),
+			start: () => this.work.demuxer.start({id: op.id}),
 			onChunk: op.on,
 			dispose: () => {
-				this.remote.demuxer.dispose({id: op.id})
+				this.work.demuxer.dispose({id: op.id})
 				op.dispose()
 			}
 		}
@@ -75,12 +79,12 @@ export class DriverMachine implements DriverAPI {
 			id => this.#decoderOperations.delete(id)
 		)
 
-		await this.remote.decoder.init({id: op.id, config})
+		await this.work.decoder.init({id: op.id, config})
 
 		return {
-			decode: chunk => this.remote.decoder.decode({id: op.id, chunk}),
+			decode: chunk => this.work.decoder.decode({id: op.id, chunk}),
 			close: () => {
-				this.remote.decoder.close({id: op.id})
+				this.work.decoder.close({id: op.id})
 				op.dispose()
 			},
 			onFrame: op.on
@@ -101,13 +105,13 @@ export class DriverMachine implements DriverAPI {
 			id => this.#encoderOperations.delete(id)
 		)
 
-		await this.remote.encoder.init({id: op.id, config})
+		await this.work.encoder.init({id: op.id, config})
 
 		return {
-			encode: frame => this.remote.encoder.encode({id: op.id, frame}),
-			flush: () => this.remote.encoder.flush({id: op.id}),
+			encode: frame => this.work.encoder.encode({id: op.id, frame}),
+			flush: () => this.work.encoder.flush({id: op.id}),
 			close: () => {
-				this.remote.encoder.close({id: op.id})
+				this.work.encoder.close({id: op.id})
 				op.dispose()
 			},
 			onChunk: op.on
@@ -116,11 +120,11 @@ export class DriverMachine implements DriverAPI {
 
 	async createMuxer(config: {width: number, height: number}): Promise<Muxer> {
 		const id = generate_id()
-		await this.remote.muxer.init({id, ...config})
+		await this.work.muxer.init({id, ...config})
 
 		return {
-			addChunk: chunk => this.remote.muxer.addChunk({id, chunk}),
-			finalize: () => this.remote.muxer.finalize({id})
+			addChunk: chunk => this.work.muxer.addChunk({id, chunk}),
+			finalize: () => this.work.muxer.finalize({id})
 		}
 	}
 }

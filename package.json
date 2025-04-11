@@ -30,7 +30,7 @@
 	},
 	"dependencies": {
 		"@benev/slate": "^0.3.0",
-		"@e280/comrade": "^0.0.0-8",
+		"@e280/comrade": "^0.0.0-9",
 		"mp4-muxer": "^5.2.1",
 		"web-demuxer": "^2.3.3"
 	},

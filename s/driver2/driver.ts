@@ -15,17 +15,18 @@ export class Driver {
 
 	setupHost = Comrade.host<DriverSchematic>(() => ({
 		deliverDemuxedPacket: {
-			async video(stuff) {
-				console.log("got video packet", stuff.id)
+			async video() {
+				console.log("got video packet!")
 			},
-			async audio(_stuff) {},
-			async subtitle(_stuff) {},
+			async audio() {},
+			async subtitle() {},
 		},
 	}))
 
 	#id = 0
 
 	async demux() {
+		console.log("DEMUX CALLED")
 		const id = this.#id++
 		const bytes = new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF])
 		this.work.demux[tune]({transfer: [bytes]})({

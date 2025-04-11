@@ -1,8 +1,8 @@
 
-import Comrade from "@e280/comrade"
+import {Comrade} from "@e280/comrade"
 import {DriverSchematic} from "./schematic.js"
 
-export const setupDriverWork = Comrade.work<DriverSchematic>((host, _rig) => ({
+export const setupDriverWork = Comrade.work<DriverSchematic>((shell, _rig) => ({
 	async demux(input) {
 		const {id} = input
 		const transfer: Transferable[] = []
@@ -11,9 +11,9 @@ export const setupDriverWork = Comrade.work<DriverSchematic>((host, _rig) => ({
 			transfer.push(bytes)
 
 			// TODO host is undefined!
-			if (!host) throw new Error("no host!")
+			if (!shell.host) throw new Error("no host!")
 
-			await host.deliverDemuxedPacket.video({id, bytes})
+			await shell.host.deliverDemuxedPacket.video({id, bytes})
 		}
 	},
 

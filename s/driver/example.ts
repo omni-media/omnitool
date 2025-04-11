@@ -1,18 +1,19 @@
 // import "@benev/slate/x/node.js"
 import {setupDriver} from "./setup-driver.js"
 
-export async function example() {
-	const driver = await setupDriver()
-	const dummyData = new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF])
-	const demux = await driver.remote.demux({bytes: dummyData, id: "0"})
-	// make call to init demuxer, mark data as transferable
-	// const demuxer = await driver.machine.createDemuxer({bytes: dummyData})
-	// start demuxing
-	// demuxer.start()
-	// listen for incoming chunks
-	// demuxer.onChunk(chunk => console.log(chunk))
-	// shutdown the worker gracefully
-	driver.dispose()
-}
+const input = document.querySelector("input")
+input?.addEventListener("change", async () => {
+	const file = input.files?.[0]
+	const buffer = await file?.arrayBuffer()
+	if(buffer) {
+		const bytes = new Uint8Array(buffer)
+		example(bytes)
+	}
+})
 
-example()
+export async function example(bytes: Uint8Array) {
+	const driver = await setupDriver()
+	const demuxer = await driver.remote.createDemuxer(bytes)
+	await demuxer.start()
+	demuxer.onChunk(chunk => console.log(chunk))
+}

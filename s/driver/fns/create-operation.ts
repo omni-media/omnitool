@@ -1,4 +1,4 @@
-type Operation<T> = {
+export type Operation<T> = {
 	id: string
 	on(fn: (data: T) => void): void
 	dispatch(data: T): void

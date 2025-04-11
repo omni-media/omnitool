@@ -14,15 +14,39 @@ export type DriverDaddyFns = {
 
 /** driver functions that live on the web worker */
 export type DriverWorkerFns = {
-	decoder(opts: DecoderOpts): Promise<Decoder>
-	encoder(opts: EncoderOpts): Promise<Encoder>
-	muxer(opts: MuxOpts): Promise<Muxer>
-	demux(opts: DemuxerOpts): any
-	composite(opts: CompositeOpts): Promise<VideoFrame>
+	muxer: {
+		init(opts: {id: string, width: number, height: number}): Promise<void>
+		addChunk(opts: {id: string; chunk: EncodedVideoChunk}): Promise<void>
+		finalize(opts: {id: string}): Promise<Uint8Array>
+	}
+	demuxer: {
+		init(opts: {id: string; bytes: Uint8Array}): Promise<void>
+		start(opts: {id: string; start?: number; end?: number}): Promise<void>
+		dispose(opts: {id: string}): Promise<void>
+	}
+	decoder: {
+		init(opts: {id: string; config: VideoDecoderConfig}): Promise<void>
+		decode(opts: {id: string; chunk: EncodedVideoChunk}): Promise<void>
+		close(opts: {id: string}): Promise<void>
+	}
+	encoder: {
+		init(opts: {id: string; config: VideoEncoderConfig}): Promise<void>
+		encode(opts: {id: string; frame: VideoFrame}): Promise<void>
+		flush(opts: {id: string}): Promise<void>
+		close(opts: {id: string}): Promise<void>
+	}
+	composite(opts: CompositeOpts): Promise<void>
 }
 
 export interface DriverAPI {
-	createDemuxer(opts: Omit<DemuxerOpts, "id">): Promise<Demuxer>
+	createDemuxer(bytes: Uint8Array): Promise<Demuxer>
+}
+
+export interface Encoder {
+	encode(frame: VideoFrame): void
+	flush(): Promise<void>
+	close(): void
+	onChunk(fn: (chunk: EncodedVideoChunk) => void): void
 }
 
 export interface DemuxerOpts {
@@ -39,21 +63,18 @@ export interface Processor {
 export interface Decoder {
 	decode(chunk: EncodedVideoChunk): void
 	close(): void
-}
-
-export interface Encoder {
-	encode(frame: VideoFrame): void
-	close(): void
-	flush(): Promise<void>
+	onFrame(fn: (frame: VideoFrame) => void): void
 }
 
 export interface Muxer {
 	addChunk(chunk: EncodedVideoChunk): void
-	finalize(): Promise<void>
+	finalize(): Promise<Uint8Array>
 }
 
 export interface Demuxer {
 	start(): Promise<void>
+	onChunk: (fn: (chunk: EncodedVideoChunk) => void) => void
+	dispose(): void
 }
 
 export interface DecoderOpts {

@@ -40,6 +40,7 @@ export default template(async basic => {
 		body: html`
 			<section>
 				<h1>Omnitool</h1>
+				<input type="file" class="file-input" accept="image/*, video/*, .mp3">
 			</section>
 		`,
 	})

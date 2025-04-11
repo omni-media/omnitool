@@ -1,55 +1,126 @@
-// import {fns, Remote, advanced} from "renraku"
-// import {generate_id, DeferPromise} from "@benev/slate"
+import {Remote} from "@e280/comrade"
+import {generate_id} from "@benev/slate"
 
-// import {createOperation} from "./fns/create-operation.js"
-// import {DemuxerOpts, DriverAPI, DriverDaddyFns, DriverWorkerFns} from "./fns/types.js"
+import {MySchematic} from "./fns/worker.js"
+import {createOperation, Operation} from "./fns/create-operation.js"
+import type {Decoder, Demuxer, DriverAPI, Encoder, Muxer} from "./fns/types.js"
 
-// export class DriverMachine implements DriverAPI {
-// 	#demuxHandlers = new Map<string, (chunk: EncodedVideoChunk) => void>()
+export class DriverMachine implements DriverAPI {
+	#demuxOperations = new Map<string, Operation<EncodedVideoChunk>>()
+	#decoderOperations = new Map<string, Operation<VideoFrame>>()
+	#encoderOperations = new Map<string, Operation<EncodedVideoChunk>>()
 
-// 	constructor(private remote: Remote<DriverWorkerFns>) {}
+	constructor(private remote: Remote<MySchematic["work"]>) {}
 
-// 	static withDaddy(
-// 		remote: Remote<DriverWorkerFns>,
-// 		readyprom: DeferPromise<void>
-// 	) {
-// 		const machine = new DriverMachine(remote)
-// 		const daddy = machine.#createDaddyFns(readyprom)
-// 		return {machine, daddy}
-// 	}
+	static setupHost(setDriver: (driver: DriverMachine) => void) {
+		return (remote: Remote<MySchematic["work"]>, _rig: any): MySchematic["host"] => {
+			const driver = new DriverMachine(remote)
+			setDriver(driver)
+			return driver.#createMainFns()
+		}
+	}
 
-// 	#createDaddyFns(readyprom: DeferPromise<void>) {
-// 		const self = this
+	#createMainFns(): MySchematic["host"] {
+		const self = this
+		return {
+			async onDemuxedChunk({id, chunk}) {
+				self.#demuxOperations.get(id)?.dispatch(chunk)
+			},
+			async onFrame({id, frame}) {
+				self.#decoderOperations.get(id)?.dispatch(frame)
+			},
+			async onEncodedChunk({id, chunk}) {
+				self.#encoderOperations.get(id)?.dispatch(chunk)
+			}
+		}
+	}
 
-// 		return fns<DriverDaddyFns>({
-// 			async ready() {
-// 				readyprom.resolve()
-// 			},
+	async createDemuxer(bytes: Uint8Array): Promise<Demuxer> {
+		const op = createOperation<EncodedVideoChunk>(
+			generate_id,
+			(id, handler) => {
+				this.#demuxOperations.set(id, {
+					id,
+					on(fn) {handler = fn},
+					dispatch(data) {handler(data)},
+					dispose: () => {this.#demuxOperations.delete(id)}
+				})
+			},
+			id => this.#demuxOperations.delete(id)
+		)
 
-// 			async demuxResult(chunk, id) {
-// 				self.#demuxHandlers.get(id)?.(chunk)
-// 			},
+		await this.remote.demuxer.init({id: op.id, bytes})
 
-// 			async muxResult() {},
-// 			async decodeResult() {},
-// 			async encodeResult() {},
-// 			async decoderConfigResult() {}
-// 		})
-// 	}
+		return {
+			start: () => this.remote.demuxer.start({id: op.id}),
+			onChunk: op.on,
+			dispose: () => {
+				this.remote.demuxer.dispose({id: op.id})
+				op.dispose()
+			}
+		}
+	}
 
-// 	async createDemuxer(opts: Omit<DemuxerOpts, "id">) {
-// 		const op = createOperation<EncodedVideoChunk>(
-// 			() => generate_id(),
-// 			(id, handler) => this.#demuxHandlers.set(id, handler),
-// 			id => this.#demuxHandlers.delete(id)
-// 		)
+	async createDecoder(config: VideoDecoderConfig): Promise<Decoder> {
+		const op = createOperation<VideoFrame>(
+			generate_id,
+			(id, handler) => {
+				this.#decoderOperations.set(id, {
+					id,
+					on(fn) {handler = fn},
+					dispatch(data) {handler(data)},
+					dispose: () => {this.#decoderOperations.delete(id)}
+				})
+			},
+			id => this.#decoderOperations.delete(id)
+		)
 
-// 		const demuxer = await this.remote.demuxer[advanced]({transfer: [{bytes: opts.bytes}]})({...opts, id: op.id})
+		await this.remote.decoder.init({id: op.id, config})
 
-// 		return {
-// 			onChunk: op.on,
-// 			start: () => demuxer.start(),
-// 			dispose: op.dispose
-// 		}
-// 	}
-// }
+		return {
+			decode: chunk => this.remote.decoder.decode({id: op.id, chunk}),
+			close: () => {
+				this.remote.decoder.close({id: op.id})
+				op.dispose()
+			},
+			onFrame: op.on
+		}
+	}
+
+	async createEncoder(config: VideoEncoderConfig): Promise<Encoder> {
+		const op = createOperation<EncodedVideoChunk>(
+			generate_id,
+			(id, handler) => {
+				this.#encoderOperations.set(id, {
+					id,
+					on(fn) {handler = fn},
+					dispatch(data) {handler(data)},
+					dispose: () => {this.#encoderOperations.delete(id)}
+				})
+			},
+			id => this.#encoderOperations.delete(id)
+		)
+
+		await this.remote.encoder.init({id: op.id, config})
+
+		return {
+			encode: frame => this.remote.encoder.encode({id: op.id, frame}),
+			flush: () => this.remote.encoder.flush({id: op.id}),
+			close: () => {
+				this.remote.encoder.close({id: op.id})
+				op.dispose()
+			},
+			onChunk: op.on
+		}
+	}
+
+	async createMuxer(config: {width: number, height: number}): Promise<Muxer> {
+		const id = generate_id()
+		await this.remote.muxer.init({id, ...config})
+
+		return {
+			addChunk: chunk => this.remote.muxer.addChunk({id, chunk}),
+			finalize: () => this.remote.muxer.finalize({id})
+		}
+	}
+}

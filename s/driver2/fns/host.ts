@@ -1,14 +1,16 @@
 
 import {Comrade} from "@e280/comrade"
+import {Conduit} from "../parts/conduit.js"
 import {DriverSchematic} from "./schematic.js"
 
-export const setupDriverHost = Comrade.host<DriverSchematic>(() => ({
+// these functions are executed on the main thread
+export const prepareDriverHost = (conduit: Conduit) => Comrade.host<DriverSchematic>(() => ({
 	deliverDemuxedPacket: {
-		async video(stuff) {
-			console.log("got video packet", stuff.id)
+		async video() {
+			console.log("got video packet")
 		},
-		async audio(_stuff) {},
-		async subtitle(_stuff) {},
+		async audio() {},
+		async subtitle() {},
 	},
 }))
 

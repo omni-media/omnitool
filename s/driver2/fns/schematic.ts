@@ -7,7 +7,7 @@ export type DriverSchematic = AsSchematic<{
 	work: {
 		demux(input: {
 			id: number
-			bytes: Uint8Array
+			buffer: ArrayBuffer
 			start: number
 			end: number
 		}): Promise<void>
@@ -15,15 +15,15 @@ export type DriverSchematic = AsSchematic<{
 		mux(input: {
 			tracks: any[]
 			packets: any[]
-		}): Promise<Uint8Array>
+		}): Promise<ArrayBuffer>
 	}
 
 	// happens on the main thread
 	host: {
 		deliverDemuxedPacket: {
-			video(output: {id: number, bytes: Uint8Array}): Promise<void>
-			audio(output: {id: number, bytes: Uint8Array}): Promise<void>
-			subtitle(output: {id: number, bytes: Uint8Array}): Promise<void>
+			video(output: {id: number, buffer: ArrayBuffer}): Promise<void>
+			audio(output: {id: number, buffer: ArrayBuffer}): Promise<void>
+			subtitle(output: {id: number, buffer: ArrayBuffer}): Promise<void>
 		}
 	}
 }>

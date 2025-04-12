@@ -20,7 +20,7 @@
 		"links": "run-s links-s links-assets",
 		"links-s": "ln -s \"$(realpath s)\" x/s",
 		"links-assets": "ln -s \"$(realpath assets)\" x/assets",
-		"test": "node x/example.test.js && node x/driver2/tests/mock.test.js && node x/driver2/tests/cluster.test.js"
+		"test": "node x/example.test.js && node x/driver2/tests/simple.test.js && node x/driver2/tests/cluster.test.js"
 	},
 	"devDependencies": {
 		"@benev/turtle": "^0.6.8",

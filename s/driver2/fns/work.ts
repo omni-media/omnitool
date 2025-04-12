@@ -2,7 +2,7 @@
 import {Comrade} from "@e280/comrade"
 import {DriverSchematic} from "./schematic.js"
 
-// these functions are executed on a web worker
+/** these functions are executed on a web worker */
 export const setupDriverWork = Comrade.work<DriverSchematic>((shell, _rig) => ({
 	async demux(input) {
 		const {id} = input

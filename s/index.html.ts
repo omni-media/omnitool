@@ -32,16 +32,17 @@ export default template(async basic => {
 
 			${headScripts({
 				// wip
-				devModulePath: await path.version.root("driver/example.js"),
-				prodModulePath: await path.version.root("driver/example.js"),
+				devModulePath: await path.version.root("driver/example.bundle.js"),
+				prodModulePath: await path.version.root("driver/example.bundle.min.js"),
 				importmapContent: await read_file("x/importmap.json"),
 			})}
 		`,
 		body: html`
-			<section>
+			<section style="display: flex; flex-direction: column;">
 				<h1>Omnitool</h1>
 				<input type="file" class="file-input" accept="image/*, video/*, .mp3">
 				<button class="save" disabled>save file</button>
+				<canvas width="1920" height="1080" style="width: 500px; height: 500px;"></canvas>
 			</section>
 		`,
 	})

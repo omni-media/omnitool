@@ -5,24 +5,26 @@ type BatcherOptions<T> = {
 }
 
 export class Batcher<T> {
-	#buffer: T[] = []
-	#pending: Promise<void> = Promise.resolve()
-	readonly size: number
-	readonly onBatch: (batch: T[]) => Promise<void>
+	#buffer: {item: T, resolve: () => void}[] = []
+	#pending = Promise.resolve()
+	size: number // batch size for hardware decoding must be max 16 otherwise decoder will stall
+	onBatch: (batch: T[]) => Promise<void>
 
 	constructor({size, onBatch}: BatcherOptions<T>) {
 		this.size = size
 		this.onBatch = onBatch
 	}
 
-	push(item: T) {
-		this.#buffer.push(item)
+	push(item: T): Promise<void> {
+		return new Promise(resolve => {
+			this.#buffer.push({item, resolve})
 
-		if (this.#buffer.length >= this.size)
-			this.#drain()
+			if (this.#buffer.length >= this.size)
+				this.#drain()
+		})
 	}
 
-	async flush() {
+	async flush(): Promise<void> {
 		if (this.#buffer.length > 0)
 			await this.#drain()
 	}
@@ -31,7 +33,14 @@ export class Batcher<T> {
 		const batch = this.#buffer
 		this.#buffer = []
 
-		this.#pending = this.#pending.then(() => this.onBatch(batch))
+		const items = batch.map(entry => entry.item)
+		const resolvers = batch.map(entry => entry.resolve)
+
+		this.#pending = this.#pending.then(() => this.onBatch(items))
 		await this.#pending
+
+		for (const resolve of resolvers)
+			resolve()
 	}
 }
+

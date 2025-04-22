@@ -1,7 +1,8 @@
 import {tune, Work} from "@e280/comrade"
 
+import {Batcher} from "./utils/batcher.js"
 import {Conduit} from "./parts/conduit.js"
-import {DriverSchematic} from "./fns/schematic.js"
+import {Composition, DriverSchematic} from "./fns/schematic.js"
 import {establishClusterDriver, establishSimpleDriver} from "./parts/establishers.js"
 
 export class Driver {
@@ -9,11 +10,15 @@ export class Driver {
 	static cluster = establishClusterDriver
 
 	#id = 0
-	constructor(private conduit: Conduit, private work: Work<DriverSchematic>) {}
+	constructor(
+		private conduit: Conduit,
+		private clusterWork: Work<DriverSchematic>,
+		private threadWork: Work<DriverSchematic>
+	) {}
 
 	async demux(buffer: Uint8Array) {
 		const id = this.#id++
-		const result = await this.work.demux[tune]({ transfer: [buffer] })({
+		const result = await this.clusterWork.demux[tune]({transfer: [buffer]})({
 			id,
 			buffer,
 			start: 0,
@@ -42,7 +47,7 @@ export class Driver {
 			}
 		})
 
-		await this.work.decode[tune]({ transfer: chunks })({
+		await this.clusterWork.decode[tune]({transfer: chunks})({
 			id,
 			config,
 			chunks,
@@ -51,10 +56,9 @@ export class Driver {
 		this.conduit.unregister(id)
 	}
 
-	async encode(
+	encoder(
 		config: VideoEncoderConfig,
-		frames: VideoFrame[],
-		onChunk: (chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined) => void
+		onChunk: (chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined) => void,
 	) {
 		const id = this.#id++
 
@@ -63,23 +67,60 @@ export class Driver {
 				onChunk(event.data.chunk, event.data.meta)
 		})
 
-		await this.work.encode[tune]({ transfer: frames })({
-			id,
-			config,
-			frames
+		const batcher = new Batcher<VideoFrame>({
+			size: 10,
+			onBatch: async batch => {
+				await this.clusterWork.encode[tune]({transfer: batch})({
+					id,
+					config,
+					frames: batch
+				})
+				for (const f of batch) f.close()
+			}
 		})
 
-		this.conduit.unregister(id)
+		return {
+			encode: (frame: VideoFrame) => batcher.push(frame),
+			flush: async () => {
+				await batcher.flush()
+				this.conduit.unregister(id) // maybe it should not unregister here ..
+			}
+		}
 	}
 
 	async mux(
 		config: {width: number, height: number},
 		chunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
 	): Promise<Uint8Array> {
-		return await this.work.mux[tune]({ transfer: chunks })({
+		return await this.clusterWork.mux[tune]({transfer: chunks})({
 			width: config.width,
 			height: config.height,
 			chunks
 		})
+	}
+
+	async composite(
+		composition: Composition,
+	) {
+		const transfer = this.#collectTransferablesFromComposition(composition)
+		return await this.threadWork.composite[tune]({transfer})(composition)
+	}
+
+	#collectTransferablesFromComposition(composition: Composition) {
+		const transferables: Transferable[] = []
+
+		const visit = (node: Composition) => {
+			if (Array.isArray(node)) {
+				for (const child of node)
+					visit(child)
+			}
+			else if (node && typeof node === 'object' && 'kind' in node) {
+				if (node.kind === 'image' && node.frame instanceof VideoFrame)
+					transferables.push(node.frame)
+			}
+		}
+
+		visit(composition)
+		return transferables
 	}
 }

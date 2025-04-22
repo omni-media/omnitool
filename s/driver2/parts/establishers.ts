@@ -10,7 +10,7 @@ import {DriverSchematic} from "../fns/schematic.js"
 export async function establishSimpleDriver() {
 	const m = Comrade.mockWork<DriverSchematic>(setupDriverWork)
 	const conduit = new Conduit()
-	const driver = new Driver(conduit, m.work)
+	const driver = new Driver(conduit, m.work, m.work)
 	const setupHost = prepareDriverHost(conduit)
 	m.mockHost(setupHost)
 	return {driver}
@@ -24,7 +24,12 @@ export async function establishClusterDriver(options: ClusterOptions = {}) {
 		workerUrl: new URL("../driver.worker.js", import.meta.url),
 		setupHost: prepareDriverHost(conduit),
 	})
-	const driver = new Driver(conduit, cluster.work)
-	return {driver, cluster}
+	const thread = await Comrade.thread({
+		workerUrl: new URL('./driver.worker.js', import.meta.url),
+		setupHost: prepareDriverHost(conduit),
+		label: "thread-worker"
+	})
+	const driver = new Driver(conduit, cluster.work, thread.work)
+	return {driver, cluster, thread}
 }
 

@@ -7,5 +7,5 @@ export const encoderDefaultConfig: VideoEncoderConfig = {
 	bitrate: 9_000_000, // 9 Mbps
 	framerate: 60,
 	bitrateMode: "variable",
-	hardwareAcceleration: "prefer-software" // prefer-hardware seems like 2x slower from what i been testing
+	hardwareAcceleration: "no-preference" // prefer-hardware seems like 2x slower from what i been testing
 }

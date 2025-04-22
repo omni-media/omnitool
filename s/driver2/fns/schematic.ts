@@ -35,6 +35,8 @@ export type DriverSchematic = AsSchematic<{
 			height: number
 			chunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
 		}): Promise<Uint8Array>
+
+		composite(input: Composition): Promise<VideoFrame>
 	}
 
 	// happens on the main thread
@@ -60,3 +62,26 @@ export type DriverSchematic = AsSchematic<{
 	}
 }>
 
+export type Composition = Layer | (Layer | Composition)[]
+
+export type Transform = {
+	x?: number
+	y?: number
+	scale?: number
+	opacity?: number
+	anchor?: number
+}
+
+export type TextLayer = {
+	kind: 'text'
+	content: string
+	fontSize?: number
+	color?: string
+} & Transform
+
+export type ImageLayer = {
+	kind: 'image'
+	frame: VideoFrame
+} & Transform
+
+export type Layer = TextLayer | ImageLayer

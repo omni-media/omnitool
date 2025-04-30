@@ -1,7 +1,9 @@
 type ConduitEvent =
 	| {type: "frame", data: VideoFrame}
-	| {type: "chunk", data: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}}
+	| {type: "videoChunk", data: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}}
+	| {type: "audioChunk", data: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}}
 	| {type: "packet", data: Uint8Array}
+	| {type: "audioData", data: AudioData}
 
 type Handler = (event: ConduitEvent) => void
 /** stately functionality that the host fns need belongs here */

@@ -9,3 +9,9 @@ export const encoderDefaultConfig: VideoEncoderConfig = {
 	bitrateMode: "variable",
 	hardwareAcceleration: "no-preference" // prefer-hardware seems like 2x slower from what i been testing
 }
+
+export const audioEncoderDefaultConfig: AudioEncoderConfig = {
+	codec: "aac",
+	numberOfChannels: 2,
+	sampleRate: 48000
+}

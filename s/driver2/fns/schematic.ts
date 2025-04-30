@@ -5,36 +5,33 @@ export type DriverSchematic = AsSchematic<{
 
 	// happens on the web worker
 	work: {
-		demux(input: {
-			id: number
-			buffer: ArrayBuffer
-			start: number
-			end: number
-		}): Promise<{
-			config: VideoDecoderConfig
-			id: number
-			video: EncodedVideoChunk[]
-			audio: ArrayBuffer[]
-			subtitle: ArrayBuffer[]
-		}>
+		demux(input: {id: number} & DemuxInput): Promise<DemuxOutput<DemuxInput>>
 
-		decode(input: {
+		decodeAudio(input: {
+			id: number
+			chunks: EncodedAudioChunk[]
+			config: AudioDecoderConfig
+		}): Promise<void>
+
+		decodeVideo(input: {
 			id: number
 			chunks: EncodedVideoChunk[]
 			config: VideoDecoderConfig
 		}): Promise<void>
 
-		encode(input: {
+		encodeVideo(input: {
 			id: number
 			config: VideoEncoderConfig
 			frames: VideoFrame[]
 		}): Promise<void>
 
-		mux(input: {
-			width: number
-			height: number
-			chunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
-		}): Promise<Uint8Array>
+		encodeAudio(input: {
+			id: number
+			config: AudioEncoderConfig
+			data: AudioData[]
+		}): Promise<void>
+
+		mux(input: MuxOpts): Promise<Uint8Array>
 
 		composite(input: Composition): Promise<VideoFrame>
 	}
@@ -46,12 +43,21 @@ export type DriverSchematic = AsSchematic<{
 				id: number
 				frame: VideoFrame
 			}): Promise<void>
+			deliverAudioData(input: {
+				id: number
+				data: AudioData
+			}): Promise<void>
 		}
 		encoder: {
 			deliverChunk(input: {
 				id: number
 				chunk: EncodedVideoChunk
 				meta: EncodedVideoChunkMetadata | undefined
+			}): Promise<void>
+			deliverAudioChunk(input: {
+				id: number
+				chunk: EncodedAudioChunk
+				meta: EncodedAudioChunkMetadata | undefined
 			}): Promise<void>
 		}
 		// deliverDemuxedPacket: {
@@ -61,6 +67,68 @@ export type DriverSchematic = AsSchematic<{
 		// }
 	}
 }>
+
+export type DemuxStreamKind = "video" | "audio" | "both"
+
+export type DemuxOutput<T extends DemuxInput> =
+	T extends VideoOnlyDemuxInput ? {
+		id: number
+		video: EncodedVideoChunk[]
+		audio: []
+		config: {video: VideoDecoderConfig, audio?: undefined}
+	} : T extends AudioOnlyDemuxInput ? {
+		id: number
+		video: []
+		audio: EncodedAudioChunk[]
+		config: {audio: AudioDecoderConfig, video?: undefined}
+	} : {
+		id: number
+		video: EncodedVideoChunk[]
+		audio: EncodedAudioChunk[]
+		config: {
+			video: VideoDecoderConfig
+			audio: AudioDecoderConfig
+		}
+	}
+
+type TimeRange<T extends DemuxStreamKind> =
+	T extends 'video' ? {video?: number}
+	: T extends 'audio' ? {audio?: number}
+	: {video?: number; audio?: number}
+
+interface BaseDemuxInput<T extends DemuxStreamKind> {
+	buffer: ArrayBuffer
+	stream: T
+	start?: TimeRange<T>
+	end?: TimeRange<T>
+}
+
+export type VideoOnlyDemuxInput = BaseDemuxInput<'video'>
+export type AudioOnlyDemuxInput = BaseDemuxInput<'audio'>
+export type BothStreamsDemuxInput = BaseDemuxInput<'both'>
+
+export type DemuxInput =
+	| VideoOnlyDemuxInput
+	| AudioOnlyDemuxInput
+	| BothStreamsDemuxInput
+
+export interface MuxOpts {
+	config: {
+		video: {
+			width: number
+			height: number
+		},
+		audio?: {
+			codec: "opus" | "aac"
+			numberOfChannels: number
+			sampleRate: number
+		}
+	}
+	chunks: {
+		videoChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
+		audioChunks?: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[]
+	}
+}
 
 export type Composition = Layer | (Layer | Composition)[]
 

@@ -5,43 +5,79 @@ import {WebDemuxer} from "web-demuxer/dist/web-demuxer.js"
 //@ts-ignore
 import {autoDetectRenderer, Container, Sprite, Text, Texture, Renderer} from "pixi.js/dist/pixi.mjs"
 
-import {encoderDefaultConfig} from "../../driver/constants.js"
+import {audioEncoderDefaultConfig, encoderDefaultConfig} from "../../driver/constants.js"
 import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
 
 /** these functions are executed on a web worker */
 export const setupDriverWork = Comrade.work<DriverSchematic>((shell, rig) => ({
-	async demux({id, buffer, start, end}) {
+	async demux({id, buffer, start, end, stream}) {
 		const demuxer = new WebDemuxer({
 			wasmLoaderPath: import.meta.resolve("web-demuxer/dist/wasm-files/ffmpeg.js"),
 		})
-		const file = new File([buffer], "video.mp4")
+
+		const file = new File([new Uint8Array(buffer)], "video.mp4")
 		await demuxer.load(file)
 
 		const video: EncodedVideoChunk[] = []
-		const audio: ArrayBuffer[] = []
-		const subtitle: ArrayBuffer[] = []
+		const audio: EncodedAudioChunk[] = []
 
-		const reader = demuxer
-			.readAVPacket(
-				start ? start / 1000 : undefined,
-				end ? end / 1000 : undefined
-			)
-			.getReader()
+		let videoDecoderConfig: VideoDecoderConfig | undefined
+		let audioDecoderConfig: AudioDecoderConfig | undefined
 
-		while (true) {
-			const { done, value } = await reader.read()
-			if (done) break
-
-			const chunk = demuxer.genEncodedVideoChunk(value)
-			video.push(chunk)
+		if (stream !== 'audio') {
+			videoDecoderConfig = await demuxer.getVideoDecoderConfig()
+			const reader = demuxer.readAVPacket(start?.video, end?.video).getReader()
+			while (true) {
+				const { done, value } = await reader.read()
+				if (done) break
+				video.push(demuxer.genEncodedVideoChunk(value))
+			}
 		}
 
-		const config = await demuxer.getVideoDecoderConfig()
-		rig.transfer = video // or [...video, ...audio, ...subtitle] if needed
-		return {id, video, audio, subtitle, config}
+		if (stream !== 'video') {
+			audioDecoderConfig = await demuxer.getAudioDecoderConfig()
+			const reader = demuxer.readAVPacket(start?.audio, end?.audio, 1).getReader()
+			while (true) {
+				const { done, value } = await reader.read()
+				if (done) break
+				audio.push(demuxer.genEncodedAudioChunk(value))
+			}
+		}
+
+		demuxer.destroy()
+		rig.transfer = [video, audio]
+
+		if (stream === 'video') {
+			return {
+				id,
+				video,
+				audio: [],
+				config: {video: videoDecoderConfig!}
+			}
+		}
+
+		if (stream === 'audio') {
+			return {
+				id,
+				video: [],
+				audio,
+				config: {audio: audioDecoderConfig!}
+			}
+		}
+
+		// stream === 'both'
+		return {
+			id,
+			video,
+			audio,
+			config: {
+				video: videoDecoderConfig!,
+				audio: audioDecoderConfig!
+			}
+		}
 	},
 
-	async decode({config, chunks, id}) {
+	async decodeVideo({config, chunks, id}) {
 		const decoder = new VideoDecoder({
 			async output(frame) {
 				rig.transfer = [frame]
@@ -63,7 +99,29 @@ export const setupDriverWork = Comrade.work<DriverSchematic>((shell, rig) => ({
 		decoder.close()
 	},
 
-	async encode({id, config, frames}) {
+	async decodeAudio({config, chunks, id}) {
+		const decoder = new AudioDecoder({
+			async output(data) {
+				rig.transfer = [data]
+				await shell.host.decoder.deliverAudioData({id, data})
+				// frame.close()
+			},
+			error(e) {
+				console.error("Decoder error:", e)
+			}
+		})
+
+		decoder.configure(config)
+
+		for (const chunk of chunks) {
+			decoder.decode(chunk)
+		}
+
+		await decoder.flush()
+		decoder.close()
+	},
+
+	async encodeVideo({id, config, frames}) {
 		const encoder = new VideoEncoder({
 			async output(chunk, meta) {
 				rig.transfer = [chunk]
@@ -85,20 +143,47 @@ export const setupDriverWork = Comrade.work<DriverSchematic>((shell, rig) => ({
 		encoder.close()
 	},
 
-	async mux({width, height, chunks}) {
+	async encodeAudio({id, config, data}) {
+		const encoder = new AudioEncoder({
+			async output(chunk, meta) {
+				rig.transfer = [chunk]
+				await shell.host.encoder.deliverAudioChunk({id, chunk, meta})
+			},
+			error(e) {
+				console.error("Encoder error:", e)
+			}
+		})
+
+		encoder.configure({...config})
+
+		for (const audio of data) {
+			encoder.encode(audio)
+			audio.close()
+		}
+
+		await encoder.flush()
+		encoder.close()
+	},
+
+	async mux({chunks, config}) {
 		const muxer = new Muxer({
 			target: new ArrayBufferTarget(),
 			video: {
-				width,
-				height,
+				...config.video,
 				codec: "avc"
 			},
+			audio: config.audio ?? undefined,
 			firstTimestampBehavior: "offset",
 			fastStart: "in-memory"
 		})
 
-		for (const chunk of chunks)
-			muxer.addVideoChunk(chunk.chunk, chunk.meta)
+		for (const {chunk, meta} of chunks.videoChunks)
+			muxer.addVideoChunk(chunk, meta)
+
+		if(chunks.audioChunks)
+			for(const {chunk, meta} of chunks.audioChunks) {
+				muxer.addAudioChunk(chunk, meta)
+			}
 
 		muxer.finalize()
 

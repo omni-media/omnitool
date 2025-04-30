@@ -15,11 +15,17 @@ export const prepareDriverHost = (conduit: Conduit) => Comrade.host<DriverSchema
 	decoder: {
 		async deliverFrame({id, frame}) {
 			conduit.dispatch(id, {type: "frame", data: frame})
-		}
+		},
+		async deliverAudioData({id, data}) {
+			conduit.dispatch(id, {type: "audioData", data})
+		},
 	},
 	encoder: {
 		async deliverChunk({id, chunk, meta}) {
-			conduit.dispatch(id, {type: "chunk", data: {chunk, meta}})
+			conduit.dispatch(id, {type: "videoChunk", data: {chunk, meta}})
+		},
+		async deliverAudioChunk({id, chunk, meta}) {
+			conduit.dispatch(id, {type: "audioChunk", data: {chunk, meta}})
 		}
 	}
 }))

@@ -21,11 +21,14 @@ input?.addEventListener("change", async () => {
 	const file = input.files?.[0]
 	const buffer = await file?.arrayBuffer()
 	if(buffer) {
-		const bytes = new Uint8Array(buffer)
-		const {video, config} = await driver.demux(bytes)
+		const {video, config, audio} = await driver.demux({buffer, stream: "both"})
 		const encodedChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[] = []
-		const encoder = driver.encoder(encoderDefaultConfig, (chunk, meta) => encodedChunks.push({chunk, meta}))
-		await driver.decode(config, video, async (frame) => {
+		const encodedAudioChunks: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[] = []
+		const videoEncoder = driver.videoEncoder(encoderDefaultConfig, (chunk, meta) => encodedChunks.push({chunk, meta}))
+		const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
+		await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
+		await audioEncoder.flush()
+		await driver.decodeVideo(config.video, video, async (frame) => {
 			const composed = await driver.composite([
 				{
 					kind: "image",
@@ -39,10 +42,20 @@ input?.addEventListener("change", async () => {
 				}
 			])
 			ctx!.drawImage(composed, 0, 0)
-			await encoder.encode(composed)
+			await videoEncoder.encode(composed)
 		})
-		await encoder.flush()
-		result = await driver.mux({width: 1920, height: 1080}, encodedChunks)
+
+		await videoEncoder.flush()
+		result = await driver.mux({
+			chunks: {videoChunks: encodedChunks, audioChunks: encodedAudioChunks},
+			config: {
+				video: {width: 1920, height: 1080},
+				audio: {
+					...config.audio,
+					codec: "aac"
+				}
+			}
+		})
 		saveButton.disabled = false
 	}
 })

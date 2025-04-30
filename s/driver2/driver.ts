@@ -2,7 +2,7 @@ import {tune, Work} from "@e280/comrade"
 
 import {Batcher} from "./utils/batcher.js"
 import {Conduit} from "./parts/conduit.js"
-import {Composition, DriverSchematic} from "./fns/schematic.js"
+import {Composition, DemuxInput, DemuxOutput, DriverSchematic, MuxOpts} from "./fns/schematic.js"
 import {establishClusterDriver, establishSimpleDriver} from "./parts/establishers.js"
 
 export class Driver {
@@ -16,25 +16,22 @@ export class Driver {
 		private threadWork: Work<DriverSchematic>
 	) {}
 
-	async demux(buffer: Uint8Array) {
+	async demux<T extends DemuxInput>(input: T): Promise<DemuxOutput<T>> {
 		const id = this.#id++
-		const result = await this.clusterWork.demux[tune]({transfer: [buffer]})({
+		const result = await this.clusterWork.demux[tune]({transfer: [input.buffer]})({
 			id,
-			buffer,
-			start: 0,
-			end: buffer.byteLength - 1,
+			...input
 		})
 
 		return {
 			id: result.id,
 			video: result.video,
-			audio: result.audio.map(buf => new Uint8Array(buf)),
-			subtitle: result.subtitle.map(buf => new Uint8Array(buf)),
+			audio: result.audio,
 			config: result.config
-		}
+		} as DemuxOutput<T>
 	}
 
-	async decode(
+	async decodeVideo(
 		config: VideoDecoderConfig,
 		chunks: EncodedVideoChunk[],
 		onFrame: (frame: VideoFrame) => void
@@ -47,7 +44,7 @@ export class Driver {
 			}
 		})
 
-		await this.clusterWork.decode[tune]({transfer: chunks})({
+		await this.clusterWork.decodeVideo[tune]({transfer: chunks})({
 			id,
 			config,
 			chunks,
@@ -56,21 +53,43 @@ export class Driver {
 		this.conduit.unregister(id)
 	}
 
-	encoder(
+	async decodeAudio(
+		config: AudioDecoderConfig,
+		chunks: EncodedAudioChunk[],
+		onData: (data: AudioData) => void
+	) {
+		const id = this.#id++
+
+		this.conduit.register(id, event => {
+			if (event.type === "audioData") {
+				onData(event.data)
+			}
+		})
+
+		await this.clusterWork.decodeAudio[tune]({transfer: chunks})({
+			id,
+			config,
+			chunks,
+		})
+
+		this.conduit.unregister(id)
+	}
+
+	videoEncoder(
 		config: VideoEncoderConfig,
 		onChunk: (chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined) => void,
 	) {
 		const id = this.#id++
 
 		this.conduit.register(id, event => {
-			if (event.type === "chunk")
+			if (event.type === "videoChunk")
 				onChunk(event.data.chunk, event.data.meta)
 		})
 
 		const batcher = new Batcher<VideoFrame>({
 			size: 10,
 			onBatch: async batch => {
-				await this.clusterWork.encode[tune]({transfer: batch})({
+				await this.clusterWork.encodeVideo[tune]({transfer: batch})({
 					id,
 					config,
 					frames: batch
@@ -88,15 +107,40 @@ export class Driver {
 		}
 	}
 
-	async mux(
-		config: {width: number, height: number},
-		chunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
-	): Promise<Uint8Array> {
-		return await this.clusterWork.mux[tune]({transfer: chunks})({
-			width: config.width,
-			height: config.height,
-			chunks
+	audioEncoder(
+		config: AudioEncoderConfig,
+		onChunk: (chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined) => void,
+	) {
+		const id = this.#id++
+
+		this.conduit.register(id, event => {
+			if (event.type === "audioChunk")
+				onChunk(event.data.chunk, event.data.meta)
 		})
+
+		const batcher = new Batcher<AudioData>({
+			size: 10,
+			onBatch: async batch => {
+				await this.clusterWork.encodeAudio[tune]({transfer: batch})({
+					id,
+					config,
+					data: batch
+				})
+				for (const f of batch) f.close()
+			}
+		})
+
+		return {
+			encode: (data: AudioData) => batcher.push(data),
+			flush: async () => {
+				await batcher.flush()
+				this.conduit.unregister(id) // maybe it should not unregister here ..
+			}
+		}
+	}
+
+	async mux(opts: MuxOpts): Promise<Uint8Array> {
+		return await this.clusterWork.mux[tune]({transfer: [opts.chunks.videoChunks, opts.chunks.audioChunks ?? []]})(opts)
 	}
 
 	async composite(

@@ -1,7 +1,7 @@
 
 import "@benev/slate/x/node.js"
-import {Omni} from "./sugar/omni.js"
-import {dummyData} from "./utils/dummy-data.js"
+import {Omni} from "./omni.js"
+import {dummyData} from "../utils/dummy-data.js"
 
 //
 // create an omni context

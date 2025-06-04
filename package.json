@@ -11,19 +11,22 @@
 		"s"
 	],
 	"scripts": {
-		"build": "rm -rf x && run-s build-code build-ssg links",
-		"build-code": "turtle build --out=x",
-		"build-ssg": "turtle ssg --in=s,x --out=x",
-		"start": "run-p start-http start-turtle",
-		"start-http": "http-server x",
-		"start-turtle": "turtle watch --in=s,x --out=x -v",
-		"links": "run-s links-s links-assets",
-		"links-s": "ln -s \"$(realpath s)\" x/s",
-		"links-assets": "ln -s \"$(realpath assets)\" x/assets",
-		"test": "node x/example.test.js && node x/driver2/tests/simple.test.js && node x/driver2/tests/cluster.test.js"
+		"build": "rm -rf x && run-s _code _ssg _ln",
+		"_code": "turtle build --out=x",
+		"_ssg": "turtle ssg --in=s,x --out=x",
+		"start": "run-p _http _turtle",
+		"_http": "http-server x",
+		"_turtle": "turtle watch --in=s,x --out=x -v",
+		"_ln": "run-s _ln-s _ln-assets",
+		"_ln-s": "ln -s \"$(realpath s)\" x/s",
+		"_ln-assets": "ln -s \"$(realpath assets)\" x/assets",
+		"test": "node x/tests.test.js",
+		"test-watch": "node --watch x/tests.test.js",
+		"test-debug": "node inspect x/tests.test.js"
 	},
 	"devDependencies": {
 		"@benev/turtle": "^0.6.13",
+		"@e280/science": "^0.0.5",
 		"@types/node": "^22.15.29",
 		"http-server": "^14.1.1",
 		"npm-run-all": "^4.1.5",
@@ -36,11 +39,6 @@
 		"pixi.js": "^8.10.0",
 		"web-demuxer": "^2.3.8"
 	},
-	"keywords": [
-		"tools",
-		"video",
-		"processing"
-	],
 	"homepage": "https://github.com/omni-media/omnitool#readme",
 	"repository": {
 		"type": "git",
@@ -48,5 +46,10 @@
 	},
 	"bugs": {
 		"url": "https://github.com/omni-media/omnitool/issues"
-	}
+	},
+	"keywords": [
+		"tools",
+		"video",
+		"processing"
+	]
 }

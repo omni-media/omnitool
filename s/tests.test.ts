@@ -1,9 +1,8 @@
 
-import {Science, test, expect} from "@e280/science"
+import {Science} from "@e280/science"
+import driver from "./driver3/driver.test.js"
 
 await Science.run({
-	"universe works": test(async() => {
-		expect(2 + 2).is(4)
-	}),
+	driver,
 })
 

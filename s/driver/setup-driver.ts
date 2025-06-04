@@ -1,5 +1,5 @@
 // import "@benev/slate/x/node.js"
-import Comrade from "@e280/comrade"
+import {Comrade} from "@e280/comrade"
 
 import {DriverMachine} from "./driver-machine.js"
 import {setupWork, type MySchematic} from "./fns/worker.js"

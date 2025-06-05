@@ -1,0 +1,30 @@
+
+@layer vars, basics, page;
+
+@layer vars {
+	:root {
+		--link: cyan;
+		--color: #fffa;
+		--background: #111;
+	}
+}
+
+@layer basics {
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+}
+
+@layer page {
+	html {
+		font-size: 10px;
+	}
+
+	html {
+		color: var(--color);
+		background: var(--background);
+	}
+}
+

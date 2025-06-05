@@ -14,7 +14,7 @@ export default template(async basic => {
 		title: "e280",
 		head: html`
 			<link rel="icon" href="${favicon}"/>
-			<style>${unsanitized(await read_file("x/style.css"))}</style>
+			<style>${unsanitized(await read_file("x/demo/demo.css"))}</style>
 			<meta data-commit-hash="${hash}"/>
 
 			<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,9 +31,8 @@ export default template(async basic => {
 			})}
 
 			${headScripts({
-				// wip
-				devModulePath: await path.version.root("driver/example.bundle.js"),
-				prodModulePath: await path.version.root("driver/example.bundle.min.js"),
+				devModulePath: await path.version.root("demo/demo.bundle.js"),
+				prodModulePath: await path.version.root("demo/demo.bundle.min.js"),
 				importmapContent: await read_file("x/importmap.json"),
 			})}
 		`,

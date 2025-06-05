@@ -11,6 +11,8 @@ export type DriverOptions = {
 }
 
 export class Driver {
+	#id = 0
+
 	static async setup(options: DriverOptions) {
 		const machina = new Machina()
 		const thread = await Comrade.thread<DriverSchematic>({

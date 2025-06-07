@@ -28,19 +28,19 @@ saveButton?.addEventListener("click", () => {
 input?.addEventListener("change", async () => {
 	const file = input.files?.[0]
 	if(file) {
-		const buffer = await file.bytes()
-		demo(buffer)
+		demo(file)
 	}
 })
 
-async function demo(buffer: Uint8Array) {
+async function demo(file: File) {
+	const buffer = await file.arrayBuffer()
 	const {video, config, audio} = await driver.demux({buffer, stream: "both"})
 	const encodedChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[] = []
 	const encodedAudioChunks: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[] = []
 	const videoEncoder = driver.videoEncoder(encoderDefaultConfig, (chunk, meta) => encodedChunks.push({chunk, meta}))
-	const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
-	await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
-	await audioEncoder.flush()
+	// const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
+	// await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
+	// await audioEncoder.flush()
 	await driver.decodeVideo(config.video, video, async (frame) => {
 		const composed = await driver.composite([
 			{
@@ -56,6 +56,8 @@ async function demo(buffer: Uint8Array) {
 		])
 		ctx!.drawImage(composed, 0, 0)
 		await videoEncoder.encode(composed)
+		frame.close()
+		composed.close()
 	})
 
 	await videoEncoder.flush()
@@ -63,10 +65,10 @@ async function demo(buffer: Uint8Array) {
 		chunks: {videoChunks: encodedChunks, audioChunks: encodedAudioChunks},
 		config: {
 			video: {width: 1920, height: 1080},
-			audio: {
-				...config.audio,
-				codec: "aac"
-			}
+			// audio: {
+			// 	...config.audio,
+			// 	codec: "aac"
+			// }
 		}
 	})
 	saveButton.disabled = false

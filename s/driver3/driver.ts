@@ -34,7 +34,7 @@ export class Driver {
 
 	async demux<T extends DemuxInput>(input: T): Promise<DemuxOutput<T>> {
 		const id = this.#id++
-		const result = await this.thread.work.demux[tune]({transfer: []})({
+		const result = await this.thread.work.demux[tune]({transfer: [input.buffer]})({
 			id,
 			...input
 		})
@@ -60,7 +60,7 @@ export class Driver {
 			}
 		})
 
-		await this.thread.work.decodeVideo[tune]({transfer: chunks})({
+		await this.thread.work.decodeVideo[tune]({transfer: []})({
 			id,
 			config,
 			chunks,
@@ -82,7 +82,7 @@ export class Driver {
 			}
 		})
 
-		await this.thread.work.decodeAudio[tune]({transfer: chunks})({
+		await this.thread.work.decodeAudio[tune]({transfer: []})({
 			id,
 			config,
 			chunks,
@@ -156,7 +156,12 @@ export class Driver {
 	}
 
 	async mux(opts: MuxOpts): Promise<Uint8Array> {
-		return await this.thread.work.mux[tune]({transfer: [opts.chunks.videoChunks, opts.chunks.audioChunks ?? []]})(opts)
+		return await this.thread.work.mux[tune]({transfer: [
+			// opts.chunks.videoChunks,
+			// opts.chunks.audioChunks
+			// ?? []
+			]
+			})(opts)
 	}
 
 	async composite(

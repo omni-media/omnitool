@@ -1,12 +1,11 @@
-
-import {ArrayBufferTarget, Muxer} from "mp4-muxer"
 import {Comrade} from "@e280/comrade"
-import {DriverSchematic} from "./schematic.js"
 import {WebDemuxer} from "web-demuxer"
-//@ts-ignore
-import {autoDetectRenderer, Container, Sprite, Text, Texture, Renderer} from "pixi.js"
-import { encoderDefaultConfig } from "../../driver/constants.js"
-import { Composition, Layer, Transform } from "../../driver2/fns/schematic.js"
+import {ArrayBufferTarget, Muxer} from "mp4-muxer"
+import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture} from "pixi.js"
+
+import {DriverSchematic} from "./schematic.js"
+import {encoderDefaultConfig } from "../../driver/constants.js"
+import {Composition, Layer, Transform} from "../../driver2/fns/schematic.js"
 
 export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
@@ -15,10 +14,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 	},
 
 	async demux({id, buffer, start, end, stream}) {
-		const demuxer = new WebDemuxer({
-			wasmLoaderPath: import.meta.resolve("web-demuxer/dist/wasm-files/ffmpeg.js"),
-		})
-
+		const demuxer = new WebDemuxer({wasmLoaderPath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/ffmpeg.min.js"})
 		const file = new File([new Uint8Array(buffer)], "video.mp4")
 		await demuxer.load(file)
 
@@ -48,8 +44,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			}
 		}
 
-		demuxer.destroy()
-		rig.transfer = [video, audio]
+		// rig.transfer = [video, audio]
+		// demuxer.destroy()
 
 		if (stream === 'video') {
 			return {
@@ -84,9 +80,9 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 	async decodeVideo({config, chunks, id}) {
 		const decoder = new VideoDecoder({
 			async output(frame) {
-				rig.transfer = [frame]
+				// rig.transfer = [frame]
 				await host.decoder.deliverFrame({id, frame})
-				// frame.close()
+				frame.close()
 			},
 			error(e) {
 				console.error("Decoder error:", e)
@@ -99,16 +95,16 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			decoder.decode(chunk)
 		}
 
-		await decoder.flush()
-		decoder.close()
+		// await decoder.flush()
+		// decoder.close()
 	},
 
 	async decodeAudio({config, chunks, id}) {
 		const decoder = new AudioDecoder({
 			async output(data) {
-				rig.transfer = [data]
+				// rig.transfer = [data]
 				await host.decoder.deliverAudioData({id, data})
-				// frame.close()
+				data.close()
 			},
 			error(e) {
 				console.error("Decoder error:", e)
@@ -121,8 +117,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			decoder.decode(chunk)
 		}
 
-		await decoder.flush()
-		decoder.close()
+		// await decoder.flush()
+		// decoder.close()
 	},
 
 	async encodeVideo({id, config, frames}) {
@@ -176,7 +172,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 				...config.video,
 				codec: "avc"
 			},
-			audio: config.audio ?? undefined,
+			// audio: config.audio ?? undefined,
 			firstTimestampBehavior: "offset",
 			fastStart: "in-memory"
 		})
@@ -184,15 +180,16 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		for (const {chunk, meta} of chunks.videoChunks)
 			muxer.addVideoChunk(chunk, meta)
 
-		if(chunks.audioChunks)
-			for(const {chunk, meta} of chunks.audioChunks) {
-				muxer.addAudioChunk(chunk, meta)
-			}
-
-		muxer.finalize()
+		// if(chunks.audioChunks)
+		// 	for(const {chunk, meta} of chunks.audioChunks) {
+		// 		muxer.addAudioChunk(chunk, meta)
+		// 	}
+		try {
+			muxer.finalize()
+		} catch(e) {console.log(e)}
 
 		const output = new Uint8Array(muxer.target.buffer)
-		rig.transfer = [output.buffer]
+		// rig.transfer = [output.buffer]
 		return output
 	},
 
@@ -214,7 +211,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			disposable.destroy(true)
 		}
 
-		rig.transfer = [frame]
+		// rig.transfer = [frame]
 		return frame
 	}
 }))

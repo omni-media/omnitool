@@ -38,6 +38,7 @@
 	"dependencies": {
 		"@benev/slate": "^0.3.5",
 		"@e280/comrade": "^0.0.0-14",
+		"comrade": "^0.0.3",
 		"mp4-muxer": "^5.2.1",
 		"pixi.js": "^8.10.0",
 		"web-demuxer": "^2.3.8"

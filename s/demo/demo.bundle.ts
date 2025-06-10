@@ -38,9 +38,8 @@ async function demo(file: File) {
 	const encodedChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[] = []
 	const encodedAudioChunks: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[] = []
 	const videoEncoder = driver.videoEncoder(encoderDefaultConfig, (chunk, meta) => encodedChunks.push({chunk, meta}))
-	// const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
-	// await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
-	// await audioEncoder.flush()
+	const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
+	await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
 	await driver.decodeVideo(config.video, video, async (frame) => {
 		const composed = await driver.composite([
 			{
@@ -56,19 +55,19 @@ async function demo(file: File) {
 		])
 		ctx!.drawImage(composed, 0, 0)
 		await videoEncoder.encode(composed)
-		frame.close()
-		composed.close()
 	})
 
 	await videoEncoder.flush()
+	await audioEncoder.flush()
+
 	result = await driver.mux({
 		chunks: {videoChunks: encodedChunks, audioChunks: encodedAudioChunks},
 		config: {
 			video: {width: 1920, height: 1080},
-			// audio: {
-			// 	...config.audio,
-			// 	codec: "aac"
-			// }
+			audio: {
+				...config.audio,
+				codec: "aac"
+			}
 		}
 	})
 	saveButton.disabled = false

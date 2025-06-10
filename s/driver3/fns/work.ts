@@ -1,11 +1,13 @@
 import {Comrade} from "@e280/comrade"
 import {WebDemuxer} from "web-demuxer"
 import {ArrayBufferTarget, Muxer} from "mp4-muxer"
-import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture} from "pixi.js"
+import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 
 import {DriverSchematic} from "./schematic.js"
 import {encoderDefaultConfig } from "../../driver/constants.js"
 import {Composition, Layer, Transform} from "../../driver2/fns/schematic.js"
+
+DOMAdapter.set(WebWorkerAdapter)
 
 export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
@@ -45,7 +47,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		}
 
 		// rig.transfer = [video, audio]
-		// demuxer.destroy()
+		demuxer.destroy()
 
 		if (stream === 'video') {
 			return {
@@ -80,7 +82,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 	async decodeVideo({config, chunks, id}) {
 		const decoder = new VideoDecoder({
 			async output(frame) {
-				// rig.transfer = [frame]
+				rig.transfer = [frame]
 				await host.decoder.deliverFrame({id, frame})
 				frame.close()
 			},
@@ -95,8 +97,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			decoder.decode(chunk)
 		}
 
-		// await decoder.flush()
-		// decoder.close()
+		await decoder.flush()
+		decoder.close()
 	},
 
 	async decodeAudio({config, chunks, id}) {
@@ -117,14 +119,14 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			decoder.decode(chunk)
 		}
 
-		// await decoder.flush()
-		// decoder.close()
+		await decoder.flush()
+		decoder.close()
 	},
 
 	async encodeVideo({id, config, frames}) {
 		const encoder = new VideoEncoder({
 			async output(chunk, meta) {
-				rig.transfer = [chunk]
+				// rig.transfer = [chunk]
 				await host.encoder.deliverChunk({id, chunk, meta})
 			},
 			error(e) {
@@ -146,7 +148,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 	async encodeAudio({id, config, data}) {
 		const encoder = new AudioEncoder({
 			async output(chunk, meta) {
-				rig.transfer = [chunk]
+				// rig.transfer = [chunk]
 				await host.encoder.deliverAudioChunk({id, chunk, meta})
 			},
 			error(e) {
@@ -172,7 +174,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 				...config.video,
 				codec: "avc"
 			},
-			// audio: config.audio ?? undefined,
+			audio: config.audio ?? undefined,
 			firstTimestampBehavior: "offset",
 			fastStart: "in-memory"
 		})
@@ -180,13 +182,12 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		for (const {chunk, meta} of chunks.videoChunks)
 			muxer.addVideoChunk(chunk, meta)
 
-		// if(chunks.audioChunks)
-		// 	for(const {chunk, meta} of chunks.audioChunks) {
-		// 		muxer.addAudioChunk(chunk, meta)
-		// 	}
-		try {
-			muxer.finalize()
-		} catch(e) {console.log(e)}
+		if(chunks.audioChunks)
+			for(const {chunk, meta} of chunks.audioChunks) {
+				muxer.addAudioChunk(chunk, meta)
+			}
+
+		muxer.finalize()
 
 		const output = new Uint8Array(muxer.target.buffer)
 		// rig.transfer = [output.buffer]
@@ -201,6 +202,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		renderer.render(stage)
 
 		// make sure browser support webgl/webgpu otherwise it might take much longer to construct frame
+		// if its very slow on eg edge try chrome
 		const frame = new VideoFrame(renderer.canvas, {
 			timestamp: baseFrame?.timestamp,
 			duration: baseFrame?.duration ?? undefined,
@@ -211,7 +213,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			disposable.destroy(true)
 		}
 
-		// rig.transfer = [frame]
+		rig.transfer = [frame]
 		return frame
 	}
 }))

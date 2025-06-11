@@ -69,7 +69,7 @@ export class Batcher<T, C> {
 				}
 			}
 
-			if (batch.every(item => item === undefined) || batch.length === this.size) {
+			if (batch.length === this.size) {
 				this.#queue.delete(batchNumber)
 				this.#currentBatchNumber++
 			}

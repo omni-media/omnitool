@@ -1,19 +1,24 @@
-type BatcherOptions<T> = {
+type BatcherOptions<T, C> = {
 	size: number
 	onBatch: (batch: T[], batchNumber: number) => Promise<void>
-	clone?: (item: T) => T
+	onChunk?: (chunk: C) => void
 }
 
-export class Batcher<T> {
+export class Batcher<T, C> {
 	#buffer: {item: T, resolve: () => void}[] = []
 	#pending = Promise.resolve()
-	size: number // batch size for hardware decoding must be max 16 otherwise decoder will stall
-	onBatch: (batch: T[], batchNumber: number) => Promise<void>
-	batchNumber = 0
+	#queue = new Map<number, (C | undefined)[]>()
+	#currentBatchNumber = 0
 
-	constructor({size, onBatch}: BatcherOptions<T>) {
+	size: number
+	batchNumber = 0
+	onBatch: (batch: T[], batchNumber: number) => Promise<void>
+	onChunk?: (chunk: C) => void
+
+	constructor({size, onBatch, onChunk}: BatcherOptions<T, C>) {
 		this.size = size
 		this.onBatch = onBatch
+		this.onChunk = onChunk
 	}
 
 	push(item: T): Promise<void> {
@@ -43,5 +48,31 @@ export class Batcher<T> {
 		for (const resolve of resolvers)
 			resolve()
 	}
-}
 
+	receiveChunk(data: C & {batchNumber: number}) {
+		if (!this.onChunk) return
+
+		const {batchNumber} = data
+
+		if (!this.#queue.has(batchNumber))
+			this.#queue.set(batchNumber, [])
+
+		const batch = this.#queue.get(batchNumber)!
+		batch.push(data)
+
+		if (batchNumber === this.#currentBatchNumber) {
+			for (const element of batch) {
+				if (element) {
+					this.onChunk(element)
+					const index = batch.indexOf(element)
+					batch[index] = undefined
+				}
+			}
+
+			if (batch.every(item => item === undefined) || batch.length === this.size) {
+				this.#queue.delete(batchNumber)
+				this.#currentBatchNumber++
+			}
+		}
+	}
+}

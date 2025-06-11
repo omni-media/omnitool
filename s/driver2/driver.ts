@@ -86,7 +86,7 @@ export class Driver {
 				onChunk(event.data.chunk, event.data.meta)
 		})
 
-		const batcher = new Batcher<VideoFrame>({
+		const batcher = new Batcher<VideoFrame, any>({
 			size: 10,
 			onBatch: async batch => {
 				await this.clusterWork.encodeVideo[tune]({transfer: batch})({
@@ -118,7 +118,7 @@ export class Driver {
 				onChunk(event.data.chunk, event.data.meta)
 		})
 
-		const batcher = new Batcher<AudioData>({
+		const batcher = new Batcher<AudioData, any>({
 			size: 10,
 			onBatch: async batch => {
 				await this.clusterWork.encodeAudio[tune]({transfer: batch})({

@@ -1,7 +1,7 @@
 
 type Events =
 	| {type: "frame", data: VideoFrame}
-	| {type: "videoChunk", data: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}}
+	| {type: "videoChunk", data: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined, batchNumber: number}}
 	| {type: "audioChunk", data: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}}
 	| {type: "packet", data: Uint8Array}
 	| {type: "audioData", data: AudioData}

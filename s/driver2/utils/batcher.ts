@@ -1,6 +1,6 @@
 type BatcherOptions<T> = {
 	size: number
-	onBatch: (batch: T[]) => Promise<void>
+	onBatch: (batch: T[], batchNumber: number) => Promise<void>
 	clone?: (item: T) => T
 }
 
@@ -8,7 +8,8 @@ export class Batcher<T> {
 	#buffer: {item: T, resolve: () => void}[] = []
 	#pending = Promise.resolve()
 	size: number // batch size for hardware decoding must be max 16 otherwise decoder will stall
-	onBatch: (batch: T[]) => Promise<void>
+	onBatch: (batch: T[], batchNumber: number) => Promise<void>
+	batchNumber = 0
 
 	constructor({size, onBatch}: BatcherOptions<T>) {
 		this.size = size
@@ -36,7 +37,7 @@ export class Batcher<T> {
 		const items = batch.map(entry => entry.item)
 		const resolvers = batch.map(entry => entry.resolve)
 
-		this.#pending = this.#pending.then(() => this.onBatch(items))
+		this.#pending = this.#pending.then(() => this.onBatch(items, this.batchNumber++))
 		await this.#pending
 
 		for (const resolve of resolvers)

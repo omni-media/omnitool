@@ -123,11 +123,11 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		decoder.close()
 	},
 
-	async encodeVideo({id, config, frames}) {
+	async encodeVideo({id, config, frames, batchNumber}) {
 		const encoder = new VideoEncoder({
 			async output(chunk, meta) {
 				// rig.transfer = [chunk]
-				await host.encoder.deliverChunk({id, chunk, meta})
+				await host.encoder.deliverChunk({id, chunk, meta, batchNumber})
 			},
 			error(e) {
 				console.error("Encoder error:", e)

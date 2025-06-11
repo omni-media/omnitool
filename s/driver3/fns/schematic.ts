@@ -23,6 +23,7 @@ export type DriverSchematic = AsSchematic<{
 
 		encodeVideo(input: {
 			id: number
+			batchNumber: number
 			config: VideoEncoderConfig
 			frames: VideoFrame[]
 		}): Promise<void>
@@ -55,6 +56,7 @@ export type DriverSchematic = AsSchematic<{
 		encoder: {
 			deliverChunk(input: {
 				id: number
+				batchNumber: number
 				chunk: EncodedVideoChunk
 				meta: EncodedVideoChunkMetadata | undefined
 			}): Promise<void>

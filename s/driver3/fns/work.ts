@@ -209,6 +209,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		})
 
 		baseFrame?.close()
+		renderer.clear()
+
 		for (const disposable of disposables) {
 			disposable.destroy(true)
 		}
@@ -231,8 +233,9 @@ async function renderPIXI(width: number, height: number) {
 	const renderer = await autoDetectRenderer({
 		width,
 		height,
-		preference: "webgpu", // webgl and webgl2 causes memory leaks on chrome
-		background: "black"
+		preference: "webgl", // webgl and webgl2 causes memory leaks on chrome
+		background: "black",
+		preferWebGLVersion: 2
 	})
 
 	const stage = new Container()

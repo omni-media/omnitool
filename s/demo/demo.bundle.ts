@@ -54,7 +54,8 @@ async function demo(file: File) {
 			}
 		])
 		ctx!.drawImage(composed, 0, 0)
-		await videoEncoder.encode(composed)
+		videoEncoder.encode(composed)
+		frame.close()
 	})
 
 	await videoEncoder.flush()

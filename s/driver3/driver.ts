@@ -96,6 +96,7 @@ export class Driver {
 		onChunk: (chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined) => void,
 	) {
 		const id = this.#id++
+		const encodePromises: Promise<void>[] = []
 
 		this.machina.register(id, event => {
 			if (event.type === "videoChunk")
@@ -105,19 +106,21 @@ export class Driver {
 		const batcher = new Batcher<VideoFrame>({
 			size: 10,
 			onBatch: async batch => {
-				await this.thread.work.encodeVideo[tune]({transfer: batch})({
+				const encodePromise = this.thread.work.encodeVideo[tune]({transfer: batch})({
 					id,
 					config,
 					frames: batch
 				})
+				encodePromises.push(encodePromise)
 				for (const f of batch) f.close()
 			}
 		})
 
 		return {
-			encode: (frame: VideoFrame) => batcher.push(frame),
+			encode: (frame: VideoFrame) => {batcher.push(frame)},
 			flush: async () => {
 				await batcher.flush()
+				await Promise.all(encodePromises)
 				this.machina.unregister(id) // maybe it should not unregister here ..
 			}
 		}

@@ -1,13 +1,19 @@
 import {Comrade, tune} from "@e280/comrade"
 
 import {Machina} from "./parts/machina.js"
+import {deferred} from "../utils/deferred.js"
 import {setupDriverHost} from "./fns/host.js"
 import {Batcher} from "../driver2/utils/batcher.js"
 import {DriverSchematic, MuxOpts} from "./fns/schematic.js"
-import {Composition, DemuxInput, DemuxOutput} from "../driver2/fns/schematic.js"
+import {Composition, DemuxInput} from "../driver3/fns/schematic.js"
 
 export type DriverOptions = {
 	workerUrl: URL | string
+}
+
+interface DemuxHandlers {
+	onChunk: (data: {chunk: EncodedVideoChunk | undefined, done: boolean}) => void
+	onConfig: (config: {audio: AudioDecoderConfig, video: VideoDecoderConfig}) => void
 }
 
 export class Driver {
@@ -32,27 +38,33 @@ export class Driver {
 		return this.thread.work.hello()
 	}
 
-	async demux<T extends DemuxInput>(input: T): Promise<DemuxOutput<T>> {
+	demux(input: DemuxInput & DemuxHandlers) {
 		const id = this.#id++
-		const result = await this.thread.work.demux[tune]({transfer: [input.buffer]})({
-			id,
-			...input
+
+		this.machina.register(id, event => {
+			if (event.type === "videoChunk") {
+				if(event.data.chunk) {
+					input.onChunk({chunk: event.data.chunk, done: event.data.done})
+				} else input.onChunk({chunk: event.data.chunk, done: event.data.done})
+			}
+			if (event.type === "config") {
+				input.onConfig(event.config)
+			}
 		})
 
-		return {
-			id: result.id,
-			video: result.video,
-			audio: result.audio,
-			config: result.config
-		} as DemuxOutput<T>
+		this.thread.work.demux[tune]({transfer: [input.buffer]})({
+			id,
+			buffer: input.buffer,
+			stream: input.stream
+		})
 	}
 
-	async decodeVideo(
-		config: VideoDecoderConfig,
-		chunks: EncodedVideoChunk[],
+	async videoDecoder(
 		onFrame: (frame: VideoFrame) => void
 	) {
 		const id = this.#id++
+		let config: VideoDecoderConfig | null = null
+		let currentGroup: EncodedVideoChunk[] = []
 
 		this.machina.register(id, event => {
 			if (event.type === "frame") {
@@ -60,13 +72,50 @@ export class Driver {
 			}
 		})
 
-		await this.thread.work.decodeVideo[tune]({transfer: []})({
-			id,
-			config,
-			chunks,
-		})
+		let lastDecode = Promise.resolve()
+		let done = deferred()
 
-		this.machina.unregister(id)
+		const sendToWork = (chunks: EncodedVideoChunk[]) => {
+			lastDecode = lastDecode.then(() => this.thread.work.decodeVideo[tune]({transfer: []})({
+				id,
+				chunks,
+				config: config!
+			}))
+		}
+
+		const decodeGroup = async () => {
+			const first = currentGroup[0]
+			const last = currentGroup[currentGroup.length - 1]
+			const same = first.timestamp === last.timestamp
+			if (first.type === "key" && last.type === "key" && !same) {
+				const last = currentGroup.pop()
+				sendToWork(currentGroup)
+				currentGroup = [last!]
+				await lastDecode
+			}
+		}
+
+		return {
+			configure: (c: VideoDecoderConfig) => {
+				config = c
+			},
+			decode: async (data: {chunk: EncodedVideoChunk | undefined, done: boolean}) => {
+				if(data.chunk) {
+					currentGroup.push(data.chunk)
+				}
+				await decodeGroup()
+				if(data.done) {
+					sendToWork(currentGroup)
+					done.resolve()
+				}
+			},
+			flush: async () => {
+				await done
+				await lastDecode
+				await decodeGroup()
+				this.machina.unregister(id)
+			}
+		}
 	}
 
 	async decodeAudio(
@@ -101,7 +150,8 @@ export class Driver {
 
 		this.machina.register(id, event => {
 			if (event.type === "videoChunk") {
-				batcher.receiveChunk(event.data)
+				if(event.data.chunk)
+					batcher.receiveChunk({chunk: event.data.chunk, meta: event.data.meta, batchNumber: event.data.batchNumber})
 			}
 		})
 
@@ -140,7 +190,8 @@ export class Driver {
 
 		this.machina.register(id, event => {
 			if (event.type === "audioChunk")
-				onChunk(event.data.chunk, event.data.meta)
+				if(event.data.chunk)
+					onChunk(event.data.chunk, event.data.meta)
 		})
 
 		const batcher = new Batcher<AudioData, any>({

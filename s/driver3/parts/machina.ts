@@ -1,10 +1,11 @@
 
 type Events =
 	| {type: "frame", data: VideoFrame}
-	| {type: "videoChunk", data: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined, batchNumber: number}}
-	| {type: "audioChunk", data: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}}
+	| {type: "videoChunk", data: {chunk: EncodedVideoChunk | undefined, meta: EncodedVideoChunkMetadata | undefined, batchNumber: number, done: boolean}}
+	| {type: "audioChunk", data: {chunk: EncodedAudioChunk | undefined, meta: EncodedAudioChunkMetadata | undefined, batchNumber: number, done: boolean}}
 	| {type: "packet", data: Uint8Array}
-	| {type: "audioData", data: AudioData}
+	| {type: "audioData", data: AudioData, batchNumber: number}
+	| {type: "config", config: {audio: AudioDecoderConfig, video: VideoDecoderConfig}}
 
 type Handler = (event: Events) => void
 

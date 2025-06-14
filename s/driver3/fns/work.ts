@@ -20,63 +20,37 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		const file = new File([new Uint8Array(buffer)], "video.mp4")
 		await demuxer.load(file)
 
-		const video: EncodedVideoChunk[] = []
-		const audio: EncodedAudioChunk[] = []
+		const videoDecoderConfig = await demuxer.getVideoDecoderConfig()
+		const audioDecoderConfig = await demuxer.getAudioDecoderConfig()
 
-		let videoDecoderConfig: VideoDecoderConfig | undefined
-		let audioDecoderConfig: AudioDecoderConfig | undefined
+		await host.demuxer.deliverConfig({id, config: {audio: audioDecoderConfig, video: videoDecoderConfig}})
 
 		if (stream !== 'audio') {
-			videoDecoderConfig = await demuxer.getVideoDecoderConfig()
 			const reader = demuxer.readAVPacket(start?.video, end?.video).getReader()
 			while (true) {
 				const { done, value } = await reader.read()
-				if (done) break
-				video.push(demuxer.genEncodedVideoChunk(value))
+				if (done) {
+					await host.demuxer.deliverChunk({id, chunk: undefined, done: true})
+					break
+				}
+				await host.demuxer.deliverChunk({id, chunk: demuxer.genEncodedVideoChunk(value), done: false})
 			}
 		}
 
 		if (stream !== 'video') {
-			audioDecoderConfig = await demuxer.getAudioDecoderConfig()
 			const reader = demuxer.readAVPacket(start?.audio, end?.audio, 1).getReader()
 			while (true) {
 				const { done, value } = await reader.read()
-				if (done) break
-				audio.push(demuxer.genEncodedAudioChunk(value))
+				if (done) {
+					await host.demuxer.deliverAudioChunk({id, chunk: undefined, done: true})
+					break
+				}
+				await host.demuxer.deliverAudioChunk({id, chunk: demuxer.genEncodedAudioChunk(value), done: false})
 			}
 		}
 
 		// rig.transfer = [video, audio]
 		demuxer.destroy()
-
-		if (stream === 'video') {
-			return {
-				id,
-				video,
-				audio: [],
-				config: {video: videoDecoderConfig!}
-			}
-		}
-
-		if (stream === 'audio') {
-			return {
-				id,
-				video: [],
-				audio,
-				config: {audio: audioDecoderConfig!}
-			}
-		}
-
-		// stream === 'both'
-		return {
-			id,
-			video,
-			audio,
-			config: {
-				video: videoDecoderConfig!,
-				audio: audioDecoderConfig!
-			}
-		}
 	},
 
 	async decodeVideo({config, chunks, id}) {

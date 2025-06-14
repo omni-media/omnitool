@@ -7,7 +7,7 @@ export type DriverSchematic = AsSchematic<{
 	work: {
 		hello(): Promise<void>
 
-		demux(input: {id: number} & DemuxInput): Promise<DemuxOutput<DemuxInput>>
+		demux(input: {id: number} & DemuxInput): Promise<void>
 
 		decodeAudio(input: {
 			id: number
@@ -42,6 +42,22 @@ export type DriverSchematic = AsSchematic<{
 	// happens on the main thread
 	host: {
 		world(): Promise<void>
+		demuxer: {
+			deliverConfig(input: {
+				id: number
+				config: {video: VideoDecoderConfig, audio: AudioDecoderConfig}
+			}): Promise<void>
+			deliverAudioChunk(input: {
+				id: number
+				chunk: EncodedAudioChunk | undefined
+				done: boolean
+			}): Promise<void>
+			deliverChunk(input: {
+				id: number
+				chunk: EncodedVideoChunk | undefined
+				done: boolean
+			}): Promise<void>
+		}
 
 		decoder: {
 			deliverFrame(input: {

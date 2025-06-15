@@ -144,14 +144,31 @@ export class Driver {
 		config: VideoEncoderConfig,
 		onChunk: (chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined) => void,
 	) {
-		const batchSize = 10
+		const batchSize = 100
 		const id = this.#id++
 		const encodePromises: Promise<void>[] = []
+		const queue: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[][] = []
+		let process = 0
+		let flushing = false
 
 		this.machina.register(id, event => {
 			if (event.type === "videoChunk") {
-				if(event.data.chunk)
-					batcher.receiveChunk({chunk: event.data.chunk, meta: event.data.meta, batchNumber: event.data.batchNumber})
+				if(event.data.chunk) {
+					if(flushing) {
+						onChunk(event.data.chunk, event.data.meta)
+						return
+					}
+					(queue[event.data.batchNumber] ??= []).push({
+						chunk: event.data.chunk,
+						meta : event.data.meta
+					});
+					if(queue[process].length === batchSize) {
+						for(const item of queue[process]) {
+							onChunk(item.chunk, item.meta)
+						}
+						process += 1
+					}
+				}
 			}
 		})
 
@@ -166,16 +183,17 @@ export class Driver {
 				})
 				encodePromises.push(encodePromise)
 				for (const f of batch) f.close()
-			},
-			onChunk(chunk) {
-				onChunk(chunk.chunk, chunk.meta)
-			},
+			}
 		})
 
 		return {
-			encode: (frame: VideoFrame) => {batcher.push(frame)},
+			encode: (frame: VideoFrame) => {
+				batcher.push(frame)
+			},
 			flush: async () => {
+				await Promise.all(encodePromises)
 				await batcher.flush()
+				flushing = true
 				await Promise.all(encodePromises)
 				this.machina.unregister(id)
 			}

@@ -7,8 +7,6 @@ type BatcherOptions<T, C> = {
 export class Batcher<T, C> {
 	#buffer: {item: T, resolve: () => void}[] = []
 	#pending = Promise.resolve()
-	#queue = new Map<number, (C | undefined)[]>()
-	#currentBatchNumber = 0
 
 	size: number
 	batchNumber = 0
@@ -47,32 +45,5 @@ export class Batcher<T, C> {
 
 		for (const resolve of resolvers)
 			resolve()
-	}
-
-	receiveChunk(data: C & {batchNumber: number}) {
-		if (!this.onChunk) return
-
-		const {batchNumber} = data
-
-		if (!this.#queue.has(batchNumber))
-			this.#queue.set(batchNumber, [])
-
-		const batch = this.#queue.get(batchNumber)!
-		batch.push(data)
-
-		if (batchNumber === this.#currentBatchNumber) {
-			for (const element of batch) {
-				if (element) {
-					this.onChunk(element)
-					const index = batch.indexOf(element)
-					batch[index] = undefined
-				}
-			}
-
-			if (batch.length === this.size) {
-				this.#queue.delete(batchNumber)
-				this.#currentBatchNumber++
-			}
-		}
 	}
 }

@@ -34,13 +34,15 @@ input?.addEventListener("change", async () => {
 
 async function demo(file: File) {
 	const buffer = await file.arrayBuffer()
-	const {video, config, audio} = await driver.demux({buffer, stream: "both"})
-	const encodedChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[] = []
-	const encodedAudioChunks: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[] = []
-	const videoEncoder = driver.videoEncoder(encoderDefaultConfig, (chunk, meta) => encodedChunks.push({chunk, meta}))
-	const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
-	await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
-	await driver.decodeVideo(config.video, video, async (frame) => {
+	driver.demux({buffer, stream: "both",
+		onConfig(config) {
+			videoDecoder.configure(config.video)
+		},
+		onChunk(data) {
+			videoDecoder.decode(data)
+		}
+	})
+	const videoDecoder = await driver.videoDecoder(async (frame) => {
 		const composed = await driver.composite([
 			{
 				kind: "image",
@@ -57,18 +59,24 @@ async function demo(file: File) {
 		videoEncoder.encode(composed)
 		frame.close()
 	})
-
+	const encodedChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[] = []
+	const encodedAudioChunks: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[] = []
+	const videoEncoder = driver.videoEncoder(encoderDefaultConfig, (chunk, meta) => encodedChunks.push({chunk, meta}))
+	// const audioEncoder = driver.audioEncoder(config.audio, (chunk, meta) => encodedAudioChunks.push({chunk, meta}))
+	// await driver.decodeAudio(config.audio, audio, (data) => audioEncoder.encode(data))
+	console.log("flush")
+	await videoDecoder.flush()
 	await videoEncoder.flush()
-	await audioEncoder.flush()
-
+	// await audioEncoder.flush()
+	console.log("mux", encodedChunks)
 	result = await driver.mux({
 		chunks: {videoChunks: encodedChunks, audioChunks: encodedAudioChunks},
 		config: {
 			video: {width: 1920, height: 1080},
-			audio: {
-				...config.audio,
-				codec: "aac"
-			}
+			// audio: {
+			// 	...config.audio,
+			// 	codec: "aac"
+			// }
 		}
 	})
 	saveButton.disabled = false

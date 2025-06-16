@@ -1,5 +1,6 @@
 
-import {Comrade, ClusterOptions} from "@e280/comrade"
+import {Comrade, LoggerTap} from "@e280/comrade"
+
 import {Driver} from "../driver.js"
 import {Conduit} from "./conduit.js"
 import {setupDriverWork} from "../fns/work.js"
@@ -17,19 +18,26 @@ export async function establishSimpleDriver() {
 }
 
 /** multi-threaded load-balanced web-worker cluster */
-export async function establishClusterDriver(options: ClusterOptions = {}) {
+export async function establishClusterDriver() {
+	const tap = new LoggerTap()
 	const conduit = new Conduit()
+
 	const cluster = await Comrade.cluster({
-		...options,
 		workerUrl: new URL("../driver.worker.js", import.meta.url),
 		setupHost: prepareDriverHost(conduit),
+		label: "omnitool_driver_cluster",
+		tap,
 	})
+
 	const thread = await Comrade.thread({
 		workerUrl: new URL('./driver.worker.js', import.meta.url),
 		setupHost: prepareDriverHost(conduit),
-		label: "thread-worker"
+		label: "omnitool_driver_thread",
+		tap,
 	})
+
 	const driver = new Driver(conduit, cluster.work, thread.work)
+
 	return {driver, cluster, thread}
 }
 

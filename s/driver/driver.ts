@@ -110,7 +110,7 @@ export class Driver {
 				}
 			},
 			flush: async () => {
-				await done
+				await done.promise
 				await lastDecode
 				await decodeGroup()
 				this.machina.unregister(id)

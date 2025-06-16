@@ -14,7 +14,7 @@
 		"build": "rm -rf x && run-s _code _esbuild _ssg _ln",
 		"_code": "turtle build --out=x",
 		"_ssg": "turtle ssg --in=s,x --out=x",
-		"_esbuild": "esbuild x/driver3/driver.worker.js --outdir=x/driver3 --bundle --minify --format=esm --target=es2023 --entry-names=[name].bundle --sourcemap \"--external:node:*\" --external:os --external:fs",
+		"_esbuild": "esbuild x/driver/driver.worker.js --outdir=x/driver --bundle --minify --format=esm --target=es2023 --entry-names=[name].bundle --sourcemap \"--external:node:*\" --external:os --external:fs",
 		"start": "run-p _http _turtle _esbuild-watch",
 		"_http": "http-server x",
 		"_turtle": "turtle watch --in=s,x --out=x -v",

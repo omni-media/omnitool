@@ -1,8 +1,8 @@
-import {Driver} from "../driver3/driver.js"
-import {encoderDefaultConfig} from "../driver3/parts/constants.js"
-import {FileSystemHelper} from "../driver3/utils/file-system-helper.js"
+import {Driver} from "../driver/driver.js"
+import {encoderDefaultConfig} from "../driver/parts/constants.js"
+import {FileSystemHelper} from "../driver/utils/file-system-helper.js"
 
-const workerUrl = new URL("../driver3/driver.worker.bundle.js", import.meta.url)
+const workerUrl = new URL("../driver/driver.worker.bundle.js", import.meta.url)
 
 const driver = await Driver.setup({workerUrl})
 await driver.thread.work.hello()

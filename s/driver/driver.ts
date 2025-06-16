@@ -5,7 +5,7 @@ import {Batcher} from "./utils/batcher.js"
 import {deferred} from "../utils/deferred.js"
 import {setupDriverHost} from "./fns/host.js"
 import {DriverSchematic, MuxOpts} from "./fns/schematic.js"
-import {Composition, DemuxInput} from "../driver3/fns/schematic.js"
+import {Composition, DemuxInput} from "./fns/schematic.js"
 
 export type DriverOptions = {
 	workerUrl: URL | string

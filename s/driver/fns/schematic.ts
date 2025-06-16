@@ -1,5 +1,6 @@
 
 import {AsSchematic} from "@e280/comrade"
+import {WebMediaInfo} from "web-demuxer"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -57,6 +58,7 @@ export type DriverSchematic = AsSchematic<{
 				chunk: EncodedVideoChunk | undefined
 				done: boolean
 			}): Promise<void>
+			deliverInfo(input: {id: number, info: WebMediaInfo}): Promise<void>
 		}
 
 		decoder: {

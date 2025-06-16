@@ -18,6 +18,9 @@ export const setupDriverHost = (machina: Machina) => Comrade.host<DriverSchemati
 		async deliverChunk({id, chunk, done}) {
 			machina.dispatch(id, {type: "videoChunk", data: {chunk, meta: undefined, batchNumber: 1, done}})
 		},
+		async deliverInfo({id, info}) {
+			machina.dispatch(id, {type: "info", data: info})
+		},
 	},
 	decoder: {
 		async deliverFrame({id, frame}) {

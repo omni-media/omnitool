@@ -1,3 +1,4 @@
+import {WebMediaInfo} from "web-demuxer"
 
 type Events =
 	| {type: "frame", data: VideoFrame}
@@ -6,6 +7,7 @@ type Events =
 	| {type: "packet", data: Uint8Array}
 	| {type: "audioData", data: AudioData, batchNumber: number}
 	| {type: "config", config: {audio: AudioDecoderConfig, video: VideoDecoderConfig}}
+	| {type: "info", data: WebMediaInfo}
 
 type Handler = (event: Events) => void
 

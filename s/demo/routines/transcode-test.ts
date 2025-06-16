@@ -19,6 +19,8 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 			},
 			onChunk(data) {
 				videoDecoder.decode(data)
+			},
+			onInfo(info) {
 			}
 		})
 

@@ -21,6 +21,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 		const videoDecoderConfig = await demuxer.getVideoDecoderConfig()
 		const audioDecoderConfig = await demuxer.getAudioDecoderConfig()
+		const info = await demuxer.getMediaInfo()
+		await host.demuxer.deliverInfo({id, info})
 
 		await host.demuxer.deliverConfig({id, config: {audio: audioDecoderConfig, video: videoDecoderConfig}})
 

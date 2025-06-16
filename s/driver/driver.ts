@@ -1,4 +1,5 @@
 import {defer} from "@e280/stz"
+import {WebMediaInfo} from "web-demuxer"
 import {Comrade, tune} from "@e280/comrade"
 
 import {Machina} from "./parts/machina.js"
@@ -14,6 +15,7 @@ export type DriverOptions = {
 interface DemuxHandlers {
 	onChunk: (data: {chunk: EncodedVideoChunk | undefined, done: boolean}) => void
 	onConfig: (config: {audio: AudioDecoderConfig, video: VideoDecoderConfig}) => void
+	onInfo?: (info: WebMediaInfo) => void
 }
 
 export class Driver {
@@ -49,6 +51,9 @@ export class Driver {
 			}
 			if (event.type === "config") {
 				input.onConfig(event.config)
+			}
+			if (event.type === "info") {
+				input.onInfo?.(event.data)
 			}
 		})
 

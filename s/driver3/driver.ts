@@ -1,9 +1,9 @@
 import {Comrade, tune} from "@e280/comrade"
 
 import {Machina} from "./parts/machina.js"
+import {Batcher} from "./utils/batcher.js"
 import {deferred} from "../utils/deferred.js"
 import {setupDriverHost} from "./fns/host.js"
-import {Batcher} from "../driver2/utils/batcher.js"
 import {DriverSchematic, MuxOpts} from "./fns/schematic.js"
 import {Composition, DemuxInput} from "../driver3/fns/schematic.js"
 

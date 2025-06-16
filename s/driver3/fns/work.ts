@@ -3,9 +3,8 @@ import {WebDemuxer} from "web-demuxer"
 import {ArrayBufferTarget, Muxer} from "mp4-muxer"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 
-import {DriverSchematic} from "./schematic.js"
-import {encoderDefaultConfig } from "../../driver/constants.js"
-import {Composition, Layer, Transform} from "../../driver2/fns/schematic.js"
+import {encoderDefaultConfig} from "../parts/constants.js"
+import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
 

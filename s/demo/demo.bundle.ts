@@ -1,6 +1,6 @@
 import {Driver} from "../driver3/driver.js"
-import {encoderDefaultConfig} from "../driver/constants.js"
-import {FileSystemHelper} from "../driver2/utils/file-system-helper.js"
+import {encoderDefaultConfig} from "../driver3/parts/constants.js"
+import {FileSystemHelper} from "../driver3/utils/file-system-helper.js"
 
 const workerUrl = new URL("../driver3/driver.worker.bundle.js", import.meta.url)
 

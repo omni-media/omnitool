@@ -1,4 +1,4 @@
-import "@benev/slate/x/node.js"
+
 import {template, html, easypage, headScripts, git_commit_hash, read_file, unsanitized, renderSocialCard} from "@benev/turtle"
 
 const domain = "github.io"
@@ -46,3 +46,4 @@ export default template(async basic => {
 		`,
 	})
 })
+

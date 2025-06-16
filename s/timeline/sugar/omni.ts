@@ -2,8 +2,8 @@
 import {O} from "./o.js"
 import {Item} from "../parts/item.js"
 import {Media} from "../parts/media.js"
-import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
+import {Datafile} from "../utils/datafile.js"
 import {ResourcePool} from "../parts/resource-pool.js"
 
 export class Omni {

@@ -1,12 +1,12 @@
 
-import {Map2} from "@benev/slate"
+import {MapG} from "@e280/stz"
 import {Id} from "../parts/basics.js"
 import {Media} from "../parts/media.js"
 import {Effect, Item, Kind} from "../parts/item.js"
 
 export class O {
 	#nextId = 0
-	#items = new Map2<Id, Item.Any>()
+	#items = new MapG<Id, Item.Any>()
 
 	#getId() {
 		return this.#nextId++

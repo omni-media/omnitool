@@ -1,8 +1,8 @@
+import {defer} from "@e280/stz"
 import {Comrade, tune} from "@e280/comrade"
 
 import {Machina} from "./parts/machina.js"
 import {Batcher} from "./utils/batcher.js"
-import {deferred} from "../utils/deferred.js"
 import {setupDriverHost} from "./fns/host.js"
 import {DriverSchematic, MuxOpts} from "./fns/schematic.js"
 import {Composition, DemuxInput} from "./fns/schematic.js"
@@ -73,7 +73,7 @@ export class Driver {
 		})
 
 		let lastDecode = Promise.resolve()
-		let done = deferred()
+		let done = defer<void>()
 
 		const sendToWork = (chunks: EncodedVideoChunk[]) => {
 			lastDecode = lastDecode.then(() => this.thread.work.decodeVideo[tune]({transfer: []})({

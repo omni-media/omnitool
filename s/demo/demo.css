@@ -20,11 +20,30 @@
 @layer page {
 	html {
 		font-size: 10px;
-	}
-
-	html {
 		color: var(--color);
 		background: var(--background);
+	}
+
+	body {
+		padding: 2em;
+	}
+
+	.results {
+		margin-top: 1em;
+
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
+
+		> div {
+			font-size: 1.5em;
+			border: 1px solid color-mix(in lch, transparent, var(--color) 20%);
+			padding: 1em;
+		}
+
+		canvas {
+			width: 20em;
+		}
 	}
 }
 

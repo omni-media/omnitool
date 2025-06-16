@@ -37,11 +37,9 @@ export default template(async basic => {
 			})}
 		`,
 		body: html`
-			<section style="display: flex; flex-direction: column;">
+			<section>
 				<h1>Omnitool</h1>
-				<input type="file" class="file-input" accept="image/*, video/*, .mp3">
-				<button class="save" disabled>save file</button>
-				<canvas width="1920" height="1080" style="width: 500px; height: 500px;"></canvas>
+				<div class=results></div>
 			</section>
 		`,
 	})

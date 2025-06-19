@@ -8,7 +8,7 @@ export type DriverSchematic = AsSchematic<{
 	work: {
 		hello(): Promise<void>
 
-		demux(input: {id: number} & DemuxInput): Promise<void>
+		demux(input: {id: number, writable: WritableStream<EncodedVideoChunk>} & DemuxInput): Promise<void>
 
 		decodeAudio(input: {
 			id: number
@@ -18,15 +18,16 @@ export type DriverSchematic = AsSchematic<{
 
 		decodeVideo(input: {
 			id: number
-			chunks: EncodedVideoChunk[]
+			readable: ReadableStream<EncodedVideoChunk>
+			writable: WritableStream<VideoFrame>
 			config: VideoDecoderConfig
 		}): Promise<void>
 
 		encodeVideo(input: {
 			id: number
-			batchNumber: number
+			readable: ReadableStream<VideoFrame>
+			writable: WritableStream<VideoEncoderOutput>
 			config: VideoEncoderConfig
-			frames: VideoFrame[]
 		}): Promise<void>
 
 		encodeAudio(input: {
@@ -92,6 +93,11 @@ export type DriverSchematic = AsSchematic<{
 	}
 }>
 
+export interface VideoEncoderOutput {
+	chunk: EncodedVideoChunk
+	meta?: EncodedVideoChunkMetadata
+}
+
 export type DemuxStreamKind = "video" | "audio" | "both"
 
 export type DemuxOutput<T extends DemuxInput> =
@@ -148,10 +154,14 @@ export interface MuxOpts {
 			sampleRate: number
 		}
 	}
-	chunks: {
-		videoChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
-		audioChunks?: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[]
+	readables: {
+		video: ReadableStream<VideoEncoderOutput>
+		audio?: ReadableStream<EncodedAudioChunk>
 	}
+	// chunks: {
+	// 	videoChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
+	// 	audioChunks?: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[]
+	// }
 }
 
 export type Composition = Layer | (Layer | Composition)[]

@@ -14,16 +14,17 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		await host.world()
 	},
 
-	async demux({id, buffer, start, end, stream}) {
+	async demux({id, buffer, start, end, stream, writable}) {
 		const demuxer = new WebDemuxer({wasmLoaderPath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/ffmpeg.min.js"})
 		const file = new File([new Uint8Array(buffer)], "video.mp4")
 		await demuxer.load(file)
+		const writer = writable.getWriter()
 
 		const videoDecoderConfig = await demuxer.getVideoDecoderConfig()
 		const audioDecoderConfig = await demuxer.getAudioDecoderConfig()
 		const info = await demuxer.getMediaInfo()
-		await host.demuxer.deliverInfo({id, info})
 
+		await host.demuxer.deliverInfo({id, info})
 		await host.demuxer.deliverConfig({id, config: {audio: audioDecoderConfig, video: videoDecoderConfig}})
 
 		if (stream !== 'audio') {
@@ -31,10 +32,11 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			while (true) {
 				const { done, value } = await reader.read()
 				if (done) {
-					await host.demuxer.deliverChunk({id, chunk: undefined, done: true})
+					await writer.ready
+					await writer.close()
 					break
 				}
-				await host.demuxer.deliverChunk({id, chunk: demuxer.genEncodedVideoChunk(value), done: false})
+				await writer.write(demuxer.genEncodedVideoChunk(value))
 			}
 		}
 
@@ -54,11 +56,12 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		demuxer.destroy()
 	},
 
-	async decodeVideo({config, chunks, id}) {
+	async decodeVideo({config, readable, writable}) {
+		const writer = writable.getWriter()
+
 		const decoder = new VideoDecoder({
 			async output(frame) {
-				rig.transfer = [frame]
-				await host.decoder.deliverFrame({id, frame})
+				await writer.write(frame)
 				frame.close()
 			},
 			error(e) {
@@ -68,18 +71,23 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 		decoder.configure({...config})
 
-		for (const chunk of chunks) {
-			decoder.decode(chunk)
+		const reader = readable.getReader()
+		while(true) {
+			const {value, done} = await reader.read()
+			if(done)
+				break
+
+			decoder.decode(value)
 		}
 
 		await decoder.flush()
+		await writer.close()
 		decoder.close()
 	},
 
 	async decodeAudio({config, chunks, id}) {
 		const decoder = new AudioDecoder({
 			async output(data) {
-				// rig.transfer = [data]
 				await host.decoder.deliverAudioData({id, data})
 				data.close()
 			},
@@ -98,11 +106,12 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		decoder.close()
 	},
 
-	async encodeVideo({id, config, frames, batchNumber}) {
+	async encodeVideo({config, readable, writable}) {
+		const writer = writable.getWriter()
+
 		const encoder = new VideoEncoder({
 			async output(chunk, meta) {
-				// rig.transfer = [chunk]
-				await host.encoder.deliverChunk({id, chunk, meta, batchNumber})
+				await writer.write({chunk, meta})
 			},
 			error(e) {
 				console.error("Encoder error:", e)
@@ -111,12 +120,18 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 		encoder.configure({...encoderDefaultConfig, ...config})
 
-		for (const frame of frames) {
-			encoder.encode(frame)
-			frame.close()
+		const reader = readable.getReader()
+		while(true) {
+			const {value, done} = await reader.read()
+			if(done)
+				break
+
+			encoder.encode(value)
+			value.close()
 		}
 
 		await encoder.flush()
+		await writer.close()
 		encoder.close()
 	},
 
@@ -142,7 +157,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		encoder.close()
 	},
 
-	async mux({chunks, config}) {
+	async mux({readables, config}) {
 		const muxer = new Muxer({
 			target: new ArrayBufferTarget(),
 			video: {
@@ -154,18 +169,19 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 			fastStart: "in-memory"
 		})
 
-		for (const {chunk, meta} of chunks.videoChunks)
-			muxer.addVideoChunk(chunk, meta)
+		const videoReader = readables.video.getReader()
+		while(true) {
+			const {value, done} = await videoReader.read()
+			if(done)
+				break
 
-		if(chunks.audioChunks)
-			for(const {chunk, meta} of chunks.audioChunks) {
-				muxer.addAudioChunk(chunk, meta)
-			}
+			muxer.addVideoChunk(value.chunk, value.meta)
+		}
 
 		muxer.finalize()
 
 		const output = new Uint8Array(muxer.target.buffer)
-		// rig.transfer = [output.buffer]
+		rig.transfer = [output.buffer]
 		return output
 	},
 

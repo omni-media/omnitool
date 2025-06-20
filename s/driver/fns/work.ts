@@ -14,11 +14,10 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		await host.world()
 	},
 
-	async demux({id, buffer, start, end, stream, writable}) {
+	async demux({id, buffer, start, end, stream, writables}) {
 		const demuxer = new WebDemuxer({wasmLoaderPath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/ffmpeg.min.js"})
 		const file = new File([new Uint8Array(buffer)], "video.mp4")
 		await demuxer.load(file)
-		const writer = writable.getWriter()
 
 		const videoDecoderConfig = await demuxer.getVideoDecoderConfig()
 		const audioDecoderConfig = await demuxer.getAudioDecoderConfig()
@@ -28,6 +27,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		await host.demuxer.deliverConfig({id, config: {audio: audioDecoderConfig, video: videoDecoderConfig}})
 
 		if (stream !== 'audio') {
+			const writer = writables.video.getWriter()
 			const reader = demuxer.readAVPacket(start?.video, end?.video).getReader()
 			while (true) {
 				const { done, value } = await reader.read()
@@ -41,14 +41,16 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		}
 
 		if (stream !== 'video') {
+			const writer = writables.audio.getWriter()
 			const reader = demuxer.readAVPacket(start?.audio, end?.audio, 1).getReader()
 			while (true) {
 				const { done, value } = await reader.read()
 				if (done) {
-					await host.demuxer.deliverAudioChunk({id, chunk: undefined, done: true})
+					await writer.ready
+					await writer.close()
 					break
 				}
-				await host.demuxer.deliverAudioChunk({id, chunk: demuxer.genEncodedAudioChunk(value), done: false})
+				await writer.write(demuxer.genEncodedAudioChunk(value))
 			}
 		}
 
@@ -85,10 +87,12 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		decoder.close()
 	},
 
-	async decodeAudio({config, chunks, id}) {
+	async decodeAudio({config, readable, writable}) {
+		const writer = writable.getWriter()
+
 		const decoder = new AudioDecoder({
 			async output(data) {
-				await host.decoder.deliverAudioData({id, data})
+				await writer.write(data)
 				data.close()
 			},
 			error(e) {
@@ -98,11 +102,17 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 		decoder.configure(config)
 
-		for (const chunk of chunks) {
-			decoder.decode(chunk)
+		const reader = readable.getReader()
+		while(true) {
+			const {value, done} = await reader.read()
+			if(done)
+				break
+
+			decoder.decode(value)
 		}
 
 		await decoder.flush()
+		await writer.close()
 		decoder.close()
 	},
 
@@ -135,11 +145,12 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		encoder.close()
 	},
 
-	async encodeAudio({id, config, data}) {
+	async encodeAudio({config, writable, readable}) {
+		const writer = writable.getWriter()
+
 		const encoder = new AudioEncoder({
 			async output(chunk, meta) {
-				// rig.transfer = [chunk]
-				await host.encoder.deliverAudioChunk({id, chunk, meta})
+				await writer.write({chunk, meta})
 			},
 			error(e) {
 				console.error("Encoder error:", e)
@@ -148,12 +159,18 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 		encoder.configure({...config})
 
-		for (const audio of data) {
-			encoder.encode(audio)
-			audio.close()
+		const reader = readable.getReader()
+		while(true) {
+			const {value, done} = await reader.read()
+			if(done)
+				break
+
+			encoder.encode(value)
+			value.close()
 		}
 
 		await encoder.flush()
+		await writer.close()
 		encoder.close()
 	},
 
@@ -170,13 +187,29 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		})
 
 		const videoReader = readables.video.getReader()
-		while(true) {
-			const {value, done} = await videoReader.read()
-			if(done)
-				break
+		const audioReader = readables.audio?.getReader()
 
-			muxer.addVideoChunk(value.chunk, value.meta)
-		}
+		const videoPromise = (async () => {
+			while (true) {
+				const {value, done} = await videoReader.read()
+				if (done)
+					break
+
+				muxer.addVideoChunk(value.chunk, value.meta)
+			}
+		})()
+
+		const audioPromise = audioReader ? (async () => {
+			while (true) {
+				const {value, done} = await audioReader.read()
+				if (done)
+					break
+
+				muxer.addAudioChunk(value.chunk, value.meta)
+			}
+		})() : Promise.resolve()
+
+		await Promise.all([videoPromise, audioPromise])
 
 		muxer.finalize()
 

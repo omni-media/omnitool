@@ -3,9 +3,8 @@ import {WebMediaInfo} from "web-demuxer"
 import {Comrade, tune} from "@e280/comrade"
 
 import {Machina} from "./parts/machina.js"
-import {Batcher} from "./utils/batcher.js"
 import {setupDriverHost} from "./fns/host.js"
-import {Composition, DemuxInput} from "./fns/schematic.js"
+import {AudioEncoderOutput, Composition, DemuxInput} from "./fns/schematic.js"
 import {DriverSchematic, VideoEncoderOutput, MuxOpts} from "./fns/schematic.js"
 
 export type DriverOptions = {
@@ -41,7 +40,8 @@ export class Driver {
 
 	demux(input: DemuxInput & DemuxHandlers) {
 		const id = this.#id++
-		const {writable, readable} = new TransformStream<EncodedVideoChunk, EncodedVideoChunk>()
+		const videoStream = new TransformStream<EncodedVideoChunk, EncodedVideoChunk>()
+		const audioStream = new TransformStream<EncodedVideoChunk, EncodedVideoChunk>()
 
 		this.machina.register(id, event => {
 			if (event.type === "config") {
@@ -52,15 +52,18 @@ export class Driver {
 			}
 		})
 
-		this.thread.work.demux[tune]({transfer: [input.buffer, writable]})({
+		this.thread.work.demux[tune]({transfer: [input.buffer, videoStream.writable, audioStream.writable]})({
 			id,
 			buffer: input.buffer,
 			stream: input.stream,
-			writable
+			writables: {video: videoStream.writable, audio: audioStream.writable}
 		})
 
 		return {
-			readable
+			readables: {
+				video: videoStream.readable,
+				audio: audioStream.readable
+			}
 		}
 	}
 
@@ -97,26 +100,28 @@ export class Driver {
 		}
 	}
 
-	async decodeAudio(
-		config: AudioDecoderConfig,
-		chunks: EncodedAudioChunk[],
-		onData: (data: AudioData) => void
-	) {
+	audioDecoder() {
 		const id = this.#id++
+		let config: AudioDecoderConfig | null = null
+		const haveConfig = defer<void>()
+		const {writable, readable} = new TransformStream<AudioData, AudioData>()
 
-		this.machina.register(id, event => {
-			if (event.type === "audioData") {
-				onData(event.data)
-			}
-		})
-
-		await this.thread.work.decodeAudio[tune]({transfer: []})({
-			id,
-			config,
-			chunks,
-		})
-
-		this.machina.unregister(id)
+		return {
+			configure: (c: AudioDecoderConfig) => {
+				config = c
+				haveConfig.resolve()
+			},
+			decode: async (readable: ReadableStream<EncodedAudioChunk>) => {
+				await haveConfig.promise
+				await this.thread.work.decodeAudio[tune]({transfer: [readable, writable]})({
+					id,
+					config: config!,
+					writable,
+					readable
+				})
+			},
+			readable
+		}
 	}
 
 	videoEncoder(
@@ -139,40 +144,27 @@ export class Driver {
 	}
 
 	audioEncoder(
-		config: AudioEncoderConfig,
-		onChunk: (chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined) => void,
+		config: AudioEncoderConfig
 	) {
 		const id = this.#id++
-
-		this.machina.register(id, event => {
-			if (event.type === "audioChunk")
-				if(event.data.chunk)
-					onChunk(event.data.chunk, event.data.meta)
-		})
-
-		const batcher = new Batcher<AudioData, any>({
-			size: 10,
-			onBatch: async batch => {
-				await this.thread.work.encodeAudio[tune]({transfer: batch})({
-					id,
-					config,
-					data: batch
-				})
-				for (const f of batch) f.close()
-			}
-		})
+		const {writable, readable} = new TransformStream<AudioEncoderOutput, AudioEncoderOutput>()
 
 		return {
-			encode: (data: AudioData) => batcher.push(data),
-			flush: async () => {
-				await batcher.flush()
-				this.machina.unregister(id) // maybe it should not unregister here ..
-			}
+			encode: async (readable: ReadableStream<AudioData>) => {
+				await this.thread.work.encodeAudio[tune]({transfer: [readable, writable]})({
+					id,
+					config,
+					readable,
+					writable
+				})
+			},
+			readable
 		}
 	}
 
 	async mux(opts: MuxOpts): Promise<Uint8Array> {
-		return await this.thread.work.mux[tune]({transfer: [opts.readables.video]})(opts)
+		const transfer = opts.readables.audio ? [opts.readables.video, opts.readables.audio] : [opts.readables.video]
+		return await this.thread.work.mux[tune]({transfer})(opts)
 	}
 
 	async composite(

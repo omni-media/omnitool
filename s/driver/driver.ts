@@ -67,18 +67,19 @@ export class Driver {
 		}
 	}
 
-	videoDecoder() {
+	videoDecoder(onFrame?: (frame: VideoFrame) => Promise<VideoFrame>) {
 		const id = this.#id++
 		let config: VideoDecoderConfig | null = null
 		const haveConfig = defer<void>()
 		let lastFrame: VideoFrame | null = null
 
 		const {writable, readable} = new TransformStream<VideoFrame, VideoFrame>({
-			transform(chunk, controller) {
+			async transform(chunk, controller) {
+				const frame = await onFrame?.(chunk) ?? chunk
 				// code to prevent mem leaks and hardware accelerated decoder stall
 				lastFrame?.close()
-				controller.enqueue(chunk)
-				lastFrame = chunk
+				controller.enqueue(frame)
+				lastFrame = frame
 			}
 		})
 

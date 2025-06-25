@@ -116,7 +116,7 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		decoder.close()
 	},
 
-	async encodeVideo({config, readable, writable}) {
+	async encodeVideo({config, readable, writable, id}) {
 		const writer = writable.getWriter()
 
 		const encoder = new VideoEncoder({
@@ -127,6 +127,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 				console.error("Encoder error:", e)
 			}
 		})
+
+		encoder.addEventListener("dequeue", async () => await host.encoder.deliverQueueSize({id, size: encoder.encodeQueueSize}))
 
 		encoder.configure({...encoderDefaultConfig, ...config})
 

@@ -56,47 +56,14 @@ export type DriverSchematic = AsSchematic<{
 				id: number
 				config: {video: VideoDecoderConfig, audio: AudioDecoderConfig}
 			}): Promise<void>
-			deliverAudioChunk(input: {
-				id: number
-				chunk: EncodedAudioChunk | undefined
-				done: boolean
-			}): Promise<void>
-			deliverChunk(input: {
-				id: number
-				chunk: EncodedVideoChunk | undefined
-				done: boolean
-			}): Promise<void>
 			deliverInfo(input: {id: number, info: WebMediaInfo}): Promise<void>
 		}
 
-		decoder: {
-			deliverFrame(input: {
-				id: number
-				frame: VideoFrame
-			}): Promise<void>
-			deliverAudioData(input: {
-				id: number
-				data: AudioData
-			}): Promise<void>
-		}
+		decoder: {}
+
 		encoder: {
-			deliverChunk(input: {
-				id: number
-				batchNumber: number
-				chunk: EncodedVideoChunk
-				meta: EncodedVideoChunkMetadata | undefined
-			}): Promise<void>
-			deliverAudioChunk(input: {
-				id: number
-				chunk: EncodedAudioChunk
-				meta: EncodedAudioChunkMetadata | undefined
-			}): Promise<void>
+			deliverQueueSize(input: {id: number, size: number}): Promise<void>
 		}
-		// deliverDemuxedPacket: {
-		// 	video(output: {id: number, buffer: ArrayBuffer}): Promise<void>
-		// 	audio(output: {id: number, buffer: ArrayBuffer}): Promise<void>
-		// 	subtitle(output: {id: number, buffer: ArrayBuffer}): Promise<void>
-		// }
 	}
 }>
 
@@ -170,10 +137,6 @@ export interface MuxOpts {
 		video: ReadableStream<VideoEncoderOutput>
 		audio?: ReadableStream<AudioEncoderOutput>
 	}
-	// chunks: {
-	// 	videoChunks: {chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined}[]
-	// 	audioChunks?: {chunk: EncodedAudioChunk, meta: EncodedAudioChunkMetadata | undefined}[]
-	// }
 }
 
 export type Composition = Layer | (Layer | Composition)[]

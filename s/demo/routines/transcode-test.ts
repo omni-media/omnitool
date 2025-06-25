@@ -1,22 +1,33 @@
-
 import {Driver} from "../../driver/driver.js"
 import {audioEncoderDefaultConfig, encoderDefaultConfig} from "../../driver/parts/constants.js"
 
 export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
-
-	// TODO this should somehow be detected from the video.. by the.. demuxer??
 	const dimensions = {width: 1920, height: 1080}
+
 	const canvas = document.createElement("canvas")
 	canvas.width = dimensions.width
 	canvas.height = dimensions.height
-
 	const ctx = canvas.getContext("2d")
 
 	async function run() {
 		const videoDecoder = driver.videoDecoder(async (frame) => {
-			ctx!.drawImage(frame, 0, 0)
-			return frame
+			const composed = await driver.composite([
+				{
+					kind: "image",
+					frame
+				},
+				{
+					kind: "text",
+					content: "omnitool",
+					fontSize: 50,
+					color: "red"
+				}
+			])
+			ctx!.drawImage(composed, 0, 0)
+			frame.close()
+			return composed
 		})
+
 		const audioDecoder = driver.audioDecoder()
 		const videoEncoder = driver.videoEncoder(encoderDefaultConfig)
 		const audioEncoder = driver.audioEncoder(audioEncoderDefaultConfig)
@@ -39,7 +50,7 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 			readables: {
 				video: videoEncoder.readable,
 				audio: audioEncoder.readable
-				},
+			},
 			config: {
 				video: dimensions,
 				audio: {
@@ -55,4 +66,3 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 
 	return {canvas, run}
 }
-

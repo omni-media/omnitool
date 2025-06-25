@@ -1,13 +1,9 @@
 import {WebMediaInfo} from "web-demuxer"
 
 type Events =
-	| {type: "frame", data: VideoFrame}
-	| {type: "videoChunk", data: {chunk: EncodedVideoChunk | undefined, meta: EncodedVideoChunkMetadata | undefined, batchNumber: number, done: boolean}}
-	| {type: "audioChunk", data: {chunk: EncodedAudioChunk | undefined, meta: EncodedAudioChunkMetadata | undefined, batchNumber: number, done: boolean}}
-	| {type: "packet", data: Uint8Array}
-	| {type: "audioData", data: AudioData, batchNumber: number}
 	| {type: "config", config: {audio: AudioDecoderConfig, video: VideoDecoderConfig}}
 	| {type: "info", data: WebMediaInfo}
+	| {type: "encoderQueueSize", size: number}
 
 type Handler = (event: Events) => void
 

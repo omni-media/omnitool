@@ -2,10 +2,8 @@ import {defer} from "@e280/stz"
 import {WebMediaInfo} from "web-demuxer"
 import {Comrade, tune} from "@e280/comrade"
 
-import {sleep} from "./utils/sleep.js"
 import {Machina} from "./parts/machina.js"
 import {setupDriverHost} from "./fns/host.js"
-import {calculateDynamicDelay} from "./utils/calculate-dynamic-delay.js"
 import {AudioEncoderOutput, Composition, DemuxInput} from "./fns/schematic.js"
 import {DriverSchematic, VideoEncoderOutput, MuxOpts} from "./fns/schematic.js"
 
@@ -74,20 +72,11 @@ export class Driver {
 		let config: VideoDecoderConfig | null = null
 		const haveConfig = defer<void>()
 		let lastFrame: VideoFrame | null = null
-		let queue = 0
-
-		// hardcoded encoder id
-		this.machina.register(2, event => {
-			if (event.type === "encoderQueueSize") {
-				queue = event.size
-			}
-		})
 
 		const {writable, readable} = new TransformStream<VideoFrame, VideoFrame>({
 			async transform(chunk, controller) {
 				const frame = await onFrame?.(chunk) ?? chunk
 				// below code is to prevent mem leaks and hardware accelerated decoder stall
-				await sleep(calculateDynamicDelay(queue))
 				lastFrame?.close()
 				controller.enqueue(frame)
 				lastFrame = frame

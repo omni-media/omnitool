@@ -60,11 +60,31 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 	async decodeVideo({config, readable, writable}) {
 		const writer = writable.getWriter()
+		const reader = readable.getReader()
+
+		let started = false
+		let closed = false
 
 		const decoder = new VideoDecoder({
 			async output(frame) {
+				started = true
+
 				await writer.write(frame)
 				frame.close()
+
+				const {value, done} = await reader.read()
+
+				if (done) {
+					if(!closed) {
+						closed = true
+						await decoder.flush()
+						await writer.close()
+						decoder.close()
+					}
+					return
+				}
+
+				decoder.decode(value)
 			},
 			error(e) {
 				console.error("Decoder error:", e)
@@ -73,18 +93,13 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 		decoder.configure({...config})
 
-		const reader = readable.getReader()
-		while(true) {
+		while (!started && decoder.decodeQueueSize < 20) {
 			const {value, done} = await reader.read()
-			if(done)
+			if (done)
 				break
 
 			decoder.decode(value)
 		}
-
-		await decoder.flush()
-		await writer.close()
-		decoder.close()
 	},
 
 	async decodeAudio({config, readable, writable}) {
@@ -116,35 +131,37 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		decoder.close()
 	},
 
-	async encodeVideo({config, readable, writable, id}) {
+	async encodeVideo({config, readable, writable}) {
+		const reader = readable.getReader()
 		const writer = writable.getWriter()
 
 		const encoder = new VideoEncoder({
 			async output(chunk, meta) {
 				await writer.write({chunk, meta})
+
+				const {value, done} = await reader.read()
+				if (done) {
+					await encoder.flush()
+					await writer.close()
+					encoder.close()
+					return
+				}
+
+				encoder.encode(value)
+				value.close()
 			},
 			error(e) {
 				console.error("Encoder error:", e)
 			}
 		})
 
-		encoder.addEventListener("dequeue", async () => await host.encoder.deliverQueueSize({id, size: encoder.encodeQueueSize}))
-
 		encoder.configure({...encoderDefaultConfig, ...config})
 
-		const reader = readable.getReader()
-		while(true) {
-			const {value, done} = await reader.read()
-			if(done)
-				break
-
-			encoder.encode(value)
-			value.close()
+		const {value: firstFrame, done} = await reader.read()
+		if (!done) {
+			encoder.encode(firstFrame)
+			firstFrame.close()
 		}
-
-		await encoder.flush()
-		await writer.close()
-		encoder.close()
 	},
 
 	async encodeAudio({config, writable, readable}) {

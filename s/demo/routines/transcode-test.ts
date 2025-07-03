@@ -56,7 +56,7 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 				audio: {
 					sampleRate: 44100,
 					numberOfChannels: 2,
-					codec: "aac"
+					codec: "opus"
 				}
 			}
 		})

@@ -11,7 +11,7 @@ export const encoderDefaultConfig: VideoEncoderConfig = {
 }
 
 export const audioEncoderDefaultConfig: AudioEncoderConfig = {
-	codec: "mp4a.40.2",
+	codec: "opus",
 	numberOfChannels: 2,
 	sampleRate: 44100
 }

@@ -1,6 +1,6 @@
 
 import {AsSchematic} from "@e280/comrade"
-import {WebMediaInfo} from "web-demuxer"
+import type {AudioEncodingConfig, VideoEncodingConfig} from "mediabunny"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -8,42 +8,13 @@ export type DriverSchematic = AsSchematic<{
 	work: {
 		hello(): Promise<void>
 
-		demux(input: {
-			id: number,
-			writables: {
-				video: WritableStream<EncodedVideoChunk>
-				audio: WritableStream<EncodedAudioChunk>
-			}} & DemuxInput): Promise<void>
-
-		decodeAudio(input: {
-			id: number
-			readable: ReadableStream<EncodedAudioChunk>
-			writable: WritableStream<AudioData>
-			config: AudioDecoderConfig
+		decode(input: {
+			buffer: ArrayBuffer
+			video: WritableStream<VideoFrame>
+			audio: WritableStream<AudioData>
 		}): Promise<void>
 
-		decodeVideo(input: {
-			id: number
-			readable: ReadableStream<EncodedVideoChunk>
-			writable: WritableStream<VideoFrame>
-			config: VideoDecoderConfig
-		}): Promise<void>
-
-		encodeVideo(input: {
-			id: number
-			readable: ReadableStream<VideoFrame>
-			writable: WritableStream<VideoEncoderOutput>
-			config: VideoEncoderConfig
-		}): Promise<void>
-
-		encodeAudio(input: {
-			id: number
-			readable: ReadableStream<AudioData>
-			writable: WritableStream<AudioEncoderOutput>
-			config: AudioEncoderConfig
-		}): Promise<void>
-
-		mux(input: MuxOpts): Promise<Uint8Array>
+		encode(input: EncoderInput): Promise<ArrayBuffer | undefined>
 
 		composite(input: Composition): Promise<VideoFrame>
 	}
@@ -51,30 +22,23 @@ export type DriverSchematic = AsSchematic<{
 	// happens on the main thread
 	host: {
 		world(): Promise<void>
-		demuxer: {
-			deliverConfig(input: {
-				id: number
-				config: {video: VideoDecoderConfig, audio: AudioDecoderConfig}
-			}): Promise<void>
-			deliverInfo(input: {id: number, info: WebMediaInfo}): Promise<void>
-		}
-
-		decoder: {}
-
-		encoder: {
-			deliverQueueSize(input: {id: number, size: number}): Promise<void>
-		}
 	}
 }>
 
-export interface VideoEncoderOutput {
-	chunk: EncodedVideoChunk
-	meta?: EncodedVideoChunkMetadata
+export interface EncoderInput {
+	readables: {
+		video: ReadableStream<VideoFrame>
+		audio: ReadableStream<AudioData>
+	},
+	config: {
+		video: VideoEncodingConfig
+		audio: AudioEncodingConfig
+	}
 }
 
-export interface AudioEncoderOutput {
-	chunk: EncodedAudioChunk
-	meta?: EncodedAudioChunkMetadata
+export interface DecoderInput {
+	buffer: ArrayBuffer
+	onFrame?: (frame: VideoFrame) => Promise<VideoFrame>
 }
 
 export type DemuxStreamKind = "video" | "audio" | "both"
@@ -132,10 +96,6 @@ export interface MuxOpts {
 			numberOfChannels: number
 			sampleRate: number
 		}
-	}
-	readables: {
-		video: ReadableStream<VideoEncoderOutput>
-		audio?: ReadableStream<AudioEncoderOutput>
 	}
 }
 

@@ -40,6 +40,7 @@
 		"@e280/comrade": "^0.0.0-16",
 		"@e280/stz": "^0.0.0-22",
 		"comrade": "^0.0.3",
+		"mediabunny": "^1.0.0",
 		"mp4-muxer": "^5.2.1",
 		"pixi.js": "^8.10.1",
 		"web-demuxer": "^2.3.8"

@@ -1,9 +1,11 @@
 import {Comrade} from "@e280/comrade"
-import {WebDemuxer} from "web-demuxer"
-import {ArrayBufferTarget, Muxer} from "mp4-muxer"
+
+import {
+	Input, BufferSource, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, BufferTarget,
+	VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample
+} from "mediabunny"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 
-import {encoderDefaultConfig} from "../parts/constants.js"
 import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
@@ -14,227 +16,97 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		await host.world()
 	},
 
-	async demux({id, buffer, start, end, stream, writables}) {
-		const demuxer = new WebDemuxer({wasmLoaderPath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/ffmpeg.min.js"})
-		const file = new File([new Uint8Array(buffer)], "video.mp4")
-		await demuxer.load(file)
+	async decode({buffer, video, audio}) {
+		const input = new Input({
+			source: new BufferSource(buffer),
+			formats: ALL_FORMATS
+		})
 
-		const videoDecoderConfig = await demuxer.getVideoDecoderConfig()
-		const audioDecoderConfig = await demuxer.getAudioDecoderConfig()
-		const info = await demuxer.getMediaInfo()
+		const [videoTrack, audioTrack] = await Promise.all([
+			input.getPrimaryVideoTrack(),
+			input.getPrimaryAudioTrack()
+		])
 
-		await host.demuxer.deliverInfo({id, info})
-		await host.demuxer.deliverConfig({id, config: {audio: audioDecoderConfig, video: videoDecoderConfig}})
+		const videoDecodable = await videoTrack?.canDecode()
+		const audioDecodable = await audioTrack?.canDecode()
 
-		if (stream !== 'audio') {
-			const writer = writables.video.getWriter()
-			const reader = demuxer.readAVPacket(start?.video, end?.video).getReader()
-			while (true) {
-				const { done, value } = await reader.read()
-				if (done) {
-					await writer.ready
-					await writer.close()
-					break
-				}
-				await writer.write(demuxer.genEncodedVideoChunk(value))
-			}
-		}
+		const videoWriter = video.getWriter()
+		const audioWriter = audio.getWriter()
 
-		if (stream !== 'video') {
-			const writer = writables.audio.getWriter()
-			const reader = demuxer.readAVPacket(start?.audio, end?.audio, 1).getReader()
-			while (true) {
-				const { done, value } = await reader.read()
-				if (done) {
-					await writer.ready
-					await writer.close()
-					break
-				}
-				await writer.write(demuxer.genEncodedAudioChunk(value))
-			}
-		}
-
-		// rig.transfer = [video, audio]
-		demuxer.destroy()
-	},
-
-	async decodeVideo({config, readable, writable}) {
-		const writer = writable.getWriter()
-		const reader = readable.getReader()
-
-		let started = false
-		let closed = false
-
-		const decoder = new VideoDecoder({
-			async output(frame) {
-				started = true
-
-				await writer.write(frame)
-				frame.close()
-
-				const {value, done} = await reader.read()
-
-				if (done) {
-					if(!closed) {
-						closed = true
-						await decoder.flush()
-						await writer.close()
-						decoder.close()
+		await Promise.all([
+			(async () => {
+				if (videoDecodable && videoTrack) {
+					const sink = new VideoSampleSink(videoTrack)
+					for await (const sample of sink.samples()) {
+						const frame = sample.toVideoFrame()
+						await videoWriter.write(frame)
+						sample.close()
+						frame.close()
 					}
-					return
+					await videoWriter.close()
 				}
-
-				decoder.decode(value)
-			},
-			error(e) {
-				console.error("Decoder error:", e)
-			}
-		})
-
-		decoder.configure({...config})
-
-		while (!started && decoder.decodeQueueSize < 20) {
-			const {value, done} = await reader.read()
-			if (done)
-				break
-
-			decoder.decode(value)
-		}
-	},
-
-	async decodeAudio({config, readable, writable}) {
-		const writer = writable.getWriter()
-
-		const decoder = new AudioDecoder({
-			async output(data) {
-				await writer.write(data)
-				data.close()
-			},
-			error(e) {
-				console.error("Decoder error:", e)
-			}
-		})
-
-		decoder.configure(config)
-
-		const reader = readable.getReader()
-		while(true) {
-			const {value, done} = await reader.read()
-			if(done)
-				break
-
-			decoder.decode(value)
-		}
-
-		await decoder.flush()
-		await writer.close()
-		decoder.close()
-	},
-
-	async encodeVideo({config, readable, writable}) {
-		const reader = readable.getReader()
-		const writer = writable.getWriter()
-
-		const encoder = new VideoEncoder({
-			async output(chunk, meta) {
-				await writer.write({chunk, meta})
-
-				const {value, done} = await reader.read()
-				if (done) {
-					await encoder.flush()
-					await writer.close()
-					encoder.close()
-					return
+			})(),
+			(async () => {
+				if (audioDecodable && audioTrack) {
+					const sink = new AudioSampleSink(audioTrack)
+					for await (const sample of sink.samples()) {
+						const frame = sample.toAudioData()
+						await audioWriter.write(frame)
+						sample.close()
+						frame.close()
+					}
+					await audioWriter.close()
 				}
-
-				encoder.encode(value)
-				value.close()
-			},
-			error(e) {
-				console.error("Encoder error:", e)
-			}
-		})
-
-		encoder.configure({...encoderDefaultConfig, ...config})
-
-		const {value: firstFrame, done} = await reader.read()
-		if (!done) {
-			encoder.encode(firstFrame)
-			firstFrame.close()
-		}
+			})()
+		])
 	},
 
-	async encodeAudio({config, writable, readable}) {
-		const writer = writable.getWriter()
-
-		const encoder = new AudioEncoder({
-			async output(chunk, meta) {
-				await writer.write({chunk, meta})
-			},
-			error(e) {
-				console.error("Encoder error:", e)
-			}
+	async encode({readables, config}) {
+		const output = new Output({
+			format: new Mp4OutputFormat(),
+			target: new BufferTarget()
 		})
+		const videoSource = new VideoSampleSource(config.video)
+		output.addVideoTrack(videoSource)
+		// since AudioSample is not transferable it fails to transfer encoder bitrate config
+		// so it needs to be hardcoded not set through constants eg QUALITY_LOW
+		const audioSource = new AudioSampleSource(config.audio)
+		output.addAudioTrack(audioSource)
 
-		encoder.configure({...config})
-
-		const reader = readable.getReader()
-		while(true) {
-			const {value, done} = await reader.read()
-			if(done)
-				break
-
-			encoder.encode(value)
-			value.close()
-		}
-
-		await encoder.flush()
-		await writer.close()
-		encoder.close()
-	},
-
-	async mux({readables, config}) {
-		const muxer = new Muxer({
-			target: new ArrayBufferTarget(),
-			video: {
-				...config.video,
-				codec: "avc"
-			},
-			audio: config.audio ?? undefined,
-			firstTimestampBehavior: "offset",
-			fastStart: "in-memory"
-		})
+		await output.start()
 
 		const videoReader = readables.video.getReader()
-		const audioReader = readables.audio?.getReader()
+		const audioReader = readables.audio.getReader()
 
-		const videoPromise = (async () => {
-			while (true) {
-				const {value, done} = await videoReader.read()
-				if (done)
-					break
+		await Promise.all([
+			(async () => {
+				while (true) {
+					const {done, value} = await videoReader.read()
+					if (done) break
+					const sample = new VideoSample(value)
+					await videoSource.add(sample)
+					sample.close()
+				}
+			})(),
+			(async () => {
+				while (true) {
+					const {done, value} = await audioReader.read()
+					if (done) break
+					const sample = new AudioSample(value)
+					await audioSource.add(sample)
+					sample.close()
+					value.close()
+				}
+			})()
+		])
 
-				muxer.addVideoChunk(value.chunk, value.meta)
-			}
-		})()
+		await output.finalize()
 
-		const audioPromise = audioReader ? (async () => {
-			while (true) {
-				const {value, done} = await audioReader.read()
-				if (done)
-					break
-
-				muxer.addAudioChunk(value.chunk, value.meta)
-			}
-		})() : Promise.resolve()
-
-		await Promise.all([videoPromise, audioPromise])
-
-		muxer.finalize()
-
-		const output = new Uint8Array(muxer.target.buffer)
-		rig.transfer = [output.buffer]
-		return output
+		const {buffer} = output.target
+		if (buffer) {
+			rig.transfer = [buffer]
+			return buffer
+		}
 	},
 
 	async composite(composition) {

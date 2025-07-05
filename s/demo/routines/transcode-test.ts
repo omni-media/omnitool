@@ -1,5 +1,4 @@
 import {Driver} from "../../driver/driver.js"
-import {audioEncoderDefaultConfig, encoderDefaultConfig} from "../../driver/parts/constants.js"
 
 export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 	const dimensions = {width: 1920, height: 1080}
@@ -10,58 +9,36 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 	const ctx = canvas.getContext("2d")
 
 	async function run() {
-		const videoDecoder = driver.videoDecoder(async (frame) => {
-			const composed = await driver.composite([
-				{
-					kind: "image",
-					frame
-				},
-				{
-					kind: "text",
-					content: "omnitool",
-					fontSize: 50,
-					color: "red"
-				}
-			])
-			ctx!.drawImage(composed, 0, 0)
-			frame.close()
-			return composed
-		})
-
-		const audioDecoder = driver.audioDecoder()
-		const videoEncoder = driver.videoEncoder(encoderDefaultConfig)
-		const audioEncoder = driver.audioEncoder(audioEncoderDefaultConfig)
-
-		const demux = driver.demux({buffer, stream: "both",
-			onConfig(config) {
-				videoDecoder.configure(config.video)
-				audioDecoder.configure(config.audio)
-			},
-			onInfo(info) {}
-		})
-
-		videoEncoder.encode(videoDecoder.readable)
-		videoDecoder.decode(demux.readables.video)
-		audioDecoder.decode(demux.readables.audio)
-		audioEncoder.encode(audioDecoder.readable)
-
-		// muxer config must match encoder config to work
-		const bytes = await driver.mux({
-			readables: {
-				video: videoEncoder.readable,
-				audio: audioEncoder.readable
-			},
-			config: {
-				video: dimensions,
-				audio: {
-					sampleRate: 44100,
-					numberOfChannels: 2,
-					codec: "opus"
-				}
+		const readables = driver.decode({
+			buffer,
+			async onFrame(frame) {
+				const composed = await driver.composite([
+					{
+						kind: "image",
+						frame
+					},
+					{
+						kind: "text",
+						content: "omnitool!!!!",
+						fontSize: 50,
+						color: "green"
+					}
+				])
+				frame.close()
+				ctx?.drawImage(composed, 0, 0)
+				return composed
 			}
 		})
 
-		return bytes
+		const output = await driver.encode({
+			readables,
+			config: {
+				audio: {codec: "opus", bitrate: 128000},
+				video: {codec: "vp9", bitrate: 1000000}
+			}
+		})
+
+		return output ?? buffer
 	}
 
 	return {canvas, run}

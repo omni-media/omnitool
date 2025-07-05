@@ -7,20 +7,6 @@ export const setupDriverHost = (machina: Machina) => Comrade.host<DriverSchemati
 
 	async world() {
 		machina.count++
-	},
-	demuxer: {
-		async deliverConfig({id, config}) {
-			machina.dispatch(id, {type: "config", config})
-		},
-		async deliverInfo({id, info}) {
-			machina.dispatch(id, {type: "info", data: info})
-		}
-	},
-	decoder: {},
-	encoder: {
-		async deliverQueueSize({id, size}) {
-			machina.dispatch(id, {type: "encoderQueueSize", size})
-		},
 	}
 }))
 

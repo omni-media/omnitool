@@ -1,4 +1,5 @@
 import {Comrade, tune} from "@e280/comrade"
+import type {StreamTargetChunk} from "mediabunny"
 
 import {Machina} from "./parts/machina.js"
 import {setupDriverHost} from "./fns/host.js"
@@ -41,7 +42,7 @@ export class Driver {
 		})
 		const audioTransform = new TransformStream<AudioData, AudioData>()
 		this.thread.work.decode[tune]({transfer: [videoTransform.writable, audioTransform.writable]})({
-			buffer: input.buffer,
+			source: input.source,
 			video: videoTransform.writable,
 			audio: audioTransform.writable,
 		})
@@ -52,7 +53,18 @@ export class Driver {
 	}
 
 	async encode({readables, config}: EncoderInput) {
-		return await this.thread.work.encode[tune]({transfer: [readables.audio, readables.video]})({readables, config})
+		const handle = await window.showSaveFilePicker()
+		const writable = await handle.createWritable()
+		// making bridge because file picker writable is not transferable
+		const bridge = new WritableStream<StreamTargetChunk>({
+			async write(chunk) {
+				await writable.write(chunk)
+			},
+			async close() {
+				await writable.close()
+			}
+		})
+		return await this.thread.work.encode[tune]({transfer: [readables.audio, readables.video, bridge]})({readables, config, bridge})
 	}
 
 	async composite(

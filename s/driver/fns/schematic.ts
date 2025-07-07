@@ -1,6 +1,6 @@
 
 import {AsSchematic} from "@e280/comrade"
-import type {AudioEncodingConfig, VideoEncodingConfig} from "mediabunny"
+import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -9,12 +9,12 @@ export type DriverSchematic = AsSchematic<{
 		hello(): Promise<void>
 
 		decode(input: {
-			buffer: ArrayBuffer
+			source: DecoderSource
 			video: WritableStream<VideoFrame>
 			audio: WritableStream<AudioData>
 		}): Promise<void>
 
-		encode(input: EncoderInput): Promise<ArrayBuffer | undefined>
+		encode(input: EncoderInput & {bridge: WritableStream<StreamTargetChunk>}): Promise<void>
 
 		composite(input: Composition): Promise<VideoFrame>
 	}
@@ -36,8 +36,20 @@ export interface EncoderInput {
 	}
 }
 
+interface FileHandleSource {
+  value: FileSystemFileHandle
+  type: "handle"
+}
+
+interface UrlSource {
+  value: string
+	type: "stream"
+}
+
+export type DecoderSource = FileHandleSource | UrlSource
+
 export interface DecoderInput {
-	buffer: ArrayBuffer
+	source: DecoderSource
 	onFrame?: (frame: VideoFrame) => Promise<VideoFrame>
 }
 

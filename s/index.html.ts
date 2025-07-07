@@ -39,6 +39,8 @@ export default template(async basic => {
 		body: html`
 			<section>
 				<h1>Omnitool</h1>
+				<button class=fetch>fetch</button>
+				<button class="import">import</button>
 				<div class=results></div>
 			</section>
 		`,

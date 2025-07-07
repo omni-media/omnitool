@@ -1,8 +1,7 @@
 import {Comrade} from "@e280/comrade"
-
 import {
-	Input, BufferSource, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, BufferTarget,
-	VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample
+	Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample,
+	AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource
 } from "mediabunny"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 
@@ -16,9 +15,17 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		await host.world()
 	},
 
-	async decode({buffer, video, audio}) {
+	async decode({source, video, audio}) {
+		const loadSource = async () => {
+			if(source.type === "handle") {
+				const file = await source.value.getFile()
+				return new BlobSource(file)
+			} else {
+				return new UrlSource(source.value)
+			}
+		}
 		const input = new Input({
-			source: new BufferSource(buffer),
+			source: await loadSource(),
 			formats: ALL_FORMATS
 		})
 
@@ -61,10 +68,10 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		])
 	},
 
-	async encode({readables, config}) {
+	async encode({readables, config, bridge}) {
 		const output = new Output({
 			format: new Mp4OutputFormat(),
-			target: new BufferTarget()
+			target: new StreamTarget(bridge, {chunked: true})
 		})
 		const videoSource = new VideoSampleSource(config.video)
 		output.addVideoTrack(videoSource)
@@ -101,12 +108,6 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 		])
 
 		await output.finalize()
-
-		const {buffer} = output.target
-		if (buffer) {
-			rig.transfer = [buffer]
-			return buffer
-		}
 	},
 
 	async composite(composition) {

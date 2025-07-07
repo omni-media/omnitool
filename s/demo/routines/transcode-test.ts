@@ -1,6 +1,7 @@
 import {Driver} from "../../driver/driver.js"
+import {DecoderSource} from "../../driver/fns/schematic.js"
 
-export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
+export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 	const dimensions = {width: 1920, height: 1080}
 
 	const canvas = document.createElement("canvas")
@@ -10,7 +11,7 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 
 	async function run() {
 		const readables = driver.decode({
-			buffer,
+			source,
 			async onFrame(frame) {
 				const composed = await driver.composite([
 					{
@@ -19,7 +20,7 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 					},
 					{
 						kind: "text",
-						content: "omnitool!!!!",
+						content: "omnitool",
 						fontSize: 50,
 						color: "green"
 					}
@@ -30,15 +31,13 @@ export function setupTranscodeTest(driver: Driver, buffer: ArrayBuffer) {
 			}
 		})
 
-		const output = await driver.encode({
+		await driver.encode({
 			readables,
 			config: {
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}
 			}
 		})
-
-		return output ?? buffer
 	}
 
 	return {canvas, run}

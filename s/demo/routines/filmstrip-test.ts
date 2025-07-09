@@ -20,7 +20,7 @@ export async function filmstripTest(fileHandle: FileSystemFileHandle) {
 						...sorted.map(({ time, canvas }) => createLabeledCanvas(time, canvas.canvas as HTMLCanvasElement))
 					)
 				},
-				granularity: FPS_10,
+				frequency: FPS_10,
 				canvasSinkOptions: {
 					width: 80,
 					height: 50,
@@ -40,8 +40,8 @@ export async function filmstripTest(fileHandle: FileSystemFileHandle) {
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
 	frequencySlider.addEventListener("input", () => {
-		filmstrip.granularity = 1000/+frequencySlider.value/1000
-		frequencyView.textContent = `frame every ${filmstrip.granularity.toFixed(3)} second (${frequencySlider.value} frames per second)`
+		filmstrip.frequency = 1000/+frequencySlider.value/1000
+		frequencyView.textContent = `frame every ${filmstrip.frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
 	})
 	await filmstrip.update([10, 10.5])
 }

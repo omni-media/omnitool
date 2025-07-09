@@ -31,29 +31,36 @@ export class Filmstrip {
 		if(videoTrack)
 			return new Filmstrip(
 				videoTrack, {
-					granularity: options.granularity ?? 1,
+					frequency: options.frequency ?? 1,
 					canvasSinkOptions: options.canvasSinkOptions ?? {width: 80, height: 50, fit: "fill"},
 					onChange: options.onChange
 			})
 		else throw new Error("Source has no video track")
 	}
 
-	#snapRangeToTile([start, end]: TimeRange): TimeRange {
-		const tileSize = end - start
-		const tileStart = Math.floor(start / tileSize) * tileSize
-		return [tileStart - tileSize, tileStart + tileSize * 2]
+	set frequency(value: number) {
+		if(value !== this.options.frequency) {
+			this.options.frequency = value
+			this.#cache.clear()
+			this.#update(this.#activeRange)
+		}
 	}
 
-	async update(range: TimeRange) {
-		const newRange = this.#snapRangeToTile(range)
+	get frequency() {
+		return this.options.frequency
+	}
 
-		// Avoid redundant updates
-		if (
-			this.#activeRange[0] === newRange[0] &&
-			this.#activeRange[1] === newRange[1]
-		)
-			return
+	#snapRangeToTile([start, end]: TimeRange): TimeRange {
+		const tileSize = +(end - start).toFixed(3)
+		if (tileSize <= 0) throw new Error("Invalid range: end must be greater than start")
 
+		const snappedStart = +(start - tileSize).toFixed(3)
+		const snappedEnd = +(end + tileSize).toFixed(3)
+
+		return [snappedStart, snappedEnd]
+	}
+
+	async #update(newRange: TimeRange) {
 		this.#activeRange = newRange
 
 		const [rangeStart, rangeEnd] = newRange
@@ -64,7 +71,7 @@ export class Filmstrip {
 		for (
 			let timestamp = rangeStart;
 			timestamp <= rangeEnd;
-			timestamp += this.options.granularity
+			timestamp += this.options.frequency
 		) {
 			// Clamp to valid time range
 			if (timestamp >= 0 && timestamp <= duration)
@@ -94,6 +101,18 @@ export class Filmstrip {
 		this.options.onChange(tiles)
 	}
 
+	async update(visibleRange: TimeRange) {
+		const newRange = this.#snapRangeToTile(visibleRange)
+		// Avoid redundant updates
+		if (
+			this.#activeRange[0] === newRange[0] &&
+			this.#activeRange[1] === newRange[1]
+		)
+			return
+
+		await this.#update(newRange)
+	}
+
 	getThumbnail(time: number) {
 		return this.#cache.get(time)
 	}
@@ -102,7 +121,7 @@ export class Filmstrip {
 type TimeRange = [number, number]
 
 interface FilmstripOptions {
-	granularity?: number
+	frequency?: number
 	canvasSinkOptions?: CanvasSinkOptions
 	onChange: (tiles: {
 		time: number

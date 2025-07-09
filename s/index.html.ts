@@ -42,9 +42,17 @@ export default template(async basic => {
 				<button class=fetch>fetch</button>
 				<button class="import">import</button>
 				<div class=results></div>
-				<input type="range" min="0" max="100" step="1" value="10" class="seconds">
-				<div class="range"></div>
-				<div id=filmstrip></div>
+				<div class=filmstrip-demo>
+					<label for="viewable-range">viewable range:</label>
+					<input type="range" min="0" max="100" step="1" value="10" class="range" id="viewable-range" name="viewable-range">
+					<div class="range-view"></div>
+					<label for="range-size">viewable range size:</label>
+					<input type="range" class="range-size" min="0.1" max="10" step="0.1" value="0.5" id="range-size" name="range-size">
+					<label for="frequency">frequency:</label>
+					<input type="range" class="frequency" min="0.1" max="120" step="0.1" value="10" id="frequency" name="frequency">
+					<div class="frequency-view">10 (fps)</div>
+					<div id=filmstrip></div>
+				</div>
 			</section>
 		`,
 	})

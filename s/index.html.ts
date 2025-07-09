@@ -42,6 +42,9 @@ export default template(async basic => {
 				<button class=fetch>fetch</button>
 				<button class="import">import</button>
 				<div class=results></div>
+				<input type="range" min="0" max="100" step="1" value="10" class="seconds">
+				<div class="range"></div>
+				<div id=filmstrip></div>
 			</section>
 		`,
 	})

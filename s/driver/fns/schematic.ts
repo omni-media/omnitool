@@ -36,66 +36,12 @@ export interface EncoderInput {
 	}
 }
 
-interface FileHandleSource {
-  value: FileSystemFileHandle
-  type: "handle"
-}
-
-interface UrlSource {
-  value: string
-	type: "stream"
-}
-
-export type DecoderSource = FileHandleSource | UrlSource
+export type DecoderSource = FileSystemFileHandle | string
 
 export interface DecoderInput {
 	source: DecoderSource
 	onFrame?: (frame: VideoFrame) => Promise<VideoFrame>
 }
-
-export type DemuxStreamKind = "video" | "audio" | "both"
-
-export type DemuxOutput<T extends DemuxInput> =
-	T extends VideoOnlyDemuxInput ? {
-		id: number
-		video: EncodedVideoChunk[]
-		audio: []
-		config: {video: VideoDecoderConfig, audio?: undefined}
-	} : T extends AudioOnlyDemuxInput ? {
-		id: number
-		video: []
-		audio: EncodedAudioChunk[]
-		config: {audio: AudioDecoderConfig, video?: undefined}
-	} : {
-		id: number
-		video: EncodedVideoChunk[]
-		audio: EncodedAudioChunk[]
-		config: {
-			video: VideoDecoderConfig
-			audio: AudioDecoderConfig
-		}
-	}
-
-type TimeRange<T extends DemuxStreamKind> =
-	T extends 'video' ? {video?: number}
-	: T extends 'audio' ? {audio?: number}
-	: {video?: number; audio?: number}
-
-interface BaseDemuxInput<T extends DemuxStreamKind> {
-	buffer: ArrayBuffer
-	stream: T
-	start?: TimeRange<T>
-	end?: TimeRange<T>
-}
-
-export type VideoOnlyDemuxInput = BaseDemuxInput<'video'>
-export type AudioOnlyDemuxInput = BaseDemuxInput<'audio'>
-export type BothStreamsDemuxInput = BaseDemuxInput<'both'>
-
-export type DemuxInput =
-	| VideoOnlyDemuxInput
-	| AudioOnlyDemuxInput
-	| BothStreamsDemuxInput
 
 export interface MuxOpts {
 	config: {

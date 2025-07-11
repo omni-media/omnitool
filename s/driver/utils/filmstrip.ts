@@ -14,7 +14,6 @@ export class Filmstrip {
 	#sink: CanvasSink
 	#cache: Map<number, WrappedCanvas> = new Map()
 	#activeRange: TimeRange = [0, 0]
-	#visibleRange: TimeRange = [0, 0]
 
 	private constructor(
 		private videoTrack: InputVideoTrack,
@@ -39,10 +38,15 @@ export class Filmstrip {
 		else throw new Error("Source has no video track")
 	}
 
+	/**
+ 	* Sets the frequency (granularity) of filmstrip thumbnails.
+ 	* Changing this triggers a filmstrip refresh after any ongoing update finishes.
+ 	* @param value - The new frequency in seconds.
+ 	*/
 	set frequency(value: number) {
 		if(value !== this.options.frequency) {
 			this.options.frequency = value
-			this.update(this.#visibleRange, true)
+			this.#update()
 		}
 	}
 
@@ -55,10 +59,8 @@ export class Filmstrip {
 		return [start - tileSize, end + tileSize]
 	}
 
-	async #update(newRange: TimeRange) {
-		this.#activeRange = newRange
-
-		const [rangeStart, rangeEnd] = newRange
+	async #generateTiles() {
+		const [rangeStart, rangeEnd] = this.#activeRange
 		const neededTimestamps = new Set<number>()
 
 		// duration should be computed but with trim etc also
@@ -96,36 +98,50 @@ export class Filmstrip {
 		this.options.onChange(tiles)
 	}
 
-	#updating: Promise<void> | null = null
-	#shouldRunAgain = false
-
-	async update(visibleRange: TimeRange, force?: boolean) {
+	/**
+ 	* Updates the visible time range for the filmstrip.
+ 	*
+ 	* Triggers a thumbnails update, with extended margins to preload
+ 	* thumbnails slightly outside the visible range.
+ 	* @param visibleRange - The current timeline viewport as a [start, end] tuple in seconds.
+ 	*/
+	set range(visibleRange: TimeRange) {
 		const newRange = this.#computeActiveRange(visibleRange)
 		// Avoid redundant updates
 		if (
 			this.#activeRange[0] === newRange[0] &&
-			this.#activeRange[1] === newRange[1] && !force
+			this.#activeRange[1] === newRange[1]
 		)
 			return
 
-		this.#visibleRange = visibleRange
-		// Perform update immediately. If another update is requested while updating,
+		this.#activeRange = newRange
+		this.#update()
+	}
+
+	#updating: Promise<void> | null = null
+	#shouldRunAgain = false
+
+	async #update() {
+		// Perform update immediately. If multiple updates are requested while updating,
 		// only the latest one will run after the current finishes (skips intermediate ones).
 		if(this.#updating) {
 			this.#shouldRunAgain = true
 			return
 		}
 
-		this.#updating = this.#update(newRange)
+		this.#updating = this.#generateTiles()
 		await this.#updating
 		this.#updating = null
 
 		if(this.#shouldRunAgain) {
 			this.#shouldRunAgain = false
-			await this.update(this.#visibleRange, true)
+			await this.#update()
 		}
 	}
-
+	/**
+ 	* Returns the cached thumbnail (if any) for a given timestamp.
+ 	* @param time - The timestamp to retrieve the canvas for.
+ 	*/
 	getThumbnail(time: number) {
 		return this.#cache.get(time)
 	}

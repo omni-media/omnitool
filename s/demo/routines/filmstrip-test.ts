@@ -28,18 +28,18 @@ export async function filmstripTest(fileHandle: FileSystemFileHandle) {
 				}
 			}
 		)
-	rangeSizeSlider.addEventListener("input", () => {
+	rangeSizeSlider.addEventListener("change", () => {
 		rangeSize = +rangeSizeSlider.value
 		const [start, end] = [+rangeSlider.value, +rangeSlider.value+rangeSize]
 		filmstrip.update([start, end])
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
-	rangeSlider.addEventListener("input", () => {
+	rangeSlider.addEventListener("change", () => {
 		const [start, end] = [+rangeSlider.value, +rangeSlider.value+rangeSize]
 		filmstrip.update([start, end])
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
-	frequencySlider.addEventListener("input", () => {
+	frequencySlider.addEventListener("change", () => {
 		filmstrip.frequency = 1000/+frequencySlider.value/1000
 		frequencyView.textContent = `frame every ${filmstrip.frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
 	})

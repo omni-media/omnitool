@@ -31,19 +31,19 @@ export async function filmstripTest(fileHandle: FileSystemFileHandle) {
 	rangeSizeSlider.addEventListener("change", () => {
 		rangeSize = +rangeSizeSlider.value
 		const [start, end] = [+rangeSlider.value, +rangeSlider.value+rangeSize]
-		filmstrip.update([start, end])
+		filmstrip.range = [start, end]
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
 	rangeSlider.addEventListener("change", () => {
 		const [start, end] = [+rangeSlider.value, +rangeSlider.value+rangeSize]
-		filmstrip.update([start, end])
+		filmstrip.range = [start, end]
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
 	frequencySlider.addEventListener("change", () => {
 		filmstrip.frequency = 1000/+frequencySlider.value/1000
 		frequencyView.textContent = `frame every ${filmstrip.frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
 	})
-	await filmstrip.update([10, 10.5])
+	filmstrip.range = [10, 10.5]
 }
 
 function createLabeledCanvas(time: number, canvas: HTMLCanvasElement) {

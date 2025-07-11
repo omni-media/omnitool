@@ -14,6 +14,7 @@ export class Filmstrip {
 	#sink: CanvasSink
 	#cache: Map<number, WrappedCanvas> = new Map()
 	#activeRange: TimeRange = [0, 0]
+	#visibleRange: TimeRange = [0, 0]
 
 	private constructor(
 		private videoTrack: InputVideoTrack,
@@ -41,8 +42,7 @@ export class Filmstrip {
 	set frequency(value: number) {
 		if(value !== this.options.frequency) {
 			this.options.frequency = value
-			this.#cache.clear()
-			this.#update(this.#activeRange)
+			this.update(this.#visibleRange, true)
 		}
 	}
 
@@ -50,14 +50,9 @@ export class Filmstrip {
 		return this.options.frequency
 	}
 
-	#snapRangeToTile([start, end]: TimeRange): TimeRange {
-		const tileSize = +(end - start).toFixed(3)
-		if (tileSize <= 0) throw new Error("Invalid range: end must be greater than start")
-
-		const snappedStart = +(start - tileSize).toFixed(3)
-		const snappedEnd = +(end + tileSize).toFixed(3)
-
-		return [snappedStart, snappedEnd]
+	#computeActiveRange([start, end]: TimeRange): TimeRange {
+		const tileSize = end - start
+		return [start - tileSize, end + tileSize]
 	}
 
 	async #update(newRange: TimeRange) {
@@ -101,16 +96,34 @@ export class Filmstrip {
 		this.options.onChange(tiles)
 	}
 
-	async update(visibleRange: TimeRange) {
-		const newRange = this.#snapRangeToTile(visibleRange)
+	#updating: Promise<void> | null = null
+	#shouldRunAgain = false
+
+	async update(visibleRange: TimeRange, force?: boolean) {
+		const newRange = this.#computeActiveRange(visibleRange)
 		// Avoid redundant updates
 		if (
 			this.#activeRange[0] === newRange[0] &&
-			this.#activeRange[1] === newRange[1]
+			this.#activeRange[1] === newRange[1] && !force
 		)
 			return
 
-		await this.#update(newRange)
+		this.#visibleRange = visibleRange
+		// Perform update immediately. If another update is requested while updating,
+		// only the latest one will run after the current finishes (skips intermediate ones).
+		if(this.#updating) {
+			this.#shouldRunAgain = true
+			return
+		}
+
+		this.#updating = this.#update(newRange)
+		await this.#updating
+		this.#updating = null
+
+		if(this.#shouldRunAgain) {
+			this.#shouldRunAgain = false
+			await this.update(this.#visibleRange, true)
+		}
 	}
 
 	getThumbnail(time: number) {

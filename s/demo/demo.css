@@ -48,6 +48,7 @@
 
 	#filmstrip {
 		display: flex;
+		overflow-x: scroll;
 	}
 }
 

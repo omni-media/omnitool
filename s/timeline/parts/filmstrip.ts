@@ -7,8 +7,8 @@ import {
 	WrappedCanvas,
 	//@ts-ignore
 } from 'mediabunny/dist/mediabunny.mjs'
-import {DecoderSource} from '../fns/schematic.js'
-import {loadDecoderSource} from './load-decoder-source.js'
+import {DecoderSource} from '../../driver/fns/schematic.js'
+import {loadDecoderSource} from '../../driver/utils/load-decoder-source.js'
 
 export class Filmstrip {
 	#sink: CanvasSink

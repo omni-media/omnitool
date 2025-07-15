@@ -1,4 +1,4 @@
-import {Filmstrip} from "../../driver/utils/filmstrip.js"
+import {Filmstrip} from "../../timeline/parts/filmstrip.js"
 
 export async function filmstripTest(fileHandle: FileSystemFileHandle) {
 	const rangeSlider = document.querySelector(".range") as HTMLInputElement

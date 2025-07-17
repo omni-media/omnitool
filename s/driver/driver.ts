@@ -1,4 +1,4 @@
-import {Comrade, tune} from "@e280/comrade"
+import {Comrade, tune, Thread} from "@e280/comrade"
 import type {StreamTargetChunk} from "mediabunny"
 
 import {Machina} from "./parts/machina.js"
@@ -22,7 +22,7 @@ export class Driver {
 
 	constructor(
 		public machina: Machina,
-		public thread: Comrade.Thread<DriverSchematic>,
+		public thread: Thread<DriverSchematic>
 	) {}
 
 	async hello() {

@@ -3,7 +3,7 @@ import {Driver} from "../driver/driver.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
 
-const workerUrl = new URL("../driver/driver.worker.bundle.js", import.meta.url)
+const workerUrl = new URL("../driver/driver.worker.bundle.min.js", import.meta.url)
 
 const driver = await Driver.setup({workerUrl})
 const results = document.querySelector(".results")!

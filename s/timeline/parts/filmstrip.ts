@@ -1,12 +1,12 @@
 import {
-  ALL_FORMATS,
+	ALL_FORMATS,
 	CanvasSink,
 	CanvasSinkOptions,
 	Input,
 	InputVideoTrack,
 	WrappedCanvas,
-	//@ts-ignore
-} from 'mediabunny/dist/mediabunny.mjs'
+} from "mediabunny"
+
 import {DecoderSource} from '../../driver/fns/schematic.js'
 import {loadDecoderSource} from '../../driver/utils/load-decoder-source.js'
 

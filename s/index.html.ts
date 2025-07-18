@@ -43,6 +43,10 @@ export default ssg.page(import.meta.url, async orb => ({
 				<div class="frequency-view">10 (fps)</div>
 				<div id=filmstrip></div>
 			</div>
+			<div class=waveform-demo>
+				<label for="width">width:</label>
+				<input class="width" id="width" name="width" type="range" min="100" max="1000000" value="1000" />
+			</div>
 		</section>
 	`,
 }))

@@ -1,11 +1,10 @@
 
-import {Driver} from "../driver/driver.js"
+import {context} from "../context.js"
+import {waveformTest} from "./routines/waveform-test.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
 
-const workerUrl = new URL("../driver/driver.worker.bundle.min.js", import.meta.url)
-
-const driver = await Driver.setup({workerUrl})
+const driver = await context.driver
 const results = document.querySelector(".results")!
 
 const fetchButton = document.querySelector(".fetch")
@@ -13,6 +12,8 @@ const importButton = document.querySelector(".import") as HTMLButtonElement
 
 fetchButton?.addEventListener("click", startDemoFetch)
 importButton?.addEventListener("click", startDemoImport)
+
+waveformTest()
 
 // hello world test
 {

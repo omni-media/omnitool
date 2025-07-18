@@ -1,9 +1,11 @@
 import {Comrade, tune, Thread} from "@e280/comrade"
-import type {StreamTargetChunk} from "mediabunny"
+//@ts-ignore
+import {ALL_FORMATS, Input, type StreamTargetChunk} from "mediabunny/dist/mediabunny.mjs"
 
 import {Machina} from "./parts/machina.js"
 import {setupDriverHost} from "./fns/host.js"
-import {DecoderInput, DriverSchematic, Composition, EncoderInput} from "./fns/schematic.js"
+import {loadDecoderSource} from "./utils/load-decoder-source.js"
+import {DecoderInput, DriverSchematic, Composition, EncoderInput, DecoderSource} from "./fns/schematic.js"
 
 export type DriverOptions = {
 	workerUrl: URL | string
@@ -27,6 +29,26 @@ export class Driver {
 
 	async hello() {
 		return this.thread.work.hello()
+	}
+
+	async getAudioDuration(source: DecoderSource) {
+		const input = new Input({
+			source: await loadDecoderSource(source),
+			formats: ALL_FORMATS
+		})
+
+		const audioTrack = await input.getPrimaryAudioTrack()
+		return await audioTrack?.computeDuration()
+	}
+
+	async getVideoDuration(source: DecoderSource) {
+		const input = new Input({
+			source: await loadDecoderSource(source),
+			formats: ALL_FORMATS
+		})
+
+		const videoTrack = await input.getPrimaryVideoTrack()
+		return await videoTrack?.computeDuration()
 	}
 
 	decode(input: DecoderInput) {

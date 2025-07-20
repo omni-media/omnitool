@@ -1,6 +1,5 @@
 import {Comrade, tune, Thread} from "@e280/comrade"
-//@ts-ignore
-import {ALL_FORMATS, Input, type StreamTargetChunk} from "mediabunny/dist/mediabunny.mjs"
+import {ALL_FORMATS, Input, type StreamTargetChunk} from "mediabunny"
 
 import {Machina} from "./parts/machina.js"
 import {setupDriverHost} from "./fns/host.js"

@@ -1,5 +1,4 @@
-//@ts-ignore
-import {BlobSource, UrlSource} from "mediabunny/dist/mediabunny.mjs"
+import {BlobSource, UrlSource} from "mediabunny"
 import {DecoderSource} from "../fns/schematic.js"
 
 // only streamable sources

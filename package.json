@@ -32,8 +32,8 @@
 	},
 	"dependencies": {
 		"@benev/slate": "^0.3.9",
-		"@e280/comrade": "^0.0.0-18",
-		"@e280/renraku": "^0.5.0-19",
+		"@e280/comrade": "^0.0.0-19",
+		"@e280/renraku": "^0.5.0-22",
 		"@e280/stz": "^0.0.0-22",
 		"comrade": "^0.0.3",
 		"mediabunny": "^1.1.1",

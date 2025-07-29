@@ -26,7 +26,7 @@ Omni Tools is a collection of composable utilities for working with Omniclip tim
 ### Install
 
 ```bash
-npm install @omni/tools
+npm i @omnimedia/omnitool
 ```
 
 ---

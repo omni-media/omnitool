@@ -1,6 +1,6 @@
 
 import {AsSchematic} from "@e280/comrade"
-import {DataType, DeviceType} from "@huggingface/transformers"
+import {DataType, DeviceType, Pipeline} from "@huggingface/transformers"
 
 import {Driver} from "../../../driver/driver.js"
 
@@ -17,15 +17,13 @@ export type TranscriberSchematic = AsSchematic<{
 	}
 }>
 
-export type Pipe = any
-
 export type Loading = {
 	total: number
 	progress: number
 }
 
 export type TranscribeOptions = {
-	pipe: Pipe
+	pipe: Pipeline
 	spec: TranscriberSpec
 	request: TranscriptionRequest
 	callbacks: TranscriptionCallbacks

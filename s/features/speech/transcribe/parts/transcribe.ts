@@ -5,9 +5,14 @@ import {TranscribeOptions} from "../types.js"
 export async function transcribe(options: TranscribeOptions) {
 	const {pipe, spec, request, callbacks} = options
 
+	if (!pipe.processor.feature_extractor)
+		throw new Error("no feature_extractor")
+
 	const timePrecision = (
-		pipe.processor.feature_extractor.config.chunk_length /
-		pipe.model.config.max_source_positions
+		pipe.processor.feature_extractor?.config.chunk_length /
+
+		// TODO was config.max_source_positions, doesn't exist??
+		pipe.model.config.max_position_embeddings
 	)
 
 	let chunkCount = 0
@@ -22,7 +27,10 @@ export async function transcribe(options: TranscribeOptions) {
 		return Math.min(audioProgressSeconds / request.duration, 1)
 	}
 
-	const streamer = new WhisperTextStreamer(pipe.tokenizer, {
+	// TODO type error on pipe.tokenizer
+	const tokenizer = pipe.tokenizer as any
+
+	const streamer = new WhisperTextStreamer(tokenizer, {
 		time_precision: timePrecision,
 		token_callback_function: () => {
 			startTime ??= performance.now()

@@ -1,13 +1,14 @@
 
 import {defer, once} from "@e280/stz"
 import {Comrade} from "@e280/comrade"
+import {Pipeline} from "@huggingface/transformers"
 
 import {loadPipe} from "./parts/load-pipe.js"
 import {transcribe} from "./parts/transcribe.js"
-import {Pipe, TranscriberSchematic, TranscriberSpec} from "./types.js"
+import {TranscriberSchematic, TranscriberSpec} from "./types.js"
 
 await Comrade.worker<TranscriberSchematic>(({host}, _rig) => {
-	let deferred = defer<{pipe: Pipe, spec: TranscriberSpec}>()
+	let deferred = defer<{pipe: Pipeline, spec: TranscriberSpec}>()
 
 	const prepare = once(async(spec: TranscriberSpec) => {
 		deferred.resolve({

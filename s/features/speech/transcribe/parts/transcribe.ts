@@ -1,7 +1,5 @@
 
-//@ts-ignore
-import {WhisperTextStreamer} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.0/dist/transformers.min.js"
-
+import {WhisperTextStreamer} from "@huggingface/transformers"
 import {TranscribeOptions} from "../types.js"
 
 export async function transcribe(options: TranscribeOptions) {

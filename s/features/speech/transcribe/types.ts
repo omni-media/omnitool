@@ -1,5 +1,7 @@
 
 import {AsSchematic} from "@e280/comrade"
+import {DataType, DeviceType} from "@huggingface/transformers"
+
 import {Driver} from "../../../driver/driver.js"
 
 export type TranscriberSchematic = AsSchematic<{
@@ -44,8 +46,8 @@ export type Transcription = {
 
 export type TranscriberSpec = {
 	model: string
-	dtype: string
-	device: string
+	dtype: DataType
+	device: DeviceType
 	chunkLength: number
 	strideLength: number
 }

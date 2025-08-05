@@ -1,6 +1,5 @@
 
-//@ts-ignore
-import {pipeline} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.0/dist/transformers.min.js"
+import {pipeline} from "@huggingface/transformers"
 
 import {TranscriberPipeOptions} from "../types.js"
 

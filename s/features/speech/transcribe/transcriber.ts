@@ -5,7 +5,7 @@ import {coalesce, queue, sub} from "@e280/stz"
 import {prepAudio} from "./parts/prep-audio.js"
 import {TranscriberOptions, TranscriberSchematic, Transcription, TranscriptionOptions, TranscriptionReport} from "./types.js"
 
-export async function transcriber({driver, spec, workerUrl, onLoading}: TranscriberOptions) {
+export async function makeTranscriber({driver, spec, workerUrl, onLoading}: TranscriberOptions) {
 	const onReport = sub<[report: TranscriptionReport]>()
 	const onTranscription = sub<[transcription: Transcription]>()
 

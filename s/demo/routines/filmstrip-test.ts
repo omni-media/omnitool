@@ -1,6 +1,6 @@
 import {Filmstrip} from "../../timeline/parts/filmstrip.js"
 
-export async function filmstripTest(fileHandle: FileSystemFileHandle) {
+export async function filmstripTest(file: File) {
 	const rangeSlider = document.querySelector(".range") as HTMLInputElement
 	const rangeView = document.querySelector(".range-view")!
 	const rangeSizeSlider = document.querySelector(".range-size")! as HTMLInputElement
@@ -10,7 +10,7 @@ export async function filmstripTest(fileHandle: FileSystemFileHandle) {
 	const FPS_10 = 1000/10 / 1000
 	let rangeSize = 0.5
 	const filmstrip = await Filmstrip.init(
-			fileHandle,
+			file,
 			{
 				onChange(tiles) {
 					// Sort by time (optional, for clean ordering)

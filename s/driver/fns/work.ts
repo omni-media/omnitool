@@ -17,9 +17,8 @@ export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
 
 	async decode({source, video, audio}) {
 		const loadSource = async () => {
-			if(source instanceof FileSystemFileHandle) {
-				const file = await source.getFile()
-				return new BlobSource(file)
+			if(source instanceof Blob) {
+				return new BlobSource(source)
 			} else {
 				return new UrlSource(source)
 			}

@@ -5,13 +5,13 @@ import {coalesce, queue, sub} from "@e280/stz"
 import {prepAudio} from "./parts/prep-audio.js"
 import {TranscriberOptions, TranscriberSchematic, Transcription, TranscriptionOptions, TranscriptionReport} from "./types.js"
 
-export async function transcriber({driver, spec, onLoading}: TranscriberOptions) {
+export async function transcriber({driver, spec, workerUrl, onLoading}: TranscriberOptions) {
 	const onReport = sub<[report: TranscriptionReport]>()
 	const onTranscription = sub<[transcription: Transcription]>()
 
 	const thread = await Comrade.thread<TranscriberSchematic>({
 		label: "OmnitoolSpeechTranscriber",
-		workerUrl: "/features/transcribe/worker.bundle.min.js",
+		workerUrl,
 		setupHost: () => ({
 			loading: async loading => onLoading(loading),
 			deliverReport: async report => onReport.pub(report),

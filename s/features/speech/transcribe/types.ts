@@ -74,6 +74,7 @@ export type TranscriptionCallbacks = {
 export type TranscriberOptions = {
 	driver: Driver
 	spec: TranscriberSpec
+	workerUrl: URL | string
 	onLoading: (loading: Loading) => void
 }
 

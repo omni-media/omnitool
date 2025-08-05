@@ -36,7 +36,7 @@
 		"@e280/renraku": "^0.5.0-22",
 		"@e280/stz": "^0.0.0-22",
 		"comrade": "^0.0.3",
-		"mediabunny": "^1.1.1",
+		"mediabunny": "^1.4.4",
 		"mp4-muxer": "^5.2.1",
 		"pixi.js": "^8.10.1",
 		"wavesurfer.js": "^7.10.0",

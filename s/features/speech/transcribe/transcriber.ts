@@ -3,11 +3,11 @@ import {Comrade} from "@e280/comrade"
 import {coalesce, queue, sub} from "@e280/stz"
 
 import {prepAudio} from "./parts/prep-audio.js"
-import {TranscriberOptions, TranscriberSchematic, Transcription, TranscriptionOptions, TranscriptionReport} from "./types.js"
+import {TranscriberOptions, TranscriberSchematic, TranscriptionOptions, TranscriptionReport} from "./types.js"
 
 export async function makeTranscriber({driver, spec, workerUrl, onLoading}: TranscriberOptions) {
 	const onReport = sub<[report: TranscriptionReport]>()
-	const onTranscription = sub<[transcription: Transcription]>()
+	const onTranscription = sub<[transcription: string]>()
 
 	const thread = await Comrade.thread<TranscriberSchematic>({
 		label: "OmnitoolSpeechTranscriber",
@@ -31,13 +31,14 @@ export async function makeTranscriber({driver, spec, workerUrl, onLoading}: Tran
 				onTranscription(info.onTranscription),
 			)
 
-			await thread.work.transcribe({
+			const result = await thread.work.transcribe({
 				duration,
 				language,
 				audio: audio.buffer,
 			})
 
 			detachCallbacks()
+			return result
 		}),
 	}
 }

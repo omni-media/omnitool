@@ -10,9 +10,8 @@ export async function transcribe(options: TranscribeOptions) {
 
 	const timePrecision = (
 		pipe.processor.feature_extractor?.config.chunk_length /
-
-		// TODO was config.max_source_positions, doesn't exist??
-		pipe.model.config.max_position_embeddings
+		// @ts-ignore
+		pipe.model.config.max_source_positions
 	)
 
 	let chunkCount = 0
@@ -51,7 +50,7 @@ export async function transcribe(options: TranscribeOptions) {
 		},
 	})
 
-	await pipe(new Float32Array(request.audio), {
+	const result = await pipe(new Float32Array(request.audio), {
 		top_k: 0,
 		do_sample: false,
 		chunk_length_s: spec.chunkLength,
@@ -62,5 +61,10 @@ export async function transcribe(options: TranscribeOptions) {
 		force_full_sequences: false,
 		streamer,
 	})
+
+	return {
+		text: result.text,
+		chunks: result.chunks
+	}
 }
 

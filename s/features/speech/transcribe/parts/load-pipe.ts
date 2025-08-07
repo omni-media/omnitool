@@ -9,9 +9,8 @@ export async function loadPipe(options: TranscriberPipeOptions) {
 	const pipe = await pipeline("automatic-speech-recognition", spec.model, {
 		device: spec.device,
 		dtype: spec.dtype,
-		progress_callback: (_data: any) => {
-			// TODO update progress
-			onLoading({total: 100, progress: 0})
+		progress_callback: (data: any) => {
+			onLoading({total: data.total, progress: data.progress})
 		},
 	})
 

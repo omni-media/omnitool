@@ -7,7 +7,7 @@ import {loadPipe} from "./parts/load-pipe.js"
 import {transcribe} from "./parts/transcribe.js"
 import {TranscriberSchematic, TranscriberSpec} from "./types.js"
 
-await Comrade.worker<TranscriberSchematic>(({host}, _rig) => {
+await Comrade.worker<TranscriberSchematic>(shell => {
 	let deferred = defer<{pipe: Pipeline, spec: TranscriberSpec}>()
 
 	const prepare = once(async(spec: TranscriberSpec) => {
@@ -15,7 +15,7 @@ await Comrade.worker<TranscriberSchematic>(({host}, _rig) => {
 			spec,
 			pipe: await loadPipe({
 				spec,
-				onLoading: loading => host.loading(loading),
+				onLoading: loading => shell.host.loading(loading),
 			}),
 		})
 	})
@@ -29,8 +29,8 @@ await Comrade.worker<TranscriberSchematic>(({host}, _rig) => {
 				spec,
 				request,
 				callbacks: {
-					onReport: report => host.deliverReport(report),
-					onTranscription: transcription => host.deliverTranscription(transcription),
+					onReport: report => shell.host.deliverReport(report),
+					onTranscription: transcription => shell.host.deliverTranscription(transcription),
 				},
 			})
 		},

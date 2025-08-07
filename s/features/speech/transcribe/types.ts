@@ -56,7 +56,7 @@ export type TranscriptionOptions = {
 } & TranscriptionCallbacks
 
 export type TranscriptionRequest = {
-	audio: ArrayBuffer
+	audio: ArrayBufferLike
 	language: string | null
 	duration: number
 }

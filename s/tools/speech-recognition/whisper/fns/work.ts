@@ -6,10 +6,11 @@ import {WhisperSchematic} from "./schematic.js"
 import {TranscriptionChunk} from "../parts/types.js"
 import {PipelineFactory} from "../../../common/transformer-pipeline.js"
 
+// TODO suspicious globals, probably bad
 const pipeline = new PipelineFactory("automatic-speech-recognition")
 let transcriber: any
 
-export const setupWhisperWork = Comrade.work<WhisperSchematic>(({host}, rig) => ({
+export const setupWhisperWork = Comrade.work<WhisperSchematic>(shell => ({
 	async transcribe({audio, model, language, duration}) {
 		const isDistil = model.startsWith("distil-whisper/")
 
@@ -20,7 +21,7 @@ export const setupWhisperWork = Comrade.work<WhisperSchematic>(({host}, rig) => 
 				model,
 				(data) => {
 					if(data.progress)
-						host.updateModelLoadProgress({
+						shell.host.updateModelLoadProgress({
 							id: data.file,
 							progress: data.progress
 						})
@@ -53,18 +54,18 @@ export const setupWhisperWork = Comrade.work<WhisperSchematic>(({host}, rig) => 
 				startTime ??= performance.now()
 				if (++tokenCount > 1) {
 					tps = (tokenCount / (performance.now() - startTime)) * 1000
-					host.updateTps(tps)
+					shell.host.updateTps(tps)
 				}
 			},
 			callback_function: (textChunk: any) => {
-				host.deliverTranscriptionChunk(textChunk)
+				shell.host.deliverTranscriptionChunk(textChunk)
 			},
 			on_finalize: () => {
 				startTime = null
 				tokenCount = 0
 				chunkCount++
 				const progress = estimateProgress()
-				host.updateTranscribeProgress(progress)
+				shell.host.updateTranscribeProgress(progress)
 			},
 		})
 

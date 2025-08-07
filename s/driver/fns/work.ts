@@ -1,141 +1,139 @@
 import {Comrade} from "@e280/comrade"
-import {
-	Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample,
-	AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource
-} from "mediabunny"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
+import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
 import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
 
-export const setupDriverWork = Comrade.work<DriverSchematic>(({host}, rig) => ({
+export const setupDriverWork = (
+	Comrade.work<DriverSchematic>(shell => ({
+		async hello() {
+			await shell.host.world()
+		},
 
-	async hello() {
-		await host.world()
-	},
-
-	async decode({source, video, audio}) {
-		const loadSource = async () => {
-			if(source instanceof Blob) {
-				return new BlobSource(source)
-			} else {
-				return new UrlSource(source)
+		async decode({source, video, audio}) {
+			const loadSource = async () => {
+				if(source instanceof Blob) {
+					return new BlobSource(source)
+				} else {
+					return new UrlSource(source)
+				}
 			}
-		}
-		const input = new Input({
-			source: await loadSource(),
-			formats: ALL_FORMATS
-		})
+			const input = new Input({
+				source: await loadSource(),
+				formats: ALL_FORMATS
+			})
 
-		const [videoTrack, audioTrack] = await Promise.all([
-			input.getPrimaryVideoTrack(),
-			input.getPrimaryAudioTrack()
-		])
+			const [videoTrack, audioTrack] = await Promise.all([
+				input.getPrimaryVideoTrack(),
+				input.getPrimaryAudioTrack()
+			])
 
-		const videoDecodable = await videoTrack?.canDecode()
-		const audioDecodable = await audioTrack?.canDecode()
+			const videoDecodable = await videoTrack?.canDecode()
+			const audioDecodable = await audioTrack?.canDecode()
 
-		const videoWriter = video.getWriter()
-		const audioWriter = audio.getWriter()
+			const videoWriter = video.getWriter()
+			const audioWriter = audio.getWriter()
 
-		await Promise.all([
-			(async () => {
-				if (videoDecodable && videoTrack) {
-					const sink = new VideoSampleSink(videoTrack)
-					for await (const sample of sink.samples()) {
-						const frame = sample.toVideoFrame()
-						await videoWriter.write(frame)
-						sample.close()
-						frame.close()
+			await Promise.all([
+				(async () => {
+					if (videoDecodable && videoTrack) {
+						const sink = new VideoSampleSink(videoTrack)
+						for await (const sample of sink.samples()) {
+							const frame = sample.toVideoFrame()
+							await videoWriter.write(frame)
+							sample.close()
+							frame.close()
+						}
+						await videoWriter.close()
 					}
-					await videoWriter.close()
-				}
-			})(),
-			(async () => {
-				if (audioDecodable && audioTrack) {
-					const sink = new AudioSampleSink(audioTrack)
-					for await (const sample of sink.samples()) {
-						const frame = sample.toAudioData()
-						await audioWriter.write(frame)
-						sample.close()
-						frame.close()
+				})(),
+				(async () => {
+					if (audioDecodable && audioTrack) {
+						const sink = new AudioSampleSink(audioTrack)
+						for await (const sample of sink.samples()) {
+							const frame = sample.toAudioData()
+							await audioWriter.write(frame)
+							sample.close()
+							frame.close()
+						}
+						await audioWriter.close()
 					}
-					await audioWriter.close()
-				}
-			})()
-		])
-	},
+				})()
+			])
+		},
 
-	async encode({readables, config, bridge}) {
-		const output = new Output({
-			format: new Mp4OutputFormat(),
-			target: new StreamTarget(bridge, {chunked: true})
-		})
-		const videoSource = new VideoSampleSource(config.video)
-		output.addVideoTrack(videoSource)
-		// since AudioSample is not transferable it fails to transfer encoder bitrate config
-		// so it needs to be hardcoded not set through constants eg QUALITY_LOW
-		const audioSource = new AudioSampleSource(config.audio)
-		output.addAudioTrack(audioSource)
+		async encode({readables, config, bridge}) {
+			const output = new Output({
+				format: new Mp4OutputFormat(),
+				target: new StreamTarget(bridge, {chunked: true})
+			})
+			const videoSource = new VideoSampleSource(config.video)
+			output.addVideoTrack(videoSource)
+			// since AudioSample is not transferable it fails to transfer encoder bitrate config
+			// so it needs to be hardcoded not set through constants eg QUALITY_LOW
+			const audioSource = new AudioSampleSource(config.audio)
+			output.addAudioTrack(audioSource)
 
-		await output.start()
+			await output.start()
 
-		const videoReader = readables.video.getReader()
-		const audioReader = readables.audio.getReader()
+			const videoReader = readables.video.getReader()
+			const audioReader = readables.audio.getReader()
 
-		await Promise.all([
-			(async () => {
-				while (true) {
-					const {done, value} = await videoReader.read()
-					if (done) break
-					const sample = new VideoSample(value)
-					await videoSource.add(sample)
-					sample.close()
-				}
-			})(),
-			(async () => {
-				while (true) {
-					const {done, value} = await audioReader.read()
-					if (done) break
-					const sample = new AudioSample(value)
-					await audioSource.add(sample)
-					sample.close()
-					value.close()
-				}
-			})()
-		])
+			await Promise.all([
+				(async () => {
+					while (true) {
+						const {done, value} = await videoReader.read()
+						if (done) break
+						const sample = new VideoSample(value)
+						await videoSource.add(sample)
+						sample.close()
+					}
+				})(),
+				(async () => {
+					while (true) {
+						const {done, value} = await audioReader.read()
+						if (done) break
+						const sample = new AudioSample(value)
+						await audioSource.add(sample)
+						sample.close()
+						value.close()
+					}
+				})()
+			])
 
-		await output.finalize()
-	},
+			await output.finalize()
+		},
 
-	async composite(composition) {
-		const {stage, renderer} = await renderPIXI(1920, 1080)
-		stage.removeChildren()
+		async composite(composition) {
+			const {stage, renderer} = await renderPIXI(1920, 1080)
+			stage.removeChildren()
 
-		const {baseFrame, disposables} = await renderLayer(composition, stage)
-		renderer.render(stage)
+			const {baseFrame, disposables} = await renderLayer(composition, stage)
+			renderer.render(stage)
 
-		// make sure browser support webgl/webgpu otherwise it might take much longer to construct frame
-		// if its very slow on eg edge try chrome
-		const frame = new VideoFrame(renderer.canvas, {
-			timestamp: baseFrame?.timestamp,
-			duration: baseFrame?.duration ?? undefined,
-		})
+			// make sure browser support webgl/webgpu otherwise it might take much longer to construct frame
+			// if its very slow on eg edge try chrome
+			const frame = new VideoFrame(renderer.canvas, {
+				timestamp: baseFrame?.timestamp,
+				duration: baseFrame?.duration ?? undefined,
+			})
 
-		baseFrame?.close()
-		renderer.clear()
+			baseFrame?.close()
+			renderer.clear()
 
-		for (const disposable of disposables) {
-			disposable.destroy(true)
+			for (const disposable of disposables) {
+				disposable.destroy(true)
+			}
+
+			shell.transfer = [frame]
+			return frame
 		}
+	}))
+)
 
-		rig.transfer = [frame]
-		return frame
-	}
-}))
-
-
+// TODO suspicious global, probably bad
 let pixi: {
 	renderer: Renderer
 	stage: Container

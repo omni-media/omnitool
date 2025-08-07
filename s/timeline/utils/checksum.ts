@@ -10,7 +10,8 @@ export class Checksum {
 	) {}
 
 	static async make(data: Uint8Array) {
-		const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", data))
+		const data2 = new Uint8Array(data)
+		const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", data2))
 		const hash = Hex.fromBytes(bytes)
 		const nickname = Thumbprint.sigil.fromBytes(bytes)
 		return new this(data, bytes, hash, nickname)

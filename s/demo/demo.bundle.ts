@@ -2,11 +2,10 @@
 import {context} from "../context.js"
 import {waveformTest} from "./routines/waveform-test.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
+import {transcriberTest} from "./routines/transcriber-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
-import {Whisper} from "../tools/speech-recognition/whisper/tool.js"
 
 const driver = await context.driver
-const whisper = await Whisper.setup()
 const results = document.querySelector(".results")!
 
 const fetchButton = document.querySelector(".fetch")
@@ -16,6 +15,7 @@ fetchButton?.addEventListener("click", startDemoFetch)
 importButton?.addEventListener("click", startDemoImport)
 
 waveformTest()
+const transcriber = await transcriberTest(driver)
 
 // hello world test
 {
@@ -32,8 +32,7 @@ async function startDemoImport()
 	const transcode = setupTranscodeTest(driver, file)
 	await filmstripTest(file)
 	run(transcode, fileHandle.name)
-	const result = await whisper.transcribe(file)
-	console.log(result)
+	await transcriber.transcribe(file)
 }
 
 async function startDemoFetch()

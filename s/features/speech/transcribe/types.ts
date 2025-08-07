@@ -7,13 +7,13 @@ import {Driver} from "../../../driver/driver.js"
 export type TranscriberSchematic = AsSchematic<{
 	work: {
 		prepare(spec: TranscriberSpec): Promise<void>
-		transcribe(request: TranscriptionRequest): Promise<void>
+		transcribe(request: TranscriptionRequest): Promise<Transcription>
 	},
 
 	host: {
 		loading(load: Loading): Promise<void>
 		deliverReport(report: TranscriptionReport): Promise<void>
-		deliverTranscription(transcription: Transcription): Promise<void>
+		deliverTranscription(transcription: string): Promise<void>
 	}
 }>
 
@@ -38,8 +38,10 @@ export type SpeechTime = [start: number, end: number]
 
 export type Transcription = {
 	text: string
-	time: SpeechTime
-	offset: number
+	chunks: {
+		text: string
+		timestamp: SpeechTime
+	}[]
 }
 
 export type TranscriberSpec = {
@@ -68,7 +70,7 @@ export type TranscriptionReport = {
 
 export type TranscriptionCallbacks = {
 	onReport: (report: TranscriptionReport) => void
-	onTranscription: (transcription: Transcription) => void
+	onTranscription: (transcription: string) => void
 }
 
 export type TranscriberOptions = {

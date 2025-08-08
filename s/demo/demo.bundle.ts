@@ -2,6 +2,7 @@
 import {context} from "../context.js"
 import {waveformTest} from "./routines/waveform-test.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
+import {transcriberTest} from "./routines/transcriber-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
 
 const driver = await context.driver
@@ -14,6 +15,7 @@ fetchButton?.addEventListener("click", startDemoFetch)
 importButton?.addEventListener("click", startDemoImport)
 
 waveformTest()
+const transcriber = await transcriberTest(driver)
 
 // hello world test
 {
@@ -26,9 +28,11 @@ waveformTest()
 async function startDemoImport()
 {
 	const [fileHandle] = await window.showOpenFilePicker()
-	const transcode = setupTranscodeTest(driver, fileHandle)
-	await filmstripTest(fileHandle)
+	const file = await fileHandle.getFile()
+	const transcode = setupTranscodeTest(driver, file)
+	await filmstripTest(file)
 	run(transcode, fileHandle.name)
+	await transcriber.transcribe(file)
 }
 
 async function startDemoFetch()

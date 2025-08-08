@@ -36,7 +36,7 @@ export interface EncoderInput {
 	}
 }
 
-export type DecoderSource = FileSystemFileHandle | string
+export type DecoderSource = Blob | string | URL
 
 export interface DecoderInput {
 	source: DecoderSource

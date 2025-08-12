@@ -1,7 +1,7 @@
 import {GLTransition} from "./types.js"
 
-export const uniforms = (transition: GLTransition) =>
-	Object.fromEntries(
+export const uniforms = {
+	custom: (transition: GLTransition) => Object.fromEntries(
 		Object.entries(transition.defaultParams).map(([name, value]) => [
 			name,
 			{
@@ -9,7 +9,15 @@ export const uniforms = (transition: GLTransition) =>
 				type: getUniformType(transition.paramsTypes[name])
 			}
 		])
-	)
+	),
+	basics: {
+		_fromR: {value: 1, type: "f32"},
+		_toR: {value: 1, type: "f32"},
+		ratio: {value: 1, type: "f32"},
+		progress: {value: 0, type: "f32"},
+		customUniform: {value: 0, type: "f32"},
+	}
+}
 
 const getUniformType = (type: string) => {
 	if(type === "f32" || type === "i32") {

@@ -1,6 +1,6 @@
 //@ts-ignore
 import transitions from "gl-transitions"
-import {Filter, GlProgram, Sprite, Texture} from "pixi.js"
+import {Filter, GlProgram, Sprite, Texture, ImageSource} from "pixi.js"
 
 import {vertex} from "./parts/vertex.js"
 import {uniforms} from "./parts/uniforms.js"
@@ -11,8 +11,8 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 	const transition = transitions.find((t: GLTransition) => t.name === name) as GLTransition
 	const transitionSprite = new Sprite()
 	const transitionTexture = new Texture()
-	const textureFrom = new Texture()
-	const textureTo = new Texture()
+	const sourceFrom = new ImageSource({})
+	const sourceTo = new ImageSource({})
 
 	const filter = new Filter({
 		glProgram: new GlProgram({
@@ -20,8 +20,8 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 			fragment: fragment(transition.glsl),
 		}),
 		resources: {
-			from: textureFrom.source,
-			to: textureTo.source,
+			from: sourceFrom,
+			to: sourceTo,
 			uniforms: {
 				_fromR: {value: 1, type: "f32"},
 				_toR: {value: 1, type: "f32"},
@@ -41,11 +41,12 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 				transitionSprite.setSize({width: options.width, height: options.height})
 				transitionTexture.source.resize(options.width, options.height)
 			}
-			const from = Texture.from(options.from).source
-			const to = Texture.from(options.to).source
 
-			filter.resources.from = from
-			filter.resources.to = to
+			sourceFrom.resource = options.from
+			sourceTo.resource = options.to
+			sourceFrom.update()
+			sourceTo.update()
+
 			filter.resources.uniforms.uniforms.progress = options.progress
 
 			renderer.render({
@@ -55,9 +56,6 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 				width: options.width,
 				height: options.height
 			})
-
-			from.destroy()
-			to.destroy()
 
 			return transitionTexture
 		}

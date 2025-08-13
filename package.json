@@ -37,6 +37,7 @@
 		"@e280/stz": "^0.0.0-34",
 		"@huggingface/transformers": "^3.7.1",
 		"comrade": "^0.0.3",
+		"gl-transitions": "^1.43.0",
 		"mediabunny": "^1.4.4",
 		"mp4-muxer": "^5.2.1",
 		"pixi.js": "^8.10.1",

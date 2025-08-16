@@ -1,12 +1,12 @@
 
 import {pipeline} from "@huggingface/transformers"
 
-import {TranscriberPipeOptions} from "../types.js"
+import {PipeOptions} from "../../../types.js"
 
-export async function loadPipe(options: TranscriberPipeOptions) {
+export async function loadPipe(options: PipeOptions) {
 	const {spec, onLoading} = options
 
-	const pipe = await pipeline("automatic-speech-recognition", spec.model, {
+	const pipe = await pipeline(options.task, spec.model, {
 		device: spec.device,
 		dtype: spec.dtype,
 		progress_callback: (data: any) => {

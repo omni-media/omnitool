@@ -30,10 +30,12 @@ export interface EncoderInput {
 		video: ReadableStream<VideoFrame>
 		audio: ReadableStream<AudioData>
 	},
-	config: {
-		video: VideoEncodingConfig
-		audio: AudioEncodingConfig
-	}
+	config: RenderConfig
+}
+
+export interface RenderConfig {
+	video: VideoEncodingConfig
+	audio: AudioEncodingConfig
 }
 
 export type DecoderSource = Blob | string | URL

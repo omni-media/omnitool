@@ -116,18 +116,28 @@ export class Compositor {
 			}
 
 			case Kind.Sequence: {
-				const childDrivers = await Promise.all(
+				const childNodes = await Promise.all(
 					node.children
 						.map(id => this.#requireItem(id))
 						.filter(item => item.kind !== Kind.Transition)
 						.map(item => this.#makeNodes(item))
 				)
-				const duration = childDrivers.reduce((acc, d) => acc + d.duration, 0)
+				const duration = childNodes.reduce((acc, d) => acc + d.duration, 0)
+				const sampleAt = async (time: number): Promise<Composition> => {
+  				let timeCursor = time
+  				for (const node of childNodes) {
+    				if (timeCursor < node.duration)
+      				return (await node.sampleAt?.(timeCursor)) ?? []
+    				timeCursor -= node.duration
+  				}
+  				return []
+				}
 
 				return {
 					duration,
+					sampleAt,
 					async* frames() {
-						for (const driver of childDrivers) {
+						for (const driver of childNodes) {
 							yield* driver.frames()
 						}
 					}

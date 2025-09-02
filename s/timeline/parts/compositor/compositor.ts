@@ -1,20 +1,20 @@
 import {TimelineFile} from "../basics.js"
 import {context} from "../../../context.js"
-import {Samplers} from "./parts/node-tree.js"
+import {Sampler} from "./parts/node-tree.js"
 import {fixedStep} from "./parts/schedulers.js"
 import {TimelineEngine} from "./parts/engine.js"
 import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
 import {DecoderSource, Layer} from "../../../driver/fns/schematic.js"
 
 export class Compositor extends TimelineEngine<Layer> {
-	#sampler!: Samplers<Layer>
+	#sampler!: Sampler<Layer>
 
 	constructor(
 		private framerate = 30,
 		private resolveMedia: (hash: string) => DecoderSource = _hash => "/assets/temp/gl.mp4"
 	) {super()}
 
-	protected samplers() {
+	protected sampler() {
 		this.#sampler =  makeWebCodecsSampler(this.resolveMedia)
 		return this.#sampler
 	}

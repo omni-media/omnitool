@@ -1,6 +1,6 @@
 import {Item} from "../../item.js"
 import {context} from "../../../../context.js"
-import {Samplers} from "../parts/node-tree.js"
+import {Sampler} from "../parts/node-tree.js"
 import {ClipCursor} from "../../../utils/clip-cursor.js"
 import {Layer} from "../../../../driver/fns/schematic.js"
 
@@ -8,7 +8,7 @@ const toUs = (seconds: number) => Math.round(seconds * 1_000_000)
 
 export function makeWebCodecsSampler(
 	resolveMedia: (hash: string) => any
-): Samplers<Layer> {
+): Sampler<Layer> {
 	const cursors = new Map<number, ClipCursor>()
 
 	async function getCursorForClip(clip: Item.Clip): Promise<ClipCursor> {

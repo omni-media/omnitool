@@ -1,4 +1,4 @@
-import {Samplers} from "./parts/node-tree.js"
+import {Sampler} from "./parts/node-tree.js"
 import {TimelineEngine} from "./parts/engine.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 import {DrawThunk, makeHtmlVideoSampler} from "./samplers/html.js"
@@ -8,7 +8,7 @@ type ResolveMedia = (hash: string) => DecoderSource
 
 export class VideoPlayer extends TimelineEngine<DrawThunk> {
 	private controller: RealtimeController | null = null
-	#sampler!: Samplers<DrawThunk>
+	#sampler!: Sampler<DrawThunk>
 
 	constructor(
 		public canvas: HTMLCanvasElement,
@@ -19,7 +19,7 @@ export class VideoPlayer extends TimelineEngine<DrawThunk> {
 		return this.canvas.getContext("2d")!
 	}
 
-	protected samplers() {
+	protected sampler() {
 		this.#sampler = makeHtmlVideoSampler(
 			this.canvas,
 			this.resolveMedia,

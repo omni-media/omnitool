@@ -1,5 +1,5 @@
 import {Item} from "../../item.js"
-import {Samplers} from "../parts/node-tree.js"
+import {Sampler} from "../parts/node-tree.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 export type DrawThunk = (ctx: CanvasRenderingContext2D) => void
@@ -8,7 +8,7 @@ const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL
 export function makeHtmlVideoSampler(
 	canvas: HTMLCanvasElement,
 	resolveMedia: (hash: string) => DecoderSource,
-): Samplers<DrawThunk> {
+): Sampler<DrawThunk> {
 	let paused = false
 	const videoElements = new Map<number, HTMLVideoElement>()
 

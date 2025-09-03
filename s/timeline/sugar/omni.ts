@@ -5,9 +5,12 @@ import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {Datafile} from "../utils/datafile.js"
 import {ResourcePool} from "../parts/resource-pool.js"
+import {RenderConfig} from "../../driver/fns/schematic.js"
+import {Compositor} from "../parts/compositor/compositor.js"
 
 export class Omni {
 	resources = new ResourcePool()
+	compositor = new Compositor()
 
 	load = async<S extends Record<string, Promise<Datafile>>>(spec: S) => {
 		return Object.fromEntries(await Promise.all(Object.entries(spec).map(
@@ -25,6 +28,10 @@ export class Omni {
 			root: o.register(sequence),
 			items: o.items,
 		}
+	}
+
+	render = async (timeline: TimelineFile, config: RenderConfig) => {
+		await this.compositor.render(timeline)
 	}
 }
 

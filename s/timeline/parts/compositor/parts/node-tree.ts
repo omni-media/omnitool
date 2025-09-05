@@ -9,6 +9,7 @@ export type Node<TLayer> = {
 export type Sampler<TLayer> = {
 	clip(item: Item.Clip): Promise<Node<TLayer>>
 	text(item: Item.Text): Promise<Node<TLayer>>
+	gap(item: Item.Gap): Promise<Node<TLayer>>
 	dispose(): Promise<void>
 	setPaused?(v: boolean): void
 }
@@ -21,6 +22,8 @@ export async function buildNode<TLayer>(
 	sampler: Sampler<TLayer>
 ): Promise<Node<TLayer>> {
 	switch (root.kind) {
+		case Kind.Gap:
+			return sampler.gap(root)
 		case Kind.Text:
 			return sampler.text(root)
 		case Kind.Clip:
@@ -43,19 +46,19 @@ export async function buildNode<TLayer>(
 					.map(id => requireItem(items, id))
 					.filter(k => k.kind !== Kind.Transition)
 					.map(k => buildNode(k, items, sampler))
-			);
+			)
 			const duration = children.reduce((a, k) => a + k.duration, 0);
 			return {
 				duration,
 				sampleAt: async (t) => {
-					let local = t;
+					let local = t
 					for (const k of children) {
-						if (local < k.duration) return k.sampleAt(local);
-						local -= k.duration;
+						if (local < k.duration) return k.sampleAt(local)
+						local -= k.duration
 					}
-					return [];
+					return []
 				},
-			};
+			}
 		}
 
 		default: {

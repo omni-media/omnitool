@@ -6,6 +6,7 @@ export enum Kind {
 	Stack,
 	Clip,
 	Text,
+	Gap,
 	Transition,
 }
 
@@ -14,6 +15,12 @@ export enum Effect {
 }
 
 export namespace Item {
+	export type Gap = {
+		id: Id
+		kind: Kind.Gap
+		duration: number
+	}
+
 	export type Sequence = {
 		id: Id
 		kind: Kind.Sequence
@@ -52,6 +59,7 @@ export namespace Item {
 		| Stack
 		| Clip
 		| Text
+		| Gap
 		| Transition
 	)
 }

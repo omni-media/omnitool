@@ -81,5 +81,9 @@ export type ImageLayer = {
 	frame: VideoFrame
 } & Transform
 
-export type Layer = TextLayer | ImageLayer
+export type GapLayer = {
+	kind: 'gap'
+}
+
+export type Layer = TextLayer | ImageLayer | GapLayer
 

@@ -48,6 +48,12 @@ export class O {
 		content,
 	})
 
+	gap = (duration: number): Item.Gap => ({
+		id: this.#getId(),
+		kind: Kind.Gap,
+		duration
+	})
+
 	transition = {
 		crossfade: (duration: number): Item.Transition => ({
 			id: this.#getId(),

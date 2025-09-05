@@ -23,11 +23,16 @@ export function makeWebCodecsSampler(
 	}
 
 	return {
+		async gap(item) {
+			return {
+				duration: item.duration,
+				sampleAt: async () => [{kind: "gap"}]
+			}
+		},
 		async text(item) {
-			const layer: Layer = { kind: "text", content: item.content, color: "white", fontSize: 48 }
 			return {
 				duration: Infinity,
-				sampleAt: async () => [layer],
+				sampleAt: async () => [{kind: "text", content: item.content, color: "white", fontSize: 48}],
 			}
 		},
 

@@ -27,6 +27,12 @@ export function makeHtmlVideoSampler(
 	}
 
 	return {
+		async gap(item) {
+			return {
+				duration: item.duration,
+				sampleAt: async () => []
+			}
+		},
 		async text(item) {
 			return {
 				duration: Infinity,

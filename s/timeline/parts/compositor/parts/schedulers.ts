@@ -3,47 +3,65 @@ export type RealtimeController = {
 	pause(): void
 	seek(t: number): void
 	dispose(): void
+	setFPS(v: number): void
 	isPlaying(): boolean
 }
 
 export const realtime = (onTick: (t: number) => void): RealtimeController => {
-	let playing = false
-	let rafId: number | null = null
-	let playbackStartMs = 0
-	let seekBaseS = 0
+  let playing = false
+  let rafId: number | null = null
+  let fps = 60
 
-	const tick = () => {
-		if (!playing) return
-		const now = performance.now()
-		const t = Math.max(0, (now - playbackStartMs) / 1000)
-		onTick(t)
-		rafId = requestAnimationFrame(tick)
-	}
+  let frameDuration = 1000 / fps
+  let currentTimeS = 0
+  let lastTime = 0
+  let accumulator = 0
 
-	return {
-		play() {
-			if (playing) return
-			playing = true
-			playbackStartMs = performance.now() - seekBaseS * 1000
-			tick()
-		},
-		pause() {
-			if (!playing) return
-			playing = false
-			if (rafId !== null) cancelAnimationFrame(rafId)
-			rafId = null
-		},
-		seek(t) {
-			seekBaseS = Math.max(0, t)
-			if (playing) playbackStartMs = performance.now() - seekBaseS * 1000
-		},
-		dispose() {
-			this.pause()
-		},
-		isPlaying() {
-			return playing
-		},
-	}
+  const tick = (now: number) => {
+    if (!playing) return
+
+    const deltaTime = now - lastTime
+    lastTime = now
+
+    accumulator += deltaTime
+
+    while (accumulator >= frameDuration) {
+      onTick(currentTimeS)
+      currentTimeS += frameDuration / 1000
+      accumulator -= frameDuration
+    }
+
+    rafId = requestAnimationFrame(tick)
+  }
+
+  return {
+    play() {
+      if (playing) return
+      playing = true
+      lastTime = performance.now()
+      rafId = requestAnimationFrame(tick)
+    },
+    pause() {
+      if (!playing) return
+      playing = false
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      rafId = null
+    },
+    seek(t) {
+      currentTimeS = Math.max(0, t)
+      accumulator = 0
+    },
+    dispose() {
+      this.pause()
+    },
+    isPlaying() {
+      return playing
+    },
+    setFPS(v) {
+    	fps = v
+    	frameDuration = 1000 / fps
+    }
+  }
 }
 
 export type FixedStepOptions = {

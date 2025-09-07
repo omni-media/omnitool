@@ -9,7 +9,6 @@ export function makeHtmlVideoSampler(
 	canvas: HTMLCanvasElement,
 	resolveMedia: (hash: string) => DecoderSource,
 ): Sampler<DrawThunk> {
-	let paused = false
 	const videoElements = new Map<number, HTMLVideoElement>()
 
 	function getOrCreateVideoElement(clip: Item.Clip): HTMLVideoElement {
@@ -25,6 +24,8 @@ export function makeHtmlVideoSampler(
 		}
 		return video
 	}
+
+	let paused = true
 
 	return {
 		async gap(item) {
@@ -51,10 +52,19 @@ export function makeHtmlVideoSampler(
 			const video = getOrCreateVideoElement(item)
 			return {
 				duration: item.duration,
+				// if paused seek otherwise play
 				sampleAt: async (t) => {
-					if (t < 0 || t >= item.duration) return []
-					if(!paused && video.paused)
+					if (t < 0 || t >= item.duration)
+						return []
+
+					if(video.paused && paused) {
+						await seek(video, t)
+					}
+
+					if(video.paused && !paused) {
 						await video.play()
+					}
+
 					return [
 						(ctx) => {
 							ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
@@ -74,10 +84,22 @@ export function makeHtmlVideoSampler(
 		},
 		async setPaused(p) {
 			paused = p
-			for (const v of videoElements.values()) {
-				p ? v.pause() : await v.play()
+			for(const video of videoElements.values()) {
+				if(p) video.pause()
 			}
 		},
 	}
 }
 
+function seek(video: HTMLVideoElement, time: number): Promise<void> {
+  return new Promise((resolve) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked)
+      resolve()
+    }
+    video.addEventListener("seeked", onSeeked)
+    if(video.fastSeek) {
+    	video.fastSeek(time)
+    } else video.currentTime = time
+  })
+}

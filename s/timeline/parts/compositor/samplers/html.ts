@@ -2,13 +2,9 @@ import {Item} from "../../item.js"
 import {Sampler} from "../parts/node-tree.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
-export type DrawThunk = (ctx: CanvasRenderingContext2D) => void
 const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL(src) : String(src))
 
-export function makeHtmlVideoSampler(
-	canvas: HTMLCanvasElement,
-	resolveMedia: (hash: string) => DecoderSource,
-): Sampler<DrawThunk> {
+export function makeHtmlVideoSampler(resolveMedia: (hash: string) => DecoderSource): Sampler {
 	const videoElements = new Map<number, HTMLVideoElement>()
 
 	function getOrCreateVideoElement(clip: Item.Clip): HTMLVideoElement {
@@ -37,14 +33,7 @@ export function makeHtmlVideoSampler(
 		async text(item) {
 			return {
 				duration: Infinity,
-				sampleAt: async () => [
-					(ctx) => {
-						ctx.fillStyle = "white"
-						ctx.font = "48px sans-serif"
-						ctx.textBaseline = "top"
-						ctx.fillText(item.content, 40, 40)
-					},
-				],
+				sampleAt: async () => [{kind: "text", content: item.content, color: "white", fontSize: 48}],
 			}
 		},
 
@@ -65,11 +54,8 @@ export function makeHtmlVideoSampler(
 						await video.play()
 					}
 
-					return [
-						(ctx) => {
-							ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-						},
-					]
+					const frame = new VideoFrame(video)
+					return frame ? [{kind: "image", frame}] : []
 				},
 			}
 		},

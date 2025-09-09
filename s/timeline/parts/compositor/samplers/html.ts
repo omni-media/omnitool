@@ -24,19 +24,6 @@ export function makeHtmlVideoSampler(resolveMedia: (hash: string) => DecoderSour
 	let paused = true
 
 	return {
-		async gap(item) {
-			return {
-				duration: item.duration,
-				sampleAt: async () => []
-			}
-		},
-		async text(item) {
-			return {
-				duration: Infinity,
-				sampleAt: async () => [{kind: "text", content: item.content, color: "white", fontSize: 48}],
-			}
-		},
-
 		async clip(item) {
 			const video = getOrCreateVideoElement(item)
 			return {

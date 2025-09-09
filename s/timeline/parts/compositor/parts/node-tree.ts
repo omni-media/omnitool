@@ -9,8 +9,6 @@ export type Node = {
 
 export type Sampler = {
 	clip(item: Item.Clip): Promise<Node>
-	text(item: Item.Text): Promise<Node>
-	gap(item: Item.Gap): Promise<Node>
 	dispose(): Promise<void>
 	setPaused?(v: boolean): void
 }
@@ -24,9 +22,15 @@ export async function buildNode(
 ): Promise<Node> {
 	switch (root.kind) {
 		case Kind.Gap:
-			return sampler.gap(root)
+			return {
+				duration: root.duration,
+				sampleAt: async () => []
+			}
 		case Kind.Text:
-			return sampler.text(root)
+			return {
+				duration: Infinity,
+				sampleAt: async () => [{kind: "text", content: root.content, color: "white", fontSize: 48}],
+			}
 		case Kind.Clip:
 			return sampler.clip(root)
 

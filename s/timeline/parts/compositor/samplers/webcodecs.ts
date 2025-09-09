@@ -20,19 +20,6 @@ export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): Sampl
 	}
 
 	return {
-		async gap(item) {
-			return {
-				duration: item.duration,
-				sampleAt: async () => [{kind: "gap"}]
-			}
-		},
-		async text(item) {
-			return {
-				duration: Infinity,
-				sampleAt: async () => [{kind: "text", content: item.content, color: "white", fontSize: 48}],
-			}
-		},
-
 		async clip(item) {
 			const cursor = await getCursorForClip(item)
 			const baseUs = toUs(item.start ?? 0)

@@ -2,11 +2,11 @@ import {Item} from "../../item.js"
 import {TimelineFile} from "../../basics.js"
 import {buildNode, Node, Sampler} from "./node-tree.js"
 
-export abstract class TimelineEngine<T> {
+export abstract class TimelineEngine {
 	protected items = new Map<number, Item.Any>()
-	protected rootNode: Node<T> | null = null
+	protected rootNode: Node | null = null
 
-	protected abstract sampler(): Sampler<T>
+	protected abstract sampler(): Sampler
 
 	get duration() {
 		return this.rootNode?.duration ?? 0

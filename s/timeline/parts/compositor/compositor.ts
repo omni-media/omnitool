@@ -4,10 +4,10 @@ import {Sampler} from "./parts/node-tree.js"
 import {fixedStep} from "./parts/schedulers.js"
 import {TimelineEngine} from "./parts/engine.js"
 import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
-import {DecoderSource, Layer} from "../../../driver/fns/schematic.js"
+import {DecoderSource} from "../../../driver/fns/schematic.js"
 
-export class Compositor extends TimelineEngine<Layer> {
-	#sampler!: Sampler<Layer>
+export class Compositor extends TimelineEngine {
+	#sampler!: Sampler
 
 	constructor(
 		private framerate = 30,

@@ -2,6 +2,7 @@ import {Comrade} from "@e280/comrade"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
+import {makeTransition} from "../../features/transition/transition.js"
 import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
@@ -70,7 +71,7 @@ export const setupDriverWork = (
 				target: new StreamTarget(bridge, {chunked: true})
 			})
 			const videoSource = new VideoSampleSource(config.video)
-			output.addVideoTrack(videoSource)
+			output.addVideoTrack(videoSource, {framerate: 30})
 			// since AudioSample is not transferable it fails to transfer encoder bitrate config
 			// so it needs to be hardcoded not set through constants eg QUALITY_LOW
 			const audioSource = new AudioSampleSource(config.audio)
@@ -110,22 +111,18 @@ export const setupDriverWork = (
 			const {stage, renderer} = await renderPIXI(1920, 1080)
 			stage.removeChildren()
 
-			const {baseFrame, disposables} = await renderLayer(composition, stage)
+			const {dispose} = await renderLayer(composition, stage)
 			renderer.render(stage)
 
 			// make sure browser support webgl/webgpu otherwise it might take much longer to construct frame
 			// if its very slow on eg edge try chrome
 			const frame = new VideoFrame(renderer.canvas, {
-				timestamp: baseFrame?.timestamp,
-				duration: baseFrame?.duration ?? undefined,
+				timestamp: 0,
+				duration: 0,
 			})
 
-			baseFrame?.close()
 			renderer.clear()
-
-			for (const disposable of disposables) {
-				disposable.destroy(true)
-			}
+			dispose()
 
 			shell.transfer = [frame]
 			return frame
@@ -157,46 +154,43 @@ async function renderPIXI(width: number, height: number) {
 	return pixi
 }
 
+const transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
+
 type RenderableObject = Sprite | Text | Texture
 
 async function renderLayer(
 	layer: Layer | Composition,
 	parent: Container,
-	disposables: RenderableObject[] = []
 ) {
 	if (Array.isArray(layer)) {
-		let baseFrame: VideoFrame | undefined
+		const disposers: (() => void)[] = []
 		for (const child of layer) {
-			const result = await renderLayer(child, parent, disposables)
-			baseFrame ??= result.baseFrame
+			const result = await renderLayer(child, parent)
+			disposers.push(result.dispose)
 		}
-		return {baseFrame, disposables}
-	}
-
-	if (!isRenderableLayer(layer)) {
-		console.warn('Invalid layer', layer)
-		return {disposables}
+		return {dispose: () => disposers.forEach(d => d())}
 	}
 
 	switch (layer.kind) {
 		case 'text':
-			return renderTextLayer(layer, parent, disposables)
+			return renderTextLayer(layer, parent)
 		case 'image':
-			return renderImageLayer(layer, parent, disposables)
+			return renderImageLayer(layer, parent)
+		case 'transition':
+			return renderTransitionLayer(layer, parent)
+		case 'gap': {
+			pixi?.renderer.clear()
+			return {dispose: () => {}}
+		}
 		default:
 			console.warn('Unknown layer kind', (layer as any).kind)
-			return {disposables}
+			return {dispose: () => {}}
 	}
-}
-
-function isRenderableLayer(layer: any): layer is Layer {
-	return !!layer && typeof layer === 'object' && typeof layer.kind === 'string'
 }
 
 function renderTextLayer(
 	layer: Extract<Layer, {kind: 'text'}>,
 	parent: Container,
-	disposables: RenderableObject[]
 ) {
 	const text = new Text({
 		text: layer.content,
@@ -208,21 +202,39 @@ function renderTextLayer(
 	})
 	applyTransform(text, layer)
 	parent.addChild(text)
-	disposables.push(text)
-	return {disposables}
+	return {dispose: () => text.destroy(true)}
 }
 
 function renderImageLayer(
 	layer: Extract<Layer, {kind: 'image'}>,
 	parent: Container,
-	disposables: RenderableObject[]
 ) {
 	const texture = Texture.from(layer.frame)
 	const sprite = new Sprite(texture)
 	applyTransform(sprite, layer)
 	parent.addChild(sprite)
-	disposables.push(sprite, texture)
-	return {baseFrame: layer.frame, disposables}
+	return {dispose: () => {
+		sprite.destroy(true)
+		texture.destroy(true)
+		layer.frame.close()
+	}}
+}
+
+function renderTransitionLayer(
+	{from, to, progress, name}: Extract<Layer, {kind: 'transition'}>,
+	parent: Container,
+) {
+	const transition = transitions.get(name) ??
+		(transitions.set(name, makeTransition({
+			name: "circle",
+			renderer: pixi!.renderer
+		})),
+	  transitions.get(name)!
+	)
+	const texture = transition.render({from, to, progress, width: from.displayWidth, height: from.displayHeight})
+	const sprite = new Sprite(texture)
+	parent.addChild(sprite)
+	return {dispose: () => sprite.destroy(false)}
 }
 
 function applyTransform(target: Sprite | Text, t: Transform = {}) {

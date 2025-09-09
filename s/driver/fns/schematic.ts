@@ -81,9 +81,17 @@ export type ImageLayer = {
 	frame: VideoFrame
 } & Transform
 
+export type TransitionLayer = {
+  kind: 'transition'
+  name: string
+  progress: number
+  from: VideoFrame
+  to: VideoFrame
+}
+
 export type GapLayer = {
 	kind: 'gap'
 }
 
-export type Layer = TextLayer | ImageLayer | GapLayer
+export type Layer = TextLayer | ImageLayer | TransitionLayer | GapLayer
 

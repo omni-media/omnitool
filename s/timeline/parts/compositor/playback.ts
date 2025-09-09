@@ -1,14 +1,15 @@
+import {context} from "../../../context.js"
 import {Sampler} from "./parts/node-tree.js"
 import {realtime} from "./parts/schedulers.js"
 import {TimelineEngine} from "./parts/engine.js"
+import {makeHtmlVideoSampler} from "./samplers/html.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
-import {DrawThunk, makeHtmlVideoSampler} from "./samplers/html.js"
 
 type ResolveMedia = (hash: string) => DecoderSource
 
-export class VideoPlayer extends TimelineEngine<DrawThunk> {
+export class VideoPlayer extends TimelineEngine {
 	#controller = realtime(t => this.#tick(t))
-	#sampler!: Sampler<DrawThunk>
+	#sampler!: Sampler
 
 	constructor(
 		public canvas: HTMLCanvasElement,
@@ -23,20 +24,19 @@ export class VideoPlayer extends TimelineEngine<DrawThunk> {
 	}
 
 	protected sampler() {
-		this.#sampler = makeHtmlVideoSampler(
-			this.canvas,
-			this.resolveMedia,
-		)
+		this.#sampler = makeHtmlVideoSampler(this.resolveMedia)
 		return this.#sampler
 	}
 
 	async #tick(t: number) {
+		const driver = await context.driver
 		const dur = this.duration
 		const tt = t > dur ? dur : t
-
-		const thunks = await this.sampleAt(tt)
-		for (const draw of thunks) draw(this.context)
-
+		for (const layer of await this.sampleAt(tt)) {
+			const frame = await driver.composite(layer)
+			this.context.drawImage(frame, 0, 0)
+			frame.close()
+		}
 		if (t >= dur) this.pause()
 	}
 
@@ -55,10 +55,14 @@ export class VideoPlayer extends TimelineEngine<DrawThunk> {
 	}
 
 	async seek(time: number) {
+		const driver = await context.driver
 		this.pause()
 		this.#controller.seek(time)
-		const thunks = await this.sampleAt(time)
-		for (const draw of thunks) draw(this.context)
+		for (const draw of await this.sampleAt(time)) {
+			const frame = await driver.composite(draw)
+			this.context.drawImage(frame, 0, 0)
+			frame.close()
+		}
 	}
 
 	setFPS(value: number) {

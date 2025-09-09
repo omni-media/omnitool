@@ -20,7 +20,7 @@ export class Compositor extends TimelineEngine {
 	}
 
 	async render(timeline: TimelineFile) {
-		await this.load(timeline)
+		await this.build(timeline)
 
 		const driver = await context.driver
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()

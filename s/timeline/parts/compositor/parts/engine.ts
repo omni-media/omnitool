@@ -12,7 +12,7 @@ export abstract class TimelineEngine {
 		return this.rootNode?.duration ?? 0
 	}
 
-	async load(timeline: TimelineFile) {
+	async build(timeline: TimelineFile) {
 		this.items = new Map(timeline.items.map(i => [i.id, i]))
 		const rootItem = this.items.get(timeline.root)!
 		this.rootNode = await buildNode(rootItem, this.items, this.sampler())

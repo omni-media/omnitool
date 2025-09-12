@@ -2,7 +2,7 @@ import {context} from "../../../context.js"
 import {Sampler} from "./parts/node-tree.js"
 import {realtime} from "./parts/schedulers.js"
 import {TimelineEngine} from "./parts/engine.js"
-import {makeHtmlVideoSampler} from "./samplers/html.js"
+import {makeHtmlSampler} from "./samplers/html.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 
 type ResolveMedia = (hash: string) => DecoderSource
@@ -24,7 +24,7 @@ export class VideoPlayer extends TimelineEngine {
 	}
 
 	protected sampler() {
-		this.#sampler = makeHtmlVideoSampler(this.resolveMedia)
+		this.#sampler = makeHtmlSampler(this.resolveMedia)
 		return this.#sampler
 	}
 

@@ -4,7 +4,8 @@ import {Id, Hash} from "./basics.js"
 export enum Kind {
 	Sequence,
 	Stack,
-	Clip,
+	Video,
+	Audio,
 	Text,
 	Gap,
 	Transition,
@@ -33,9 +34,17 @@ export namespace Item {
 		children: Id[]
 	}
 
-	export type Clip = {
+	export type Video = {
 		id: Id
-		kind: Kind.Clip
+		kind: Kind.Video
+		mediaHash: Hash
+		start: number
+		duration: number
+	}
+
+	export type Audio = {
+		id: Id
+		kind: Kind.Audio
 		mediaHash: Hash
 		start: number
 		duration: number
@@ -57,7 +66,8 @@ export namespace Item {
 	export type Any = (
 		| Sequence
 		| Stack
-		| Clip
+		| Video
+		| Audio
 		| Text
 		| Gap
 		| Transition

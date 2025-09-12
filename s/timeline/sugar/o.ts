@@ -34,13 +34,33 @@ export class O {
 		children: items.map(item => this.register(item)),
 	})
 
-	clip = (media: Media, start?: number, duration?: number): Item.Clip => ({
-		id: this.#getId(),
-		kind: Kind.Clip,
-		mediaHash: media.datafile.checksum.hash,
-		start: start ?? 0,
-		duration: duration ?? media.duration,
-	})
+	clip = (media: Media, start?: number, duration?: number): Item.Any => {
+		const item = {
+			mediaHash: media.datafile.checksum.hash,
+			start: start ?? 0,
+			duration: duration ?? media.duration
+		}
+
+		const video: Item.Video | null = media.hasVideo
+			? {kind: Kind.Video, ...item, id: this.#getId()}
+			: null
+
+		const audio: Item.Audio | null = media.hasAudio
+			? {kind: Kind.Audio, ...item, id: this.#getId()}
+			: null
+
+		if (video && audio) {
+			return this.stack(video, audio)
+		}
+		else if (video) {
+			return video
+		}
+		else if (audio) {
+			return audio
+		}
+		else return this.gap(0)
+	}
+
 
 	text = (content: string): Item.Text => ({
 		id: this.#getId(),

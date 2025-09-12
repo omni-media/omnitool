@@ -3,9 +3,17 @@ import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapt
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
 import {makeTransition} from "../../features/transition/transition.js"
-import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
+import {Composition, DecoderSource, DriverSchematic, Layer, Transform} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
+
+const loadSource = async (source: DecoderSource) => {
+	if(source instanceof Blob) {
+		return new BlobSource(source)
+	} else {
+		return new UrlSource(source)
+	}
+}
 
 export const setupDriverWork = (
 	Comrade.work<DriverSchematic>(shell => ({
@@ -13,77 +21,65 @@ export const setupDriverWork = (
 			await shell.host.world()
 		},
 
-		async decode({source, video, audio}) {
-			const loadSource = async () => {
-				if(source instanceof Blob) {
-					return new BlobSource(source)
-				} else {
-					return new UrlSource(source)
-				}
-			}
+		async decodeAudio({source, audio, start, end}) {
 			const input = new Input({
-				source: await loadSource(),
+				source: await loadSource(source),
 				formats: ALL_FORMATS
 			})
 
-			const [videoTrack, audioTrack] = await Promise.all([
-				input.getPrimaryVideoTrack(),
-				input.getPrimaryAudioTrack()
-			])
-
-			const videoDecodable = await videoTrack?.canDecode()
+			const audioTrack = await input.getPrimaryAudioTrack()
 			const audioDecodable = await audioTrack?.canDecode()
-
-			const videoWriter = video.getWriter()
 			const audioWriter = audio.getWriter()
 
-			await Promise.all([
-				(async () => {
-					if (videoDecodable && videoTrack) {
-						const sink = new VideoSampleSink(videoTrack)
-						for await (const sample of sink.samples()) {
-							const frame = sample.toVideoFrame()
-							await videoWriter.write(frame)
-							sample.close()
-							frame.close()
-						}
-						await videoWriter.close()
-					}
-				})(),
-				(async () => {
-					if (audioDecodable && audioTrack) {
-						const sink = new AudioSampleSink(audioTrack)
-						for await (const sample of sink.samples()) {
-							const frame = sample.toAudioData()
-							await audioWriter.write(frame)
-							sample.close()
-							frame.close()
-						}
-						await audioWriter.close()
-					}
-				})()
-			])
+			if (audioDecodable && audioTrack) {
+				const sink = new AudioSampleSink(audioTrack)
+				for await (const sample of sink.samples(start, end)) {
+					const frame = sample.toAudioData()
+					await audioWriter.write(frame)
+					sample.close()
+					frame.close()
+				}
+				await audioWriter.close()
+			}
 		},
 
-		async encode({readables, config, bridge}) {
+		async decodeVideo({source, video, start, end}) {
+			const input = new Input({
+				source: await loadSource(source),
+				formats: ALL_FORMATS
+			})
+
+			const videoTrack = await input.getPrimaryVideoTrack()
+			const videoDecodable = await videoTrack?.canDecode()
+			const videoWriter = video.getWriter()
+
+			if (videoDecodable && videoTrack) {
+				const sink = new VideoSampleSink(videoTrack)
+				for await (const sample of sink.samples(start, end)) {
+					const frame = sample.toVideoFrame()
+					await videoWriter.write(frame)
+					sample.close()
+					frame.close()
+				}
+				await videoWriter.close()
+			}
+		},
+
+		async encode({video, audio, config, bridge}) {
 			const output = new Output({
 				format: new Mp4OutputFormat(),
 				target: new StreamTarget(bridge, {chunked: true})
 			})
-			const videoSource = new VideoSampleSource(config.video)
-			output.addVideoTrack(videoSource, {framerate: 30})
 			// since AudioSample is not transferable it fails to transfer encoder bitrate config
 			// so it needs to be hardcoded not set through constants eg QUALITY_LOW
-			const audioSource = new AudioSampleSource(config.audio)
-			output.addAudioTrack(audioSource)
 
-			await output.start()
+			const promises = []
 
-			const videoReader = readables.video.getReader()
-			const audioReader = readables.audio.getReader()
-
-			await Promise.all([
-				(async () => {
+			if(video) {
+				const videoSource = new VideoSampleSource(config.video)
+				output.addVideoTrack(videoSource)
+				const videoReader = video.getReader()
+				promises.push((async () => {
 					while (true) {
 						const {done, value} = await videoReader.read()
 						if (done) break
@@ -91,8 +87,14 @@ export const setupDriverWork = (
 						await videoSource.add(sample)
 						sample.close()
 					}
-				})(),
-				(async () => {
+				})())
+			}
+
+			if(audio) {
+				const audioSource = new AudioSampleSource(config.audio)
+				output.addAudioTrack(audioSource)
+				const audioReader = audio.getReader()
+				promises.push((async () => {
 					while (true) {
 						const {done, value} = await audioReader.read()
 						if (done) break
@@ -101,9 +103,11 @@ export const setupDriverWork = (
 						sample.close()
 						value.close()
 					}
-				})()
-			])
+				})())
+			}
 
+			await output.start()
+			await Promise.all(promises)
 			await output.finalize()
 		},
 

@@ -8,10 +8,18 @@ export type DriverSchematic = AsSchematic<{
 	work: {
 		hello(): Promise<void>
 
-		decode(input: {
+		decodeAudio(input: {
+			source: DecoderSource
+			audio: WritableStream<AudioData>
+			start?: number
+			end?: number
+		}): Promise<void>
+
+		decodeVideo(input: {
 			source: DecoderSource
 			video: WritableStream<VideoFrame>
-			audio: WritableStream<AudioData>
+			start?: number
+			end?: number
 		}): Promise<void>
 
 		encode(input: EncoderInput & {bridge: WritableStream<StreamTargetChunk>}): Promise<void>
@@ -26,10 +34,8 @@ export type DriverSchematic = AsSchematic<{
 }>
 
 export interface EncoderInput {
-	readables: {
-		video: ReadableStream<VideoFrame>
-		audio: ReadableStream<AudioData>
-	},
+	video?: ReadableStream<VideoFrame>
+	audio?: ReadableStream<AudioData>
 	config: RenderConfig
 }
 
@@ -42,6 +48,8 @@ export type DecoderSource = Blob | string | URL
 
 export interface DecoderInput {
 	source: DecoderSource
+	start?: number
+	end?: number
 	onFrame?: (frame: VideoFrame) => Promise<VideoFrame>
 }
 
@@ -91,6 +99,11 @@ export type TransitionLayer = {
 
 export type GapLayer = {
 	kind: 'gap'
+}
+
+export type Audio = {
+	kind: "audio"
+	data: AudioData
 }
 
 export type Layer = TextLayer | ImageLayer | TransitionLayer | GapLayer

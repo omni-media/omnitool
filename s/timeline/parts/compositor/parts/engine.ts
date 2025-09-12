@@ -21,5 +21,9 @@ export abstract class TimelineEngine {
 	async sampleAt(t: number) {
 		return this.rootNode!.sampleAt(t)
 	}
+
+	async audioStream() {
+		return this.rootNode!.audioStream?.()
+	}
 }
 

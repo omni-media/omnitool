@@ -5,10 +5,12 @@ export type SampleAt = (time: number) => Promise<Layer[]>
 export type Node = {
 	duration: number
 	sampleAt: SampleAt
+	audioStream?: () => AsyncGenerator<AudioData>
 }
 
 export type Sampler = {
-	clip(item: Item.Clip): Promise<Node>
+	video(item: Item.Video): Promise<Node>
+	audio(item: Item.Audio): Promise<Node>
 	dispose(): Promise<void>
 	setPaused?(v: boolean): void
 }
@@ -24,16 +26,19 @@ export async function buildNode(
 		case Kind.Gap:
 			return {
 				duration: root.duration,
-				sampleAt: async () => []
+				sampleAt: async () => [],
 			}
 		case Kind.Text:
 			return {
 				duration: Infinity,
 				sampleAt: async () => [{kind: "text", content: root.content, color: "white", fontSize: 48}],
 			}
-		case Kind.Clip:
-			return sampler.clip(root)
+		case Kind.Video:
+			return sampler.video(root)
 
+		case Kind.Audio: {
+			return sampler.audio(root)
+		}
 		case Kind.Stack: {
 			const children = await Promise.all(
 				root.children.map(id => buildNode(requireItem(items, id), items, sampler))
@@ -42,6 +47,13 @@ export async function buildNode(
 			return {
 				duration,
 				sampleAt: async (t) => (await Promise.all(children.map(k => k.sampleAt(t)))).flat(),
+				audioStream: async function*() {
+					for (const child of children) {
+						if(child.audioStream) {
+							yield* child.audioStream()
+						}
+					}
+				}
 			}
 		}
 
@@ -58,6 +70,13 @@ export async function buildNode(
 						local -= k.duration
 					}
 					return []
+				},
+				audioStream: async function*() {
+					for (const child of children) {
+						if(child.audioStream) {
+							yield* child.audioStream()
+						}
+					}
 				}
 			}
 		}
@@ -89,6 +108,7 @@ async function processSequenceChildren(
     const outgoingNode = processedNodes.pop()
     const incomingItem = childItems[i + 1]
 
+		// TODO - make sure there is incoming and outgoing items both of clip kind (video)
     if (!outgoingNode || !incomingItem || incomingItem.kind === Kind.Transition) {
       if (outgoingNode) processedNodes.push(outgoingNode)
       continue
@@ -135,6 +155,12 @@ async function createTransitionNode(
       }
       // After the overlap, sample the incoming node
       return await incomingNode.sampleAt(t - start)
-    }
+    },
+    audioStream: async function*() {
+    	if(outgoingNode.audioStream)
+				yield* outgoingNode.audioStream()
+			if(incomingNode.audioStream)
+				yield* incomingNode.audioStream()
+		}
   }
 }

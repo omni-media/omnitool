@@ -4,10 +4,11 @@ import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL(src) : String(src))
 
-export function makeHtmlVideoSampler(resolveMedia: (hash: string) => DecoderSource): Sampler {
+export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): Sampler {
 	const videoElements = new Map<number, HTMLVideoElement>()
+	const audioElements = new Map<number, HTMLAudioElement>()
 
-	function getOrCreateVideoElement(clip: Item.Clip): HTMLVideoElement {
+	function getOrCreateVideoElement(clip: Item.Video) {
 		let video = videoElements.get(clip.id)
 		if (!video) {
 			video = document.createElement("video")
@@ -21,10 +22,23 @@ export function makeHtmlVideoSampler(resolveMedia: (hash: string) => DecoderSour
 		return video
 	}
 
+	function getOrCreateAudioElement(clip: Item.Audio) {
+		let audio = audioElements.get(clip.id)
+		if (!audio) {
+			audio = document.createElement("audio")
+			audio.preload = "auto"
+			audio.crossOrigin = "anonymous"
+			audio.src = toUrl(resolveMedia(clip.mediaHash))
+			audio.volume = 0
+			audioElements.set(clip.id, audio)
+		}
+		return audio
+	}
+
 	let paused = true
 
 	return {
-		async clip(item) {
+		async video(item) {
 			const video = getOrCreateVideoElement(item)
 			return {
 				duration: item.duration,
@@ -43,36 +57,55 @@ export function makeHtmlVideoSampler(resolveMedia: (hash: string) => DecoderSour
 
 					const frame = new VideoFrame(video)
 					return frame ? [{kind: "image", frame}] : []
-				},
+				}
+			}
+		},
+		async audio(item) {
+			const audio = getOrCreateAudioElement(item)
+			return {
+				duration: item.duration,
+				sampleAt: async (t) => {
+					const localTime = item.start + t
+					if(audio.paused && paused) {
+						await seek(audio, localTime)
+					}
+					if(audio.paused && !paused) {
+						await audio.play()
+					}
+					return []
+				}
 			}
 		},
 		async dispose() {
-      for (const element of videoElements.values()) {
+			const elements = [...videoElements.values(), ...audioElements.values()]
+      for (const element of elements) {
         element.pause()
         if (element.src.startsWith("blob:"))
         	URL.revokeObjectURL(element.src)
         element.remove()
       }
       videoElements.clear()
+      audioElements.clear()
 		},
 		async setPaused(p) {
 			paused = p
-			for(const video of videoElements.values()) {
-				if(p) video.pause()
+			const elements = [...videoElements.values(), ...audioElements.values()]
+			for(const element of elements) {
+				if(p) element.pause()
 			}
 		},
 	}
 }
 
-function seek(video: HTMLVideoElement, time: number): Promise<void> {
+function seek(media: HTMLVideoElement | HTMLAudioElement, time: number): Promise<void> {
   return new Promise((resolve) => {
     const onSeeked = () => {
-      video.removeEventListener("seeked", onSeeked)
+      media.removeEventListener("seeked", onSeeked)
       resolve()
     }
-    video.addEventListener("seeked", onSeeked)
-    if(video.fastSeek) {
-    	video.fastSeek(time)
-    } else video.currentTime = time
+    media.addEventListener("seeked", onSeeked)
+    if(media.fastSeek) {
+    	media.fastSeek(time)
+    } else media.currentTime = time
   })
 }

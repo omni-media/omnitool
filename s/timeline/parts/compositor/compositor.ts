@@ -27,7 +27,8 @@ export class Compositor extends TimelineEngine {
 		const audioStream = new TransformStream<AudioData, AudioData>()
 
 		const encodePromise = driver.encode({
-			readables: {video: videoStream.readable, audio: audioStream.readable},
+			video: videoStream.readable,
+			audio: audioStream.readable,
 			config: {
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000},
@@ -37,28 +38,39 @@ export class Compositor extends TimelineEngine {
 		const videoWriter = videoStream.writable.getWriter()
 		const audioWriter = audioStream.writable.getWriter()
 
-		let i = 0
-		const dt = 1 / this.framerate
-
-		await fixedStep(
-			{fps: this.framerate, duration: this.duration},
-			async t => {
-				const layers = await this.sampleAt(t)
-				const composed = await driver.composite(layers)
-				const vf = new VideoFrame(composed, {
-					timestamp: Math.round(i * dt * 1_000_000),
-					duration: Math.round(dt * 1_000_000),
-				})
-				await videoWriter.write(vf)
-				composed.close()
-				i++
+		const audioPromise = (async () => {
+			if (this.rootNode?.audioStream) {
+				for await (const chunk of this.rootNode.audioStream()) {
+					await audioWriter.write(chunk)
+				}
 			}
-		)
-		await Promise.allSettled([
-			videoWriter.close(),
-			audioWriter.close(),
-			encodePromise,
-			this.#sampler.dispose()
-		])
+			await audioWriter.close()
+		})()
+
+		const videoPromise = (async () => {
+			let i = 0
+			const dt = 1 / this.framerate
+
+			await fixedStep(
+				{fps: this.framerate, duration: this.duration},
+				async t => {
+					const layers = await this.sampleAt(t)
+					const composed = await driver.composite(layers)
+					const vf = new VideoFrame(composed, {
+						timestamp: Math.round(i * dt * 1_000_000),
+						duration: Math.round(dt * 1_000_000),
+					})
+					await videoWriter.write(vf)
+					composed.close()
+					i++
+				}
+			)
+			await videoWriter.close()
+		})()
+
+		await audioPromise
+		await videoPromise
+		await encodePromise
+		// this.#sampler.dispose()
 	}
 }

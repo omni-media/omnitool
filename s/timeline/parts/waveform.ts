@@ -21,7 +21,7 @@ export class Waveform {
 
 	static async init(source: DecoderSource, container: HTMLElement) {
 		const driver = await context.driver
-		const reader = driver.decode({ source }).audio.getReader()
+		const reader = driver.decodeAudio({source}).getReader()
 
 		const peaks: number[] = []
 		let buffer: number[] = []

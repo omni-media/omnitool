@@ -10,7 +10,7 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 	const ctx = canvas.getContext("2d")
 
 	async function run() {
-		const readables = driver.decode({
+		const video = driver.decodeVideo({
 			source,
 			async onFrame(frame) {
 				const composed = await driver.composite([
@@ -30,9 +30,11 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 				return composed
 			}
 		})
+		const audio = driver.decodeAudio({source})
 
 		await driver.encode({
-			readables,
+			video,
+			audio,
 			config: {
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}

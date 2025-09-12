@@ -3,7 +3,7 @@
  * It efficiently reads a video stream to find the frame nearest to a target timestamp.
  */
 
-export class ClipCursor {
+export class VideoCursor {
   constructor(private reader: ReadableStreamDefaultReader<VideoFrame>) {}
 
   async atOrNear(targetUs: number): Promise<VideoFrame | undefined> {

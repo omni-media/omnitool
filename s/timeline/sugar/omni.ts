@@ -2,15 +2,15 @@
 import {O} from "./o.js"
 import {Item} from "../parts/item.js"
 import {Media} from "../parts/media.js"
-import {TimelineFile} from "../parts/basics.js"
 import {Datafile} from "../utils/datafile.js"
+import {TimelineFile} from "../parts/basics.js"
+import {Export} from "../parts/compositor/export.js"
 import {ResourcePool} from "../parts/resource-pool.js"
 import {RenderConfig} from "../../driver/fns/schematic.js"
-import {Compositor} from "../parts/compositor/compositor.js"
 
 export class Omni {
 	resources = new ResourcePool()
-	compositor = new Compositor()
+	export = new Export()
 
 	load = async<S extends Record<string, Promise<Datafile>>>(spec: S) => {
 		return Object.fromEntries(await Promise.all(Object.entries(spec).map(
@@ -31,7 +31,7 @@ export class Omni {
 	}
 
 	render = async (timeline: TimelineFile, config: RenderConfig) => {
-		await this.compositor.render(timeline)
+		await this.export.render(timeline)
 	}
 }
 

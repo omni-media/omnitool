@@ -6,7 +6,7 @@ import {TimelineEngine} from "./parts/engine.js"
 import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 
-export class Compositor extends TimelineEngine {
+export class Export extends TimelineEngine {
 	#sampler!: Sampler
 
 	constructor(

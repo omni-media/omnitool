@@ -7,8 +7,6 @@ class HTMLNodeBuilder extends TreeBuilder<AudioPlaybackComponent> {
 	}
 
 	composeAudio_Stack(children: Node<AudioPlaybackComponent>[]) {
-		if (!children.some(c => c.audio))
-			return undefined
 		return {
 			onTimeUpdate: (time: number) => {
 				for (const child of children) {
@@ -18,8 +16,6 @@ class HTMLNodeBuilder extends TreeBuilder<AudioPlaybackComponent> {
 		}
 	}
 	composeAudio_Sequence(children: Node<AudioPlaybackComponent>[]) {
-		if (!children.some(c => c.audio))
-			return undefined
 		return {
 			onTimeUpdate: (time: number) => {
 				let localTime = time

@@ -3,8 +3,6 @@ import {AudioStreamComponent, Node, WebcodecsSampler, TreeBuilder} from "./tree-
 
 class WebCodecsNodeBuilder extends TreeBuilder<AudioStreamComponent> {
 	composeAudio_Stack(children: Node<AudioStreamComponent>[]) {
-		if (!children.some(c => c.audio))
-			return undefined
 		return {
 			getStream: async function*() {
 				for (const child of children) {
@@ -15,8 +13,6 @@ class WebCodecsNodeBuilder extends TreeBuilder<AudioStreamComponent> {
 		}
 	}
 	composeAudio_Sequence(children: Node<AudioStreamComponent>[]) {
-		if (!children.some(c => c.audio))
-			return undefined
 		return {
 			getStream: async function*() {
 				for (const child of children) {

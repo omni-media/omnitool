@@ -1,10 +1,10 @@
 import {Item} from "../../item.js"
-import {Sampler} from "../parts/node-tree.js"
+import {HTMLSampler} from "../parts/tree-builder.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL(src) : String(src))
 
-export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): Sampler {
+export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): HTMLSampler {
 	const videoElements = new Map<number, HTMLVideoElement>()
 	const audioElements = new Map<number, HTMLAudioElement>()
 
@@ -43,20 +43,22 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 			return {
 				duration: item.duration,
 				// if paused seek otherwise play
-				sampleAt: async (t) => {
-					if (t < 0 || t >= item.duration)
-						return []
+				visuals: {
+					sampleAt: async (t) => {
+						if (t < 0 || t >= item.duration)
+							return []
 
-					if(video.paused && paused) {
-						await seek(video, t)
+						if(video.paused && paused) {
+							await seek(video, t)
+						}
+
+						if(video.paused && !paused) {
+							await video.play()
+						}
+
+						const frame = new VideoFrame(video)
+						return frame ? [{kind: "image", frame}] : []
 					}
-
-					if(video.paused && !paused) {
-						await video.play()
-					}
-
-					const frame = new VideoFrame(video)
-					return frame ? [{kind: "image", frame}] : []
 				}
 			}
 		},
@@ -64,15 +66,17 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 			const audio = getOrCreateAudioElement(item)
 			return {
 				duration: item.duration,
-				sampleAt: async (t) => {
-					const localTime = item.start + t
-					if(audio.paused && paused) {
-						await seek(audio, localTime)
+				audio: {
+					onTimeUpdate: async (time) => {
+						const localTime = item.start + time
+						if(audio.paused && paused) {
+							await seek(audio, localTime)
+						}
+						if(audio.paused && !paused) {
+							await audio.play()
+						}
+						return []
 					}
-					if(audio.paused && !paused) {
-						await audio.play()
-					}
-					return []
 				}
 			}
 		},

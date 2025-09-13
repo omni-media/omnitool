@@ -1,26 +1,27 @@
 import {TimelineFile} from "../basics.js"
 import {context} from "../../../context.js"
-import {Sampler} from "./parts/node-tree.js"
 import {fixedStep} from "./parts/schedulers.js"
-import {TimelineEngine} from "./parts/engine.js"
 import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
+import {buildWebCodecsNodeTree} from "./parts/webcodecs-tree.js"
 
-export class Export extends TimelineEngine {
-	#sampler!: Sampler
-
+export class Export {
+	#sampler
 	constructor(
 		private framerate = 30,
 		private resolveMedia: (hash: string) => DecoderSource = _hash => "/assets/temp/gl.mp4"
-	) {super()}
+	) {
+		this.#sampler = makeWebCodecsSampler(this.resolveMedia)
+	}
 
-	protected sampler() {
-		this.#sampler =  makeWebCodecsSampler(this.resolveMedia)
-		return this.#sampler
+	async #build(timeline: TimelineFile) {
+		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.root)!
+		const items = new Map(timeline.items.map(i => [i.id, i]))
+		return await buildWebCodecsNodeTree(rootItem, items, this.#sampler)
 	}
 
 	async render(timeline: TimelineFile) {
-		await this.build(timeline)
+		const root = await this.#build(timeline)
 
 		const driver = await context.driver
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()
@@ -39,8 +40,8 @@ export class Export extends TimelineEngine {
 		const audioWriter = audioStream.writable.getWriter()
 
 		const audioPromise = (async () => {
-			if (this.rootNode?.audioStream) {
-				for await (const chunk of this.rootNode.audioStream()) {
+			if (root.audio) {
+				for await (const chunk of root.audio.getStream()) {
 					await audioWriter.write(chunk)
 				}
 			}
@@ -52,9 +53,9 @@ export class Export extends TimelineEngine {
 			const dt = 1 / this.framerate
 
 			await fixedStep(
-				{fps: this.framerate, duration: this.duration},
+				{fps: this.framerate, duration: root.duration ?? 0},
 				async t => {
-					const layers = await this.sampleAt(t)
+					const layers = await root.visuals?.sampleAt(t) ?? []
 					const composed = await driver.composite(layers)
 					const vf = new VideoFrame(composed, {
 						timestamp: Math.round(i * dt * 1_000_000),

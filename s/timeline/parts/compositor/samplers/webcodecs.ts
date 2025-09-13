@@ -1,12 +1,12 @@
 import {Item} from "../../item.js"
-import {Sampler} from "../parts/node-tree.js"
 import {context} from "../../../../context.js"
+import {WebcodecsSampler} from "../parts/tree-builder.js"
 import {VideoCursor} from "../../../utils/video-cursor.js"
-import {AudioStream } from "../../../utils/audio-stream.js"
+import {AudioStream} from "../../../utils/audio-stream.js"
 
 const toUs = (seconds: number) => Math.round(seconds * 1_000_000)
 
-export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): Sampler {
+export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): WebcodecsSampler {
 	const videoCursors = new Map<number, VideoCursor>()
 
 	async function getCursorForVideo(videoItem: Item.Video): Promise<VideoCursor> {
@@ -26,25 +26,28 @@ export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): Sampl
 			const baseUs = toUs(item.start ?? 0)
 			return {
 				duration: item.duration,
-				sampleAt: async (time) => {
-					const frame = await cursor.atOrNear(baseUs + toUs(time))
-					return frame ? [{kind: "image", frame}] : []
+				visuals: {
+					sampleAt: async (time: number) => {
+						const frame = await cursor.atOrNear(baseUs + toUs(time))
+						return frame ? [{kind: "image", frame}] : []
+					}
 				}
 			}
 		},
 		async audio(item) {
 			return {
 				duration: item.duration,
-				sampleAt: async () => [],
-				audioStream: async function*() {
-					const driver = await context.driver
-					const source = resolveMedia(item.mediaHash)
-					const startUs = item.start
-					const endUs = (item.start + item.duration)
-					const audio = driver.decodeAudio({source, start: startUs, end: endUs})
-					const audioStream = new AudioStream(audio.getReader())
-					yield* audioStream.stream()
-				},
+				audio: {
+					getStream: async function*() {
+						const driver = await context.driver
+						const source = resolveMedia(item.mediaHash)
+						const startUs = item.start
+						const endUs = (item.start + item.duration)
+						const audio = driver.decodeAudio({source, start: startUs, end: endUs})
+						const audioStream = new AudioStream(audio.getReader())
+						yield* audioStream.stream()
+					},
+				}
 			}
 		},
   	async dispose() {

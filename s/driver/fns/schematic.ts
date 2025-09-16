@@ -2,6 +2,8 @@
 import {AsSchematic} from "@e280/comrade"
 import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
+import {Transform} from "../../timeline/types.js"
+
 export type DriverSchematic = AsSchematic<{
 
 	// happens on the web worker
@@ -69,25 +71,19 @@ export interface MuxOpts {
 
 export type Composition = Layer | (Layer | Composition)[]
 
-export type Transform = {
-	x?: number
-	y?: number
-	scale?: number
-	opacity?: number
-	anchor?: number
-}
-
 export type TextLayer = {
 	kind: 'text'
 	content: string
 	fontSize?: number
 	color?: string
-} & Transform
+	transform?: Partial<Transform>
+}
 
 export type ImageLayer = {
 	kind: 'image'
 	frame: VideoFrame
-} & Transform
+	transform?: Partial<Transform>
+}
 
 export type TransitionLayer = {
   kind: 'transition'

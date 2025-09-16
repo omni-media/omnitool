@@ -29,7 +29,7 @@ export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): Webco
 				visuals: {
 					sampleAt: async (time: number) => {
 						const frame = await cursor.atOrNear(baseUs + toUs(time))
-						return frame ? [{kind: "image", frame}] : []
+						return frame ? [{kind: "image", frame, transform: item.transform}] : []
 					}
 				}
 			}

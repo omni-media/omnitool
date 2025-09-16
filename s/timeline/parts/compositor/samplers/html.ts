@@ -29,7 +29,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 			audio.preload = "auto"
 			audio.crossOrigin = "anonymous"
 			audio.src = toUrl(resolveMedia(clip.mediaHash))
-			audio.volume = 0
+			audio.volume = 0.2
 			audioElements.set(clip.id, audio)
 		}
 		return audio
@@ -57,7 +57,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						const frame = new VideoFrame(video)
-						return frame ? [{kind: "image", frame}] : []
+						return frame ? [{kind: "image", frame, transform: item.transform}] : []
 					}
 				}
 			}

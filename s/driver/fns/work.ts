@@ -2,8 +2,9 @@ import {Comrade} from "@e280/comrade"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
+import {Transform} from "../../timeline/types.js"
 import {makeTransition} from "../../features/transition/transition.js"
-import {Composition, DecoderSource, DriverSchematic, Layer, Transform} from "./schematic.js"
+import {Composition, DecoderSource, DriverSchematic, Layer} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
 
@@ -204,7 +205,7 @@ function renderTextLayer(
 			fill: layer.color ?? 'white'
 		}
 	})
-	applyTransform(text, layer)
+	applyTransform(text, layer.transform)
 	parent.addChild(text)
 	return {dispose: () => text.destroy(true)}
 }
@@ -215,7 +216,7 @@ function renderImageLayer(
 ) {
 	const texture = Texture.from(layer.frame)
 	const sprite = new Sprite(texture)
-	applyTransform(sprite, layer)
+	applyTransform(sprite, layer.transform)
 	parent.addChild(sprite)
 	return {dispose: () => {
 		sprite.destroy(true)
@@ -241,10 +242,21 @@ function renderTransitionLayer(
 	return {dispose: () => sprite.destroy(false)}
 }
 
-function applyTransform(target: Sprite | Text, t: Transform = {}) {
-	if(t.x) target.x = t.x
-	if(t.y) target.y = t.y
-	if(t.scale) target.scale.set(t.scale)
-	if(t.opacity) target.alpha = t.opacity
-	if(t.anchor && 'anchor' in target) target.anchor.set(t.anchor)
+function applyTransform(target: Sprite | Text, transform?: Partial<Transform>) {
+  if (!transform) return
+
+  const [position, scale, rotation] = transform
+
+  if (position) {
+    target.x = position[0]
+    target.y = position[1]
+  }
+
+  if (scale) {
+    target.scale.set(scale[0], scale[1])
+  }
+
+  if (rotation) {
+    target.rotation = rotation * (Math.PI / 180)
+  }
 }

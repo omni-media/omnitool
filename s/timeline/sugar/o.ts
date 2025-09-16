@@ -3,6 +3,7 @@ import {MapG} from "@e280/stz"
 import {Id} from "../parts/basics.js"
 import {Media} from "../parts/media.js"
 import {Effect, Item, Kind} from "../parts/item.js"
+import {Transform, TransformOptions, Vec2} from "../types.js"
 
 export class O {
 	#nextId = 0
@@ -34,15 +35,15 @@ export class O {
 		children: items.map(item => this.register(item)),
 	})
 
-	clip = (media: Media, start?: number, duration?: number): Item.Any => {
+	clip = (media: Media, options?: {transform?: Partial<Transform>, start?: number, duration?: number}): Item.Any => {
 		const item = {
 			mediaHash: media.datafile.checksum.hash,
-			start: start ?? 0,
-			duration: duration ?? media.duration
+			start: options?.start ?? 0,
+			duration: options?.duration ?? media.duration
 		}
 
 		const video: Item.Video | null = media.hasVideo
-			? {kind: Kind.Video, ...item, id: this.#getId()}
+			? {kind: Kind.Video, ...item, id: this.#getId(), transform: options?.transform}
 			: null
 
 		const audio: Item.Audio | null = media.hasAudio
@@ -61,11 +62,11 @@ export class O {
 		else return this.gap(0)
 	}
 
-
-	text = (content: string): Item.Text => ({
+	text = (content: string, options?: {transform?: Partial<Transform>}): Item.Text => ({
 		id: this.#getId(),
 		kind: Kind.Text,
 		content,
+		transform: options?.transform
 	})
 
 	gap = (duration: number): Item.Gap => ({
@@ -82,5 +83,18 @@ export class O {
 			duration,
 		}),
 	}
+
+  transform = (options?: Partial<TransformOptions>): Transform => {
+    const position: Vec2 = [
+    	options?.position?.x ?? 0,
+    	options?.position?.y ?? 0
+    ]
+    const scale: Vec2 = [
+    	options?.scale?.x ?? 1,
+    	options?.scale?.y ?? 1
+    ]
+    const rotation = options?.rotation ?? 0
+    return [position, scale, rotation]
+  }
 }
 

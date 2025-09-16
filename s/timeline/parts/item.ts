@@ -1,5 +1,6 @@
 
 import {Id, Hash} from "./basics.js"
+import {Transform} from "../types.js"
 
 export enum Kind {
 	Sequence,
@@ -40,6 +41,7 @@ export namespace Item {
 		mediaHash: Hash
 		start: number
 		duration: number
+		transform?: Partial<Transform>
 	}
 
 	export type Audio = {
@@ -54,6 +56,7 @@ export namespace Item {
 		id: Id
 		kind: Kind.Text
 		content: string
+		transform?: Partial<Transform>
 	}
 
 	export type Transition = {

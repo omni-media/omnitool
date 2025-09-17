@@ -18,14 +18,14 @@ export class Omni {
 		))) as {[K in keyof S]: Media}
 	}
 
-	timeline = (fn: (o: O) => Item.Sequence): TimelineFile => {
+	timeline = (fn: (o: O) => Item.Any): TimelineFile => {
 		const o = new O()
 		const sequence = fn(o)
 		return {
 			format: "timeline",
 			info: "https://omniclip.app/",
 			version: 0,
-			root: o.register(sequence),
+			rootId: o.register(sequence),
 			items: o.items,
 		}
 	}

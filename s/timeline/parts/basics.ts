@@ -11,7 +11,7 @@ export type TimelineFile = {
 	info: "https://omniclip.app/"
 	format: "timeline"
 	version: number
-	root: Id
+	rootId: Id
 	items: Item.Any[]
 }
 

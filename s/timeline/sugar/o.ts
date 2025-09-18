@@ -26,16 +26,16 @@ export class O {
 	sequence = (...items: Item.Any[]): Item.Sequence => ({
 		id: this.#getId(),
 		kind: Kind.Sequence,
-		children: items.map(item => this.register(item)),
+		childrenIds: items.map(item => this.register(item))
 	})
 
 	stack = (...items: Item.Any[]): Item.Stack => ({
 		id: this.#getId(),
 		kind: Kind.Stack,
-		children: items.map(item => this.register(item)),
+		childrenIds: items.map(item => this.register(item))
 	})
 
-	clip = (media: Media, options?: {transform?: Partial<Transform>, start?: number, duration?: number}): Item.Any => {
+	clip = (media: Media, options?: {start?: number, duration?: number}): Item.Any => {
 		const item = {
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
@@ -43,7 +43,7 @@ export class O {
 		}
 
 		const video: Item.Video | null = media.hasVideo
-			? {kind: Kind.Video, ...item, id: this.#getId(), transform: options?.transform}
+			? {kind: Kind.Video,...item, id: this.#getId()}
 			: null
 
 		const audio: Item.Audio | null = media.hasAudio
@@ -62,11 +62,10 @@ export class O {
 		else return this.gap(0)
 	}
 
-	text = (content: string, options?: {transform?: Partial<Transform>}): Item.Text => ({
+	text = (content: string): Item.Text => ({
 		id: this.#getId(),
 		kind: Kind.Text,
-		content,
-		transform: options?.transform
+		content
 	})
 
 	gap = (duration: number): Item.Gap => ({
@@ -84,14 +83,14 @@ export class O {
 		}),
 	}
 
-  transform = (options?: Partial<TransformOptions>): Transform => {
+  transform = (options?: TransformOptions): Transform => {
     const position: Vec2 = [
-    	options?.position?.x ?? 0,
-    	options?.position?.y ?? 0
+    	options?.position?.[0] ?? 0,
+    	options?.position?.[1] ?? 0
     ]
     const scale: Vec2 = [
-    	options?.scale?.x ?? 1,
-    	options?.scale?.y ?? 1
+    	options?.scale?.[0] ?? 1,
+    	options?.scale?.[1] ?? 1
     ]
     const rotation = options?.rotation ?? 0
     return [position, scale, rotation]

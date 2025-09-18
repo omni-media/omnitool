@@ -15,13 +15,7 @@ export type TrackTransform = {
 }
 
 export type TransformOptions = {
-  position: {
-  	x?: number
-  	y?: number
-  }
-  scale: {
-  	x?: number
-  	y?: number
-  }
-  rotation: number
+  position?: Vec2
+  scale?: Vec2
+  rotation?: number
 }

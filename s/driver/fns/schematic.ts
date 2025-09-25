@@ -2,7 +2,7 @@
 import {AsSchematic} from "@e280/comrade"
 import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
-import {Transform} from "../../timeline/types.js"
+import {Mat6} from "../../timeline/utils/matrix.js"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -76,13 +76,13 @@ export type TextLayer = {
 	content: string
 	fontSize?: number
 	color?: string
-	transform?: Partial<Transform>
+	matrix?: Mat6
 }
 
 export type ImageLayer = {
 	kind: 'image'
 	frame: VideoFrame
-	transform?: Partial<Transform>
+	matrix?: Mat6
 }
 
 export type TransitionLayer = {

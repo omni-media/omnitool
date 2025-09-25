@@ -21,7 +21,7 @@ export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): Webco
 	}
 
 	return {
-		async video(item) {
+		async video(item, matrix) {
 			const cursor = await getCursorForVideo(item)
 			const baseUs = toUs(item.start ?? 0)
 			return {
@@ -29,7 +29,7 @@ export function makeWebCodecsSampler(resolveMedia: (hash: string) => any): Webco
 				visuals: {
 					sampleAt: async (time: number) => {
 						const frame = await cursor.atOrNear(baseUs + toUs(time))
-						return frame ? [{kind: "image", frame, transform: item.transform}] : []
+						return frame ? [{kind: "image", frame, matrix}] : []
 					}
 				}
 			}

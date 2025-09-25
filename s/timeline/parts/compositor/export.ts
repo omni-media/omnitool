@@ -15,7 +15,7 @@ export class Export {
 	}
 
 	async #build(timeline: TimelineFile) {
-		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.root)!
+		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
 		const items = new Map(timeline.items.map(i => [i.id, i]))
 		return await buildWebCodecsNodeTree(rootItem, items, this.#sampler)
 	}

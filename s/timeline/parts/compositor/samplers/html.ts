@@ -38,7 +38,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 	let paused = true
 
 	return {
-		async video(item) {
+		async video(item, matrix) {
 			const video = getOrCreateVideoElement(item)
 			return {
 				duration: item.duration,
@@ -57,7 +57,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						const frame = new VideoFrame(video)
-						return frame ? [{kind: "image", frame, transform: item.transform}] : []
+						return frame ? [{kind: "image", frame, matrix}] : []
 					}
 				}
 			}

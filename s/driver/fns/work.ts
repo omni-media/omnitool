@@ -1,8 +1,8 @@
 import {Comrade} from "@e280/comrade"
-import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
+import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter, Matrix} from "pixi.js"
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
-import {Transform} from "../../timeline/types.js"
+import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
 import {Composition, DecoderSource, DriverSchematic, Layer} from "./schematic.js"
 
@@ -205,7 +205,7 @@ function renderTextLayer(
 			fill: layer.color ?? 'white'
 		}
 	})
-	applyTransform(text, layer.transform)
+	applyTransform(text, layer.matrix)
 	parent.addChild(text)
 	return {dispose: () => text.destroy(true)}
 }
@@ -216,7 +216,7 @@ function renderImageLayer(
 ) {
 	const texture = Texture.from(layer.frame)
 	const sprite = new Sprite(texture)
-	applyTransform(sprite, layer.transform)
+	applyTransform(sprite, layer.matrix)
 	parent.addChild(sprite)
 	return {dispose: () => {
 		sprite.destroy(true)
@@ -242,21 +242,8 @@ function renderTransitionLayer(
 	return {dispose: () => sprite.destroy(false)}
 }
 
-function applyTransform(target: Sprite | Text, transform?: Partial<Transform>) {
-  if (!transform) return
-
-  const [position, scale, rotation] = transform
-
-  if (position) {
-    target.x = position[0]
-    target.y = position[1]
-  }
-
-  if (scale) {
-    target.scale.set(scale[0], scale[1])
-  }
-
-  if (rotation) {
-    target.rotation = rotation * (Math.PI / 180)
-  }
+function applyTransform(target: Sprite | Text, worldMatrix?: Mat6) {
+  if (!worldMatrix) return
+	const mx = mat6ToMatrix(worldMatrix)
+  target.setFromMatrix(mx)
 }

@@ -25,7 +25,7 @@ export class VideoPlayer {
 	}
 
 	static async create(timeline: TimelineFile) {
-		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.root)!
+		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
 		const items = new Map(timeline.items.map(i => [i.id, i]))
 		const sampler = makeHtmlSampler(() => "/assets/temp/gl.mp4")
 		const root = await buildHTMLNodeTree(rootItem, items, sampler)

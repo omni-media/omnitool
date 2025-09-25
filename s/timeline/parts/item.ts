@@ -9,6 +9,7 @@ export enum Kind {
 	Audio,
 	Text,
 	Gap,
+	Spatial,
 	Transition,
 }
 
@@ -17,6 +18,12 @@ export enum Effect {
 }
 
 export namespace Item {
+  export type Spatial = {
+    id: Id
+    kind: Kind.Spatial
+    transform: Transform
+  }
+
 	export type Gap = {
 		id: Id
 		kind: Kind.Gap
@@ -26,13 +33,15 @@ export namespace Item {
 	export type Sequence = {
 		id: Id
 		kind: Kind.Sequence
-		children: Id[]
+		childrenIds: Id[]
+		spatialId?: Id
 	}
 
 	export type Stack = {
 		id: Id
 		kind: Kind.Stack
-		children: Id[]
+		childrenIds: Id[]
+		spatialId?: Id
 	}
 
 	export type Video = {
@@ -41,7 +50,7 @@ export namespace Item {
 		mediaHash: Hash
 		start: number
 		duration: number
-		transform?: Partial<Transform>
+		spatialId?: Id
 	}
 
 	export type Audio = {
@@ -56,7 +65,8 @@ export namespace Item {
 		id: Id
 		kind: Kind.Text
 		content: string
-		transform?: Partial<Transform>
+		spatialId?: Id
+		color: string
 	}
 
 	export type Transition = {
@@ -74,6 +84,7 @@ export namespace Item {
 		| Text
 		| Gap
 		| Transition
+		| Spatial
 	)
 }
 

@@ -1,7 +1,7 @@
 
 import {O} from "./o.js"
-import {Item} from "../parts/item.js"
 import {Media} from "../parts/media.js"
+import {TimelineItem} from "./builders.js"
 import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
 import {Export} from "../parts/compositor/export.js"
@@ -18,14 +18,14 @@ export class Omni {
 		))) as {[K in keyof S]: Media}
 	}
 
-	timeline = (fn: (o: O) => Item.Any): TimelineFile => {
+	timeline = (fn: (o: O) => TimelineItem): TimelineFile => {
 		const o = new O()
 		const sequence = fn(o)
 		return {
 			format: "timeline",
 			info: "https://omniclip.app/",
 			version: 0,
-			rootId: o.register(sequence),
+			rootId: o.register(sequence.item),
 			items: o.items,
 		}
 	}

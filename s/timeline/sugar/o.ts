@@ -4,6 +4,7 @@ import {Id} from "../parts/basics.js"
 import {Media} from "../parts/media.js"
 import {Effect, Item, Kind} from "../parts/item.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
+import {Video, Gap, Sequence, Stack, Text, TimelineItem, Spatial, Audio, Transition} from "./builders.js"
 
 export class O {
 	#nextId = 0
@@ -23,59 +24,74 @@ export class O {
 		return [...this.#items.values()]
 	}
 
-	sequence = (...items: Item.Any[]): Item.Sequence => ({
+  spatial = (transform: Transform) => {
+  	const item: Item.Spatial = {
+  		id: this.#getId(),
+  		kind: Kind.Spatial,
+  		transform
+  	}
+  	const spatial = new Spatial(item)
+  	this.register(item)
+  	return spatial
+  }
+
+	sequence = (...items: TimelineItem[]) => new Sequence({
 		id: this.#getId(),
 		kind: Kind.Sequence,
-		childrenIds: items.map(item => this.register(item))
+		childrenIds: items.map((item) => this.register(item.toJSON()))
 	})
 
-	stack = (...items: Item.Any[]): Item.Stack => ({
-		id: this.#getId(),
+	stack = (...items: TimelineItem[]) => new Stack({
 		kind: Kind.Stack,
-		childrenIds: items.map(item => this.register(item))
+		id: this.#getId(),
+		childrenIds: items.map(item => this.register(item.toJSON()))
 	})
 
-	clip = (media: Media, options?: {start?: number, duration?: number}): Item.Any => {
-		const item = {
+	video = (media: Media, options?: {start?: number, duration?: number}) => {
+		if(!media.hasVideo)
+			throw new Error(`Video clip error: media "${media.datafile.filename}" has no video track.`)
+
+		const item: Item.Video = {
+			kind: Kind.Video,
+			id: this.#getId(),
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration
 		}
 
-		const video: Item.Video | null = media.hasVideo
-			? {kind: Kind.Video,...item, id: this.#getId()}
-			: null
-
-		const audio: Item.Audio | null = media.hasAudio
-			? {kind: Kind.Audio, ...item, id: this.#getId()}
-			: null
-
-		if (video && audio) {
-			return this.stack(video, audio)
-		}
-		else if (video) {
-			return video
-		}
-		else if (audio) {
-			return audio
-		}
-		else return this.gap(0)
+		return new Video(item)
 	}
 
-	text = (content: string): Item.Text => ({
+	audio = (media: Media, options?: {start?: number, duration?: number}) => {
+		if(!media.hasAudio)
+			throw new Error(`Audio clip error: media "${media.datafile.filename}" has no audio track.`)
+
+		const item: Item.Audio = {
+			kind: Kind.Audio,
+			id: this.#getId(),
+			mediaHash: media.datafile.checksum.hash,
+			start: options?.start ?? 0,
+			duration: options?.duration ?? media.duration
+		}
+
+		return new Audio(item)
+	}
+
+	text = (content: string) => new Text({
 		id: this.#getId(),
+		content,
 		kind: Kind.Text,
-		content
+		color: "#FFFFF"
 	})
 
-	gap = (duration: number): Item.Gap => ({
+	gap = (duration: number) => new Gap({
 		id: this.#getId(),
 		kind: Kind.Gap,
 		duration
 	})
 
 	transition = {
-		crossfade: (duration: number): Item.Transition => ({
+		crossfade: (duration: number) => new Transition({
 			id: this.#getId(),
 			kind: Kind.Transition,
 			effect: Effect.Crossfade,

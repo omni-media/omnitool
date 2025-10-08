@@ -38,6 +38,7 @@
 		"@huggingface/transformers": "^3.7.1",
 		"comrade": "^0.0.3",
 		"gl-transitions": "^1.43.0",
+		"gsap": "^3.13.0",
 		"mediabunny": "^1.14.3",
 		"mp4-muxer": "^5.2.1",
 		"pixi.js": "^8.10.1",

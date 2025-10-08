@@ -8,6 +8,7 @@ export * from "./parts/filmstrip.js"
 
 export * from "./sugar/o.js"
 export * from "./sugar/omni.js"
+export * from "./timeline.js"
 
 export * from "./utils/checksum.js"
 export * from "./utils/datafile.js"

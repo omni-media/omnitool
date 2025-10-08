@@ -2,16 +2,26 @@
 import {AsSchematic} from "@e280/comrade"
 import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
+import {Mat6} from "../../timeline/utils/matrix.js"
+
 export type DriverSchematic = AsSchematic<{
 
 	// happens on the web worker
 	work: {
 		hello(): Promise<void>
 
-		decode(input: {
+		decodeAudio(input: {
+			source: DecoderSource
+			audio: WritableStream<AudioData>
+			start?: number
+			end?: number
+		}): Promise<void>
+
+		decodeVideo(input: {
 			source: DecoderSource
 			video: WritableStream<VideoFrame>
-			audio: WritableStream<AudioData>
+			start?: number
+			end?: number
 		}): Promise<void>
 
 		encode(input: EncoderInput & {bridge: WritableStream<StreamTargetChunk>}): Promise<void>
@@ -26,20 +36,22 @@ export type DriverSchematic = AsSchematic<{
 }>
 
 export interface EncoderInput {
-	readables: {
-		video: ReadableStream<VideoFrame>
-		audio: ReadableStream<AudioData>
-	},
-	config: {
-		video: VideoEncodingConfig
-		audio: AudioEncodingConfig
-	}
+	video?: ReadableStream<VideoFrame>
+	audio?: ReadableStream<AudioData>
+	config: RenderConfig
+}
+
+export interface RenderConfig {
+	video: VideoEncodingConfig
+	audio: AudioEncodingConfig
 }
 
 export type DecoderSource = Blob | string | URL
 
 export interface DecoderInput {
 	source: DecoderSource
+	start?: number
+	end?: number
 	onFrame?: (frame: VideoFrame) => Promise<VideoFrame>
 }
 
@@ -59,25 +71,36 @@ export interface MuxOpts {
 
 export type Composition = Layer | (Layer | Composition)[]
 
-export type Transform = {
-	x?: number
-	y?: number
-	scale?: number
-	opacity?: number
-	anchor?: number
-}
-
 export type TextLayer = {
 	kind: 'text'
 	content: string
 	fontSize?: number
 	color?: string
-} & Transform
+	matrix?: Mat6
+}
 
 export type ImageLayer = {
 	kind: 'image'
 	frame: VideoFrame
-} & Transform
+	matrix?: Mat6
+}
 
-export type Layer = TextLayer | ImageLayer
+export type TransitionLayer = {
+  kind: 'transition'
+  name: string
+  progress: number
+  from: VideoFrame
+  to: VideoFrame
+}
+
+export type GapLayer = {
+	kind: 'gap'
+}
+
+export type Audio = {
+	kind: "audio"
+	data: AudioData
+}
+
+export type Layer = TextLayer | ImageLayer | TransitionLayer | GapLayer
 

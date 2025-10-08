@@ -15,7 +15,7 @@ export async function setupTransitionsTest(driver: Driver, source: DecoderSource
 	const transition = makeTransition({name: "circle", renderer: app.renderer})
 
 	async function run() {
-		const readables = driver.decode({
+		const video = driver.decodeVideo({
 			source,
 			async onFrame(frame) {
 				const texture = transition.render({
@@ -31,7 +31,7 @@ export async function setupTransitionsTest(driver: Driver, source: DecoderSource
 		})
 
 		await driver.encode({
-			readables,
+			video,
 			config: {
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}

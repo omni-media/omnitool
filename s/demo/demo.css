@@ -46,6 +46,11 @@
 		}
 	}
 
+	canvas {
+		width: 500px;
+		height: 300px;
+	}
+
 	#filmstrip {
 		display: flex;
 		overflow-x: scroll;

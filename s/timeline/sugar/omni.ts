@@ -1,13 +1,17 @@
 
 import {O} from "./o.js"
-import {Item} from "../parts/item.js"
+import {Timeline} from "../timeline.js"
 import {Media} from "../parts/media.js"
-import {TimelineFile} from "../parts/basics.js"
+import {TimelineItem} from "./builders.js"
 import {Datafile} from "../utils/datafile.js"
+import {TimelineFile} from "../parts/basics.js"
+import {Export} from "../parts/compositor/export.js"
 import {ResourcePool} from "../parts/resource-pool.js"
+import {RenderConfig} from "../../driver/fns/schematic.js"
 
 export class Omni {
 	resources = new ResourcePool()
+	#export = new Export()
 
 	load = async<S extends Record<string, Promise<Datafile>>>(spec: S) => {
 		return Object.fromEntries(await Promise.all(Object.entries(spec).map(
@@ -15,16 +19,15 @@ export class Omni {
 		))) as {[K in keyof S]: Media}
 	}
 
-	timeline = (fn: (o: O) => Item.Sequence): TimelineFile => {
+	timeline = (fn: (o: O) => TimelineItem): Timeline => {
 		const o = new O()
-		const sequence = fn(o)
-		return {
-			format: "timeline",
-			info: "https://omniclip.app/",
-			version: 0,
-			root: o.register(sequence),
-			items: o.items,
-		}
+		const root = fn(o)
+		o.register(root)
+		return new Timeline(root, o.itemsMap)
+	}
+
+	render = async (timeline: TimelineFile, config: RenderConfig) => {
+		await this.#export.render(timeline)
 	}
 }
 

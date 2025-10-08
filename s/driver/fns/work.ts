@@ -1,10 +1,20 @@
 import {Comrade} from "@e280/comrade"
-import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
+import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter, Matrix} from "pixi.js"
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
-import {Composition, DriverSchematic, Layer, Transform} from "./schematic.js"
+import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
+import {makeTransition} from "../../features/transition/transition.js"
+import {Composition, DecoderSource, DriverSchematic, Layer} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
+
+const loadSource = async (source: DecoderSource) => {
+	if(source instanceof Blob) {
+		return new BlobSource(source)
+	} else {
+		return new UrlSource(source)
+	}
+}
 
 export const setupDriverWork = (
 	Comrade.work<DriverSchematic>(shell => ({
@@ -12,77 +22,65 @@ export const setupDriverWork = (
 			await shell.host.world()
 		},
 
-		async decode({source, video, audio}) {
-			const loadSource = async () => {
-				if(source instanceof Blob) {
-					return new BlobSource(source)
-				} else {
-					return new UrlSource(source)
-				}
-			}
+		async decodeAudio({source, audio, start, end}) {
 			const input = new Input({
-				source: await loadSource(),
+				source: await loadSource(source),
 				formats: ALL_FORMATS
 			})
 
-			const [videoTrack, audioTrack] = await Promise.all([
-				input.getPrimaryVideoTrack(),
-				input.getPrimaryAudioTrack()
-			])
-
-			const videoDecodable = await videoTrack?.canDecode()
+			const audioTrack = await input.getPrimaryAudioTrack()
 			const audioDecodable = await audioTrack?.canDecode()
-
-			const videoWriter = video.getWriter()
 			const audioWriter = audio.getWriter()
 
-			await Promise.all([
-				(async () => {
-					if (videoDecodable && videoTrack) {
-						const sink = new VideoSampleSink(videoTrack)
-						for await (const sample of sink.samples()) {
-							const frame = sample.toVideoFrame()
-							await videoWriter.write(frame)
-							sample.close()
-							frame.close()
-						}
-						await videoWriter.close()
-					}
-				})(),
-				(async () => {
-					if (audioDecodable && audioTrack) {
-						const sink = new AudioSampleSink(audioTrack)
-						for await (const sample of sink.samples()) {
-							const frame = sample.toAudioData()
-							await audioWriter.write(frame)
-							sample.close()
-							frame.close()
-						}
-						await audioWriter.close()
-					}
-				})()
-			])
+			if (audioDecodable && audioTrack) {
+				const sink = new AudioSampleSink(audioTrack)
+				for await (const sample of sink.samples(start, end)) {
+					const frame = sample.toAudioData()
+					await audioWriter.write(frame)
+					sample.close()
+					frame.close()
+				}
+				await audioWriter.close()
+			}
 		},
 
-		async encode({readables, config, bridge}) {
+		async decodeVideo({source, video, start, end}) {
+			const input = new Input({
+				source: await loadSource(source),
+				formats: ALL_FORMATS
+			})
+
+			const videoTrack = await input.getPrimaryVideoTrack()
+			const videoDecodable = await videoTrack?.canDecode()
+			const videoWriter = video.getWriter()
+
+			if (videoDecodable && videoTrack) {
+				const sink = new VideoSampleSink(videoTrack)
+				for await (const sample of sink.samples(start, end)) {
+					const frame = sample.toVideoFrame()
+					await videoWriter.write(frame)
+					sample.close()
+					frame.close()
+				}
+				await videoWriter.close()
+			}
+		},
+
+		async encode({video, audio, config, bridge}) {
 			const output = new Output({
 				format: new Mp4OutputFormat(),
 				target: new StreamTarget(bridge, {chunked: true})
 			})
-			const videoSource = new VideoSampleSource(config.video)
-			output.addVideoTrack(videoSource)
 			// since AudioSample is not transferable it fails to transfer encoder bitrate config
 			// so it needs to be hardcoded not set through constants eg QUALITY_LOW
-			const audioSource = new AudioSampleSource(config.audio)
-			output.addAudioTrack(audioSource)
 
-			await output.start()
+			const promises = []
 
-			const videoReader = readables.video.getReader()
-			const audioReader = readables.audio.getReader()
-
-			await Promise.all([
-				(async () => {
+			if(video) {
+				const videoSource = new VideoSampleSource(config.video)
+				output.addVideoTrack(videoSource)
+				const videoReader = video.getReader()
+				promises.push((async () => {
 					while (true) {
 						const {done, value} = await videoReader.read()
 						if (done) break
@@ -90,8 +88,14 @@ export const setupDriverWork = (
 						await videoSource.add(sample)
 						sample.close()
 					}
-				})(),
-				(async () => {
+				})())
+			}
+
+			if(audio) {
+				const audioSource = new AudioSampleSource(config.audio)
+				output.addAudioTrack(audioSource)
+				const audioReader = audio.getReader()
+				promises.push((async () => {
 					while (true) {
 						const {done, value} = await audioReader.read()
 						if (done) break
@@ -100,9 +104,11 @@ export const setupDriverWork = (
 						sample.close()
 						value.close()
 					}
-				})()
-			])
+				})())
+			}
 
+			await output.start()
+			await Promise.all(promises)
 			await output.finalize()
 		},
 
@@ -110,22 +116,18 @@ export const setupDriverWork = (
 			const {stage, renderer} = await renderPIXI(1920, 1080)
 			stage.removeChildren()
 
-			const {baseFrame, disposables} = await renderLayer(composition, stage)
+			const {dispose} = await renderLayer(composition, stage)
 			renderer.render(stage)
 
 			// make sure browser support webgl/webgpu otherwise it might take much longer to construct frame
 			// if its very slow on eg edge try chrome
 			const frame = new VideoFrame(renderer.canvas, {
-				timestamp: baseFrame?.timestamp,
-				duration: baseFrame?.duration ?? undefined,
+				timestamp: 0,
+				duration: 0,
 			})
 
-			baseFrame?.close()
 			renderer.clear()
-
-			for (const disposable of disposables) {
-				disposable.destroy(true)
-			}
+			dispose()
 
 			shell.transfer = [frame]
 			return frame
@@ -157,46 +159,43 @@ async function renderPIXI(width: number, height: number) {
 	return pixi
 }
 
+const transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
+
 type RenderableObject = Sprite | Text | Texture
 
 async function renderLayer(
 	layer: Layer | Composition,
 	parent: Container,
-	disposables: RenderableObject[] = []
 ) {
 	if (Array.isArray(layer)) {
-		let baseFrame: VideoFrame | undefined
+		const disposers: (() => void)[] = []
 		for (const child of layer) {
-			const result = await renderLayer(child, parent, disposables)
-			baseFrame ??= result.baseFrame
+			const result = await renderLayer(child, parent)
+			disposers.push(result.dispose)
 		}
-		return {baseFrame, disposables}
-	}
-
-	if (!isRenderableLayer(layer)) {
-		console.warn('Invalid layer', layer)
-		return {disposables}
+		return {dispose: () => disposers.forEach(d => d())}
 	}
 
 	switch (layer.kind) {
 		case 'text':
-			return renderTextLayer(layer, parent, disposables)
+			return renderTextLayer(layer, parent)
 		case 'image':
-			return renderImageLayer(layer, parent, disposables)
+			return renderImageLayer(layer, parent)
+		case 'transition':
+			return renderTransitionLayer(layer, parent)
+		case 'gap': {
+			pixi?.renderer.clear()
+			return {dispose: () => {}}
+		}
 		default:
 			console.warn('Unknown layer kind', (layer as any).kind)
-			return {disposables}
+			return {dispose: () => {}}
 	}
-}
-
-function isRenderableLayer(layer: any): layer is Layer {
-	return !!layer && typeof layer === 'object' && typeof layer.kind === 'string'
 }
 
 function renderTextLayer(
 	layer: Extract<Layer, {kind: 'text'}>,
 	parent: Container,
-	disposables: RenderableObject[]
 ) {
 	const text = new Text({
 		text: layer.content,
@@ -206,29 +205,45 @@ function renderTextLayer(
 			fill: layer.color ?? 'white'
 		}
 	})
-	applyTransform(text, layer)
+	applyTransform(text, layer.matrix)
 	parent.addChild(text)
-	disposables.push(text)
-	return {disposables}
+	return {dispose: () => text.destroy(true)}
 }
 
 function renderImageLayer(
 	layer: Extract<Layer, {kind: 'image'}>,
 	parent: Container,
-	disposables: RenderableObject[]
 ) {
 	const texture = Texture.from(layer.frame)
 	const sprite = new Sprite(texture)
-	applyTransform(sprite, layer)
+	applyTransform(sprite, layer.matrix)
 	parent.addChild(sprite)
-	disposables.push(sprite, texture)
-	return {baseFrame: layer.frame, disposables}
+	return {dispose: () => {
+		sprite.destroy(true)
+		texture.destroy(true)
+		layer.frame.close()
+	}}
 }
 
-function applyTransform(target: Sprite | Text, t: Transform = {}) {
-	if(t.x) target.x = t.x
-	if(t.y) target.y = t.y
-	if(t.scale) target.scale.set(t.scale)
-	if(t.opacity) target.alpha = t.opacity
-	if(t.anchor && 'anchor' in target) target.anchor.set(t.anchor)
+function renderTransitionLayer(
+	{from, to, progress, name}: Extract<Layer, {kind: 'transition'}>,
+	parent: Container,
+) {
+	const transition = transitions.get(name) ??
+		(transitions.set(name, makeTransition({
+			name: "circle",
+			renderer: pixi!.renderer
+		})),
+	  transitions.get(name)!
+	)
+	const texture = transition.render({from, to, progress, width: from.displayWidth, height: from.displayHeight})
+	const sprite = new Sprite(texture)
+	parent.addChild(sprite)
+	return {dispose: () => sprite.destroy(false)}
+}
+
+function applyTransform(target: Sprite | Text, worldMatrix?: Mat6) {
+  if (!worldMatrix) return
+	const mx = mat6ToMatrix(worldMatrix)
+  target.setFromMatrix(mx)
 }

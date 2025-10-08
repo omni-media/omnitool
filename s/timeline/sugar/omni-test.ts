@@ -22,10 +22,10 @@ const {mediaA, mediaB} = await omni.load({
 //
 
 const timeline = omni.timeline(o => o.sequence(
-	o.clip(mediaA),
+	o.video(mediaA),
 	o.transition.crossfade(600),
 	o.stack(
-		o.clip(mediaB),
+		o.video(mediaB),
 		o.text("hello world"),
 	),
 ))

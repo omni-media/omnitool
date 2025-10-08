@@ -1,11 +1,15 @@
 
 import {Id, Hash} from "./basics.js"
+import {Transform} from "../types.js"
 
 export enum Kind {
 	Sequence,
 	Stack,
-	Clip,
+	Video,
+	Audio,
 	Text,
+	Gap,
+	Spatial,
 	Transition,
 }
 
@@ -14,21 +18,44 @@ export enum Effect {
 }
 
 export namespace Item {
+  export type Spatial = {
+    id: Id
+    kind: Kind.Spatial
+    transform: Transform
+  }
+
+	export type Gap = {
+		id: Id
+		kind: Kind.Gap
+		duration: number
+	}
+
 	export type Sequence = {
 		id: Id
 		kind: Kind.Sequence
-		children: Id[]
+		childrenIds: Id[]
+		spatialId?: Id
 	}
 
 	export type Stack = {
 		id: Id
 		kind: Kind.Stack
-		children: Id[]
+		childrenIds: Id[]
+		spatialId?: Id
 	}
 
-	export type Clip = {
+	export type Video = {
 		id: Id
-		kind: Kind.Clip
+		kind: Kind.Video
+		mediaHash: Hash
+		start: number
+		duration: number
+		spatialId?: Id
+	}
+
+	export type Audio = {
+		id: Id
+		kind: Kind.Audio
 		mediaHash: Hash
 		start: number
 		duration: number
@@ -38,6 +65,8 @@ export namespace Item {
 		id: Id
 		kind: Kind.Text
 		content: string
+		spatialId?: Id
+		color: string
 	}
 
 	export type Transition = {
@@ -50,9 +79,12 @@ export namespace Item {
 	export type Any = (
 		| Sequence
 		| Stack
-		| Clip
+		| Video
+		| Audio
 		| Text
+		| Gap
 		| Transition
+		| Spatial
 	)
 }
 

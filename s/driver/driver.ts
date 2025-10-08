@@ -50,7 +50,7 @@ export class Driver {
 		return await videoTrack?.computeDuration()
 	}
 
-	decode(input: DecoderInput) {
+	decodeVideo(input: DecoderInput) {
 		let lastFrame: VideoFrame | null = null
 		const videoTransform = new TransformStream<VideoFrame, VideoFrame>({
 			async transform(chunk, controller) {
@@ -61,19 +61,27 @@ export class Driver {
 				lastFrame = frame
 			}
 		})
-		const audioTransform = new TransformStream<AudioData, AudioData>()
-		this.thread.work.decode[tune]({transfer: [videoTransform.writable, audioTransform.writable]})({
+		this.thread.work.decodeVideo[tune]({transfer: [videoTransform.writable]})({
 			source: input.source,
 			video: videoTransform.writable,
-			audio: audioTransform.writable,
+			start: input.start,
+			end: input.end
 		})
-		return {
-			audio: audioTransform.readable,
-			video: videoTransform.readable
-		}
+		return videoTransform.readable
 	}
 
-	async encode({readables, config}: EncoderInput) {
+	decodeAudio(input: DecoderInput) {
+		const audioTransform = new TransformStream<AudioData, AudioData>()
+		this.thread.work.decodeAudio[tune]({transfer: [audioTransform.writable]})({
+			source: input.source,
+			audio: audioTransform.writable,
+			start: input.start,
+			end: input.end
+		})
+		return audioTransform.readable
+	}
+
+	async encode({video, audio, config}: EncoderInput) {
 		const handle = await window.showSaveFilePicker()
 		const writable = await handle.createWritable()
 		// making bridge because file picker writable is not transferable
@@ -85,7 +93,7 @@ export class Driver {
 				await writable.close()
 			}
 		})
-		return await this.thread.work.encode[tune]({transfer: [readables.audio, readables.video, bridge]})({readables, config, bridge})
+		return await this.thread.work.encode[tune]({transfer: [audio ?? [], video ?? [], bridge]})({video, audio, config, bridge})
 	}
 
 	async composite(

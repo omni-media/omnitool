@@ -1,7 +1,13 @@
+import {O} from "./o.js"
+import {Id} from "../parts/basics.js"
 import {Item} from "../parts/item.js"
 
 export class TimelineItem {
-	constructor(public item: Item.Any) {}
+	public readonly id: Id
+
+	constructor(public item: Item.Any) {
+		this.id = item.id
+	}
 
 	toJSON() {
 		return {
@@ -15,12 +21,20 @@ abstract class VisualItem extends TimelineItem {
 }
 
 export class Stack extends VisualItem {
-  constructor(public item: Item.Stack) {
+  constructor(private o: O, public item: Item.Stack) {
   	super(item)
   }
 
   spatial(spatial: Spatial) {
-    return new Stack({...this.item, spatialId: spatial.item.id})
+  	this.item.spatialId = spatial.item.id
+    return this
+  }
+
+  addChildren(fn: (o: O) => TimelineItem | TimelineItem[]) {
+  	const result = fn(this.o)
+  	const items = Array.isArray(result) ? result : [result]
+    this.item.childrenIds.push(...items.map(c => c.item.id))
+    return this
   }
 }
 
@@ -42,7 +56,8 @@ export class Video extends VisualItem {
   }
 
   spatial(spatial: Spatial) {
-    return new Video({...this.item, spatialId: spatial.item.id})
+  	this.item.spatialId = spatial.item.id
+    return this
   }
 }
 
@@ -52,21 +67,31 @@ export class Text extends VisualItem {
   }
 
   color(color: string) {
-		return new Text({...this.item, color})
+  	this.item.color = color
+		return this
   }
 
   spatial(spatial: Spatial) {
-    return new Text({...this.item, spatialId: spatial.item.id})
+  	this.item.spatialId = spatial.item.id
+    return this
   }
 }
 
 export class Sequence extends VisualItem {
-	constructor(public item: Item.Sequence) {
+	constructor(private o: O, public item: Item.Sequence) {
 		super(item)
 	}
 
   spatial(spatial: Spatial) {
-    return new Sequence({...this.item, spatialId: spatial.item.id})
+  	this.item.spatialId = spatial.item.id
+    return this
+  }
+
+  addChildren(fn: (o: O) => TimelineItem | TimelineItem[]) {
+  	const result = fn(this.o)
+  	const items = Array.isArray(result) ? result : [result]
+    this.item.childrenIds.push(...items.map(c => c.item.id))
+    return this
   }
 }
 

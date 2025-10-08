@@ -30,7 +30,7 @@ export default ssg.page(import.meta.url, async orb => ({
 		<section>
 			<h1>Omnitool <small>v${orb.packageVersion()}</small></h1>
 			<button class=fetch>fetch</button>
-			<button class="import">import</button>
+			<input type="file" class="file-input">
 			<div class=results></div>
 			<div class=filmstrip-demo>
 				<label for="viewable-range">viewable range:</label>
@@ -46,6 +46,11 @@ export default ssg.page(import.meta.url, async orb => ({
 			<div class=waveform-demo>
 				<label for="width">width:</label>
 				<input class="width" id="width" name="width" type="range" min="100" max="1000000" value="1000" />
+			</div>
+			<div class=player>
+				<input class="seek" type="number" min="0">
+				<button class=play>play</button>
+				<button class=stop>stop</button>
 			</div>
 		</section>
 	`,

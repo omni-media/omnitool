@@ -8,13 +8,13 @@ import {Video, Gap, Sequence, Stack, Text, TimelineItem, Spatial, Audio, Transit
 
 export class O {
 	#nextId = 0
-	#items = new MapG<Id, Item.Any>()
+	#items = new MapG<Id, TimelineItem>()
 
 	#getId() {
 		return this.#nextId++
 	}
 
-	register(item: Item.Any) {
+	register(item: TimelineItem) {
 		if (!this.#items.has(item.id))
 			this.#items.set(item.id, item)
 		return item.id
@@ -24,6 +24,10 @@ export class O {
 		return [...this.#items.values()]
 	}
 
+	get itemsMap() {
+		return this.#items
+	}
+
   spatial = (transform: Transform) => {
   	const item: Item.Spatial = {
   		id: this.#getId(),
@@ -31,20 +35,20 @@ export class O {
   		transform
   	}
   	const spatial = new Spatial(item)
-  	this.register(item)
+  	this.register(spatial)
   	return spatial
   }
 
-	sequence = (...items: TimelineItem[]) => new Sequence({
+	sequence = (...items: TimelineItem[]) => new Sequence(this, {
 		id: this.#getId(),
 		kind: Kind.Sequence,
-		childrenIds: items.map((item) => this.register(item.toJSON()))
+		childrenIds: items.map((item) => this.register(item))
 	})
 
-	stack = (...items: TimelineItem[]) => new Stack({
+	stack = (...items: TimelineItem[]) => new Stack(this, {
 		kind: Kind.Stack,
 		id: this.#getId(),
-		childrenIds: items.map(item => this.register(item.toJSON()))
+		childrenIds: items.map(item => this.register(item))
 	})
 
 	video = (media: Media, options?: {start?: number, duration?: number}) => {

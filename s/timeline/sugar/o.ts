@@ -1,57 +1,73 @@
 
-import {MapG} from "@e280/stz"
-import {Id} from "../parts/basics.js"
 import {Media} from "../parts/media.js"
+import {Id, TimelineFile} from "../parts/basics.js"
 import {Effect, Item, Kind} from "../parts/item.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
-import {Video, Gap, Sequence, Stack, Text, TimelineItem, Spatial, Audio, Transition} from "./builders.js"
 
 export class O {
 	#nextId = 0
-	#items = new MapG<Id, TimelineItem>()
+
+	constructor(public state: {project: TimelineFile}) {}
+
+  require<T extends Item.Any>(id: Id): T {
+    const item = this.state.project.items.find(item => item.id === id)
+    return item as T
+  }
 
 	#getId() {
 		return this.#nextId++
 	}
 
-	register(item: TimelineItem) {
-		if (!this.#items.has(item.id))
-			this.#items.set(item.id, item)
-		return item.id
-	}
+  #mutate(fn: (project: TimelineFile) => TimelineFile) {
+    this.state.project = fn(this.state.project)
+  }
 
-	get items() {
-		return [...this.#items.values()]
-	}
-
-	get itemsMap() {
-		return this.#items
-	}
-
-  spatial = (transform: Transform) => {
+  spatial = (transform: Transform): Item.Spatial => {
   	const item: Item.Spatial = {
   		id: this.#getId(),
   		kind: Kind.Spatial,
   		transform
   	}
-  	const spatial = new Spatial(item)
-  	this.register(spatial)
-  	return spatial
+  	return item
   }
 
-	sequence = (...items: TimelineItem[]) => new Sequence(this, {
-		id: this.#getId(),
-		kind: Kind.Sequence,
-		childrenIds: items.map((item) => this.register(item))
-	})
+	sequence = (...items: Item.Any[]): Item.Any => {
+		const item =  {
+			id: this.#getId(),
+			kind: Kind.Sequence,
+			childrenIds: items.map(item => item.id)
+		} as Item.Sequence
 
-	stack = (...items: TimelineItem[]) => new Stack(this, {
-		kind: Kind.Stack,
-		id: this.#getId(),
-		childrenIds: items.map(item => this.register(item))
-	})
+		this.#mutate(state => {
+			state.items.push(item, ...items)
+			return state
+		})
 
-	video = (media: Media, options?: {start?: number, duration?: number}) => {
+		return item
+	}
+
+	stack = (...items: Item.Any[]): Item.Any => {
+		const item = {
+			kind: Kind.Stack,
+			id: this.#getId(),
+			childrenIds: items.map(item => item.id)
+		} as Item.Stack
+
+		this.#mutate(state => {
+			state.items.push(item, ...items)
+			return state
+		})
+
+		return item
+	}
+
+	video = (
+		media: Media,
+		options?: {
+			start?: number,
+			duration?: number
+		}): Item.Video => {
+
 		if(!media.hasVideo)
 			throw new Error(`Video clip error: media "${media.datafile.filename}" has no video track.`)
 
@@ -63,10 +79,16 @@ export class O {
 			duration: options?.duration ?? media.duration
 		}
 
-		return new Video(item)
+		return item
 	}
 
-	audio = (media: Media, options?: {start?: number, duration?: number}) => {
+	audio = (
+		media: Media,
+		options?: {
+			start?: number,
+			duration?: number
+		}): Item.Audio => {
+
 		if(!media.hasAudio)
 			throw new Error(`Audio clip error: media "${media.datafile.filename}" has no audio track.`)
 
@@ -78,24 +100,24 @@ export class O {
 			duration: options?.duration ?? media.duration
 		}
 
-		return new Audio(item)
+		return item
 	}
 
-	text = (content: string) => new Text({
+	text = (content: string): Item.Text => ({
 		id: this.#getId(),
 		content,
 		kind: Kind.Text,
 		color: "#FFFFF"
 	})
 
-	gap = (duration: number) => new Gap({
+	gap = (duration: number): Item.Gap => ({
 		id: this.#getId(),
 		kind: Kind.Gap,
 		duration
 	})
 
 	transition = {
-		crossfade: (duration: number) => new Transition({
+		crossfade: (duration: number): Item.Transition => ({
 			id: this.#getId(),
 			kind: Kind.Transition,
 			effect: Effect.Crossfade,
@@ -114,6 +136,15 @@ export class O {
     ]
     const rotation = options?.rotation ?? 0
     return [position, scale, rotation]
+  }
+
+  addChildren(parent: Item.Stack | Item.Sequence, ...items: Item.Any[]) {
+		this.#mutate(state => {
+			const parentItem = state.items.find(({id}) => id === parent.id) as Item.Stack
+			parentItem.childrenIds.push(...items.map(item => item.id))
+			state.items.push(...items)
+			return state
+		})
   }
 }
 

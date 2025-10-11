@@ -15,7 +15,7 @@ export class Driver {
 		const machina = new Machina()
 		const thread = await Comrade.thread<DriverSchematic>({
 			label: "OmnitoolDriver",
-			workerUrl: options?.workerUrl ?? "/node_modules/@omnimedia/omnitool/x/driver/driver.bundle.min.js",
+			workerUrl: options?.workerUrl ?? "/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js",
 			setupHost: setupDriverHost(machina),
 		})
 		return new this(machina, thread)

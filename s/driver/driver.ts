@@ -11,11 +11,11 @@ export type DriverOptions = {
 }
 
 export class Driver {
-	static async setup(options: DriverOptions) {
+	static async setup(options?: DriverOptions) {
 		const machina = new Machina()
 		const thread = await Comrade.thread<DriverSchematic>({
 			label: "OmnitoolDriver",
-			workerUrl: options.workerUrl,
+			workerUrl: options?.workerUrl ?? "/node_modules/@omnimedia/omnitool/x/driver/driver.bundle.min.js",
 			setupHost: setupDriverHost(machina),
 		})
 		return new this(machina, thread)

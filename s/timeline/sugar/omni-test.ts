@@ -1,12 +1,14 @@
 
 import {Omni} from "./omni.js"
+import {Driver} from "../../driver/driver.js"
 import {dummyData} from "../utils/dummy-data.js"
 
+const driver = await Driver.setup()
 //
 // create an omni context
 //
 
-const omni = new Omni()
+const omni = new Omni(driver)
 
 //
 // load in some media resources

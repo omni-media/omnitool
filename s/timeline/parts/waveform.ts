@@ -1,6 +1,6 @@
 import WaveSurfer from "wavesurfer.js"
 
-import {context} from "../../context.js"
+import {Driver} from "../../driver/driver.js"
 import {DecoderSource} from "../../driver/fns/schematic.js"
 
 export class Waveform {
@@ -19,8 +19,7 @@ export class Waveform {
 		})
 	}
 
-	static async init(source: DecoderSource, container: HTMLElement) {
-		const driver = await context.driver
+	static async init(driver: Driver, source: DecoderSource, container: HTMLElement) {
 		const reader = driver.decodeAudio({source}).getReader()
 
 		const peaks: number[] = []

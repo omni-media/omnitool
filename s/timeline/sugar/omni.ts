@@ -2,6 +2,7 @@
 import {O} from "./o.js"
 import {Item} from "../parts/item.js"
 import {Media} from "../parts/media.js"
+import {Driver} from "../../driver/driver.js"
 import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
 import {Export} from "../parts/compositor/export.js"
@@ -10,7 +11,11 @@ import {RenderConfig} from "../../driver/fns/schematic.js"
 
 export class Omni {
 	resources = new ResourcePool()
-	#export = new Export()
+	#export: Export
+
+	constructor(private driver: Driver) {
+		this.#export = new Export(driver)
+	}
 
 	load = async<S extends Record<string, Promise<Datafile>>>(spec: S) => {
 		return Object.fromEntries(await Promise.all(Object.entries(spec).map(

@@ -1,21 +1,46 @@
 
-import {context} from "../context.js"
+import {Driver} from "../driver/driver.js"
 import {waveformTest} from "./routines/waveform-test.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
 import {transcriberTest} from "./routines/transcriber-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
+import {Datafile, Omni, VideoPlayer} from "../timeline/index.js"
 
-const driver = await context.driver
+const driver = await Driver.setup()
 const results = document.querySelector(".results")!
 
 const fetchButton = document.querySelector(".fetch")
 const importButton = document.querySelector(".import") as HTMLButtonElement
 
+const playButton = document.querySelector(".play") as HTMLButtonElement
+const stopButton = document.querySelector(".stop") as HTMLButtonElement
+
 fetchButton?.addEventListener("click", startDemoFetch)
 importButton?.addEventListener("click", startDemoImport)
 
-waveformTest()
-const transcriber = await transcriberTest(driver)
+const omni = new Omni(driver)
+const file = await fetch("/assets/temp/gl.mp4")
+const buffer = await file.arrayBuffer()
+const uint = new Uint8Array(buffer)
+
+const {videoA} = await omni.load({videoA: Datafile.make(uint)})
+const timeline =	omni.timeline(o =>
+	o.sequence(
+	o.stack(
+		o.video(videoA, {duration: 5000}),
+		o.audio(videoA, {duration: 8000})
+	),
+	o.video(videoA, {duration: 7000})
+))
+
+const player = await VideoPlayer.create(driver, timeline)
+document.body.appendChild(player.canvas)
+
+playButton.addEventListener("click", () => player.play())
+stopButton.addEventListener("click", () => player.pause())
+
+waveformTest(driver)
+// const transcriber = await transcriberTest(driver)
 
 // hello world test
 {
@@ -32,7 +57,7 @@ async function startDemoImport()
 	const transcode = setupTranscodeTest(driver, file)
 	await filmstripTest(file)
 	run(transcode, fileHandle.name)
-	await transcriber.transcribe(file)
+	// await transcriber.transcribe(file)
 }
 
 async function startDemoFetch()

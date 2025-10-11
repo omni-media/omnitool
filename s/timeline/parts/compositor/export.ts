@@ -1,6 +1,6 @@
 import {TimelineFile} from "../basics.js"
-import {context} from "../../../context.js"
 import {fixedStep} from "./parts/schedulers.js"
+import {Driver} from "../../../driver/driver.js"
 import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 import {buildWebCodecsNodeTree} from "./parts/webcodecs-tree.js"
@@ -8,10 +8,11 @@ import {buildWebCodecsNodeTree} from "./parts/webcodecs-tree.js"
 export class Export {
 	#sampler
 	constructor(
+		private driver: Driver,
 		private framerate = 30,
 		private resolveMedia: (hash: string) => DecoderSource = _hash => "/assets/temp/gl.mp4"
 	) {
-		this.#sampler = makeWebCodecsSampler(this.resolveMedia)
+		this.#sampler = makeWebCodecsSampler(this.driver, this.resolveMedia)
 	}
 
 	async #build(timeline: TimelineFile) {
@@ -23,11 +24,10 @@ export class Export {
 	async render(timeline: TimelineFile) {
 		const root = await this.#build(timeline)
 
-		const driver = await context.driver
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()
 		const audioStream = new TransformStream<AudioData, AudioData>()
 
-		const encodePromise = driver.encode({
+		const encodePromise = this.driver.encode({
 			video: videoStream.readable,
 			audio: audioStream.readable,
 			config: {
@@ -56,7 +56,7 @@ export class Export {
 				{fps: this.framerate, duration: root.duration ?? 0},
 				async t => {
 					const layers = await root.visuals?.sampleAt(t) ?? []
-					const composed = await driver.composite(layers)
+					const composed = await this.driver.composite(layers)
 					const vf = new VideoFrame(composed, {
 						timestamp: Math.round(i * dt * 1_000_000),
 						duration: Math.round(dt * 1_000_000),

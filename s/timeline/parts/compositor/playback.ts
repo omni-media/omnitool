@@ -1,6 +1,6 @@
 import {TimelineFile} from "../basics.js"
-import {context} from "../../../context.js"
 import {realtime} from "./parts/schedulers.js"
+import {Driver} from "../../../driver/driver.js"
 import {makeHtmlSampler} from "./samplers/html.js"
 import {buildHTMLNodeTree} from "./parts/html-tree.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
@@ -12,6 +12,7 @@ export class VideoPlayer {
 	#controller = realtime(t => this.#tick(t))
 
 	constructor(
+		private driver: Driver,
 		public canvas: HTMLCanvasElement,
 		private root: Node<AudioPlaybackComponent>,
 		private sampler: HTMLSampler,
@@ -24,7 +25,7 @@ export class VideoPlayer {
 		return this.canvas.getContext("2d")!
 	}
 
-	static async create(timeline: TimelineFile) {
+	static async create(driver: Driver, timeline: TimelineFile) {
 		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
 		const items = new Map(timeline.items.map(i => [i.id, i]))
 		const sampler = makeHtmlSampler(() => "/assets/temp/gl.mp4")
@@ -32,16 +33,15 @@ export class VideoPlayer {
 		const canvas = document.createElement("canvas")
 		canvas.width = 1920
 		canvas.height = 1080
-		return new this(canvas, root, sampler)
+		return new this(driver, canvas, root, sampler)
 	}
 
 	async #tick(t: number) {
-		const driver = await context.driver
 		const dur = this.root.duration
 		const tt = t > dur ? dur : t
 		this.root.audio?.onTimeUpdate(tt)
 		for (const layer of await this.root.visuals?.sampleAt(tt) ?? []) {
-			const frame = await driver.composite(layer)
+			const frame = await this.driver.composite(layer)
 			this.context.drawImage(frame, 0, 0)
 			frame.close()
 		}
@@ -63,12 +63,11 @@ export class VideoPlayer {
 	}
 
 	async seek(time: number) {
-		const driver = await context.driver
 		this.pause()
 		this.#controller.seek(time)
 		this.root.audio?.onTimeUpdate(time)
 		for (const draw of await this.root.visuals?.sampleAt(time) ?? []) {
-			const frame = await driver.composite(draw)
+			const frame = await this.driver.composite(draw)
 			this.context.drawImage(frame, 0, 0)
 			frame.close()
 		}

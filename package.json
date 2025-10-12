@@ -31,14 +31,16 @@
 		"typescript": "^5.9.2"
 	},
 	"dependencies": {
-		"@benev/slate": "^0.3.9",
 		"@e280/comrade": "^0.0.0-23",
 		"@e280/renraku": "^0.5.0-29",
+		"@e280/sly": "^0.2.0-32",
+		"@e280/strata": "^0.2.1",
 		"@e280/stz": "^0.0.0-34",
 		"@huggingface/transformers": "^3.7.1",
 		"comrade": "^0.0.3",
 		"gl-transitions": "^1.43.0",
 		"gsap": "^3.13.0",
+		"lit": "^3.3.1",
 		"mediabunny": "^1.14.3",
 		"mp4-muxer": "^5.2.1",
 		"pixi.js": "^8.10.1",

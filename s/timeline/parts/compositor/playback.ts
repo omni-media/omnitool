@@ -1,3 +1,5 @@
+import {signal} from "@e280/strata"
+
 import {TimelineFile} from "../basics.js"
 import {realtime} from "./parts/schedulers.js"
 import {Driver} from "../../../driver/driver.js"
@@ -9,7 +11,11 @@ import {AudioPlaybackComponent, HTMLSampler, Node} from "./parts/tree-builder.js
 type ResolveMedia = (hash: string) => DecoderSource
 
 export class VideoPlayer {
-	#controller = realtime(t => this.#tick(t))
+	readonly currentTime = signal(0)
+	#controller = realtime(
+		tickTime => this.#tick(tickTime),
+		currentTime => this.currentTime(currentTime)
+	)
 
 	constructor(
 		private driver: Driver,

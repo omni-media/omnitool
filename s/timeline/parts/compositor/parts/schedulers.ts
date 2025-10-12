@@ -7,7 +7,11 @@ export type RealtimeController = {
 	isPlaying(): boolean
 }
 
-export const realtime = (onTick: (t: number) => void): RealtimeController => {
+export const realtime = (
+	onTick: (tickTime: number) => void,
+	onUpdate: (currentTime: number) => void
+): RealtimeController => {
+
   let playing = false
   let rafId: number | null = null
   let fps = 60
@@ -16,6 +20,7 @@ export const realtime = (onTick: (t: number) => void): RealtimeController => {
   let currentTimeS = 0
   let lastTime = 0
   let accumulator = 0
+  let currentTime = 0
 
   const tick = (now: number) => {
     if (!playing) return
@@ -24,6 +29,8 @@ export const realtime = (onTick: (t: number) => void): RealtimeController => {
     lastTime = now
 
     accumulator += deltaTime
+    currentTime += deltaTime / 1000
+  	onUpdate(currentTime)
 
     while (accumulator >= frameDuration) {
       onTick(currentTimeS)
@@ -50,6 +57,7 @@ export const realtime = (onTick: (t: number) => void): RealtimeController => {
     seek(t) {
       currentTimeS = Math.max(0, t)
       accumulator = 0
+      currentTime = t
     },
     dispose() {
       this.pause()

@@ -6,7 +6,7 @@ import {transcriberTest} from "./routines/transcriber-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
 import {Datafile, Omni, VideoPlayer} from "../timeline/index.js"
 
-const driver = await Driver.setup()
+const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
 const results = document.querySelector(".results")!
 
 const fetchButton = document.querySelector(".fetch")

@@ -58,6 +58,7 @@ export const realtime = (
       currentTimeS = Math.max(0, t)
       accumulator = 0
       currentTime = t
+      onUpdate(t)
     },
     dispose() {
       this.pause()

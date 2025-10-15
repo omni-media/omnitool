@@ -65,6 +65,7 @@ export namespace Item {
 		id: Id
 		kind: Kind.Text
 		content: string
+		duration: number
 		spatialId?: Id
 		color: string
 	}

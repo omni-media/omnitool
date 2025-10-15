@@ -14,6 +14,7 @@ const importButton = document.querySelector(".import") as HTMLButtonElement
 
 const playButton = document.querySelector(".play") as HTMLButtonElement
 const stopButton = document.querySelector(".stop") as HTMLButtonElement
+const seekButton = document.querySelector(".seek") as HTMLButtonElement
 
 fetchButton?.addEventListener("click", startDemoFetch)
 importButton?.addEventListener("click", startDemoImport)
@@ -38,6 +39,10 @@ document.body.appendChild(player.canvas)
 
 playButton.addEventListener("click", () => player.play())
 stopButton.addEventListener("click", () => player.pause())
+seekButton.addEventListener("change", async (e: Event) => {
+	const target = e.target as HTMLInputElement
+	await player.seek(+target.value)
+})
 
 waveformTest(driver)
 // const transcriber = await transcriberTest(driver)

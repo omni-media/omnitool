@@ -44,13 +44,12 @@ export class VideoPlayer {
 
 	async #tick(t: number) {
 		const dur = this.root.duration
-		const tt = t > dur ? dur : t
+		const tt = (t > dur ? dur : t) * 1000
 		this.root.audio?.onTimeUpdate(tt)
-		for (const layer of await this.root.visuals?.sampleAt(tt) ?? []) {
-			const frame = await this.driver.composite(layer)
-			this.context.drawImage(frame, 0, 0)
-			frame.close()
-		}
+		const layers = await this.root.visuals?.sampleAt(tt) ?? []
+		const frame = await this.driver.composite(layers)
+		this.context.drawImage(frame, 0, 0)
+		frame.close()
 		if (t >= dur) this.pause()
 	}
 

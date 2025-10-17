@@ -54,9 +54,19 @@ export abstract class TreeBuilder<T> {
 			case Kind.Text: {
 				const matrix = getWorldMat6(this.items, root, parentMatrix)
 				return {
-					duration: Infinity,
+					duration: root.duration,
 					visuals: {
-						sampleAt: async () => [{kind: "text", content: root.content, color: "white", fontSize: 48, matrix}]
+						sampleAt: async (t) => {
+							if (t < 0 || t >= root.duration)
+								return []
+							else return [{
+								kind: "text",
+								content: root.content,
+								color: "white",
+								fontSize: 48,
+								matrix
+							}]
+						}
 					}
 				}
 			}

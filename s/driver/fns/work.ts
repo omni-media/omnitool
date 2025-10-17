@@ -168,6 +168,7 @@ async function renderLayer(
 	parent: Container,
 ) {
 	if (Array.isArray(layer)) {
+		layer.reverse()
 		const disposers: (() => void)[] = []
 		for (const child of layer) {
 			const result = await renderLayer(child, parent)

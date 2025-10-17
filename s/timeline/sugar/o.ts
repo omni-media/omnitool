@@ -107,8 +107,8 @@ export class O {
 		id: this.#getId(),
 		content,
 		kind: Kind.Text,
-		color: "#FFFFF",
-		duration: 2000
+		duration: 2000,
+		style: {}
 	})
 
 	gap = (duration: number): Item.Gap => ({

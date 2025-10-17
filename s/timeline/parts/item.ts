@@ -1,3 +1,4 @@
+import {TextStyleOptions} from "pixi.js"
 
 import {Id, Hash} from "./basics.js"
 import {Transform} from "../types.js"
@@ -67,7 +68,7 @@ export namespace Item {
 		content: string
 		duration: number
 		spatialId?: Id
-		color: string
+		style: TextStyleOptions
 	}
 
 	export type Transition = {

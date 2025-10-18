@@ -71,11 +71,10 @@ export class VideoPlayer {
 		this.pause()
 		this.#controller.seek(time)
 		this.root.audio?.onTimeUpdate(time)
-		for (const draw of await this.root.visuals?.sampleAt(time) ?? []) {
-			const frame = await this.driver.composite(draw)
-			this.context.drawImage(frame, 0, 0)
-			frame.close()
-		}
+		const layers = await this.root.visuals?.sampleAt(time) ?? []
+		const frame = await this.driver.composite(layers)
+		this.context.drawImage(frame, 0, 0)
+		frame.close()
 	}
 
 	setFPS(value: number) {

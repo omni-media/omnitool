@@ -1,3 +1,4 @@
+import {TextStyleOptions} from "pixi.js"
 
 import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
@@ -21,6 +22,12 @@ export class O {
   #mutate(fn: (project: TimelineFile) => TimelineFile) {
     this.state.project = fn(this.state.project)
   }
+
+  textStyle = (style: TextStyleOptions): Item.TextStyle => ({
+		id: this.#getId(),
+		kind: Kind.TextStyle,
+		style
+  })
 
   spatial = (transform: Transform): Item.Spatial => {
   	const item: Item.Spatial = {
@@ -107,8 +114,7 @@ export class O {
 		id: this.#getId(),
 		content,
 		kind: Kind.Text,
-		duration: 2000,
-		style: {}
+		duration: 2000
 	})
 
 	gap = (duration: number): Item.Gap => ({

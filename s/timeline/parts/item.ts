@@ -12,6 +12,7 @@ export enum Kind {
 	Gap,
 	Spatial,
 	Transition,
+	TextStyle
 }
 
 export enum Effect {
@@ -19,6 +20,12 @@ export enum Effect {
 }
 
 export namespace Item {
+  export type TextStyle = {
+    id: Id
+    kind: Kind.TextStyle
+		style: TextStyleOptions
+  }
+
   export type Spatial = {
     id: Id
     kind: Kind.Spatial
@@ -68,7 +75,7 @@ export namespace Item {
 		content: string
 		duration: number
 		spatialId?: Id
-		style: TextStyleOptions
+		styleId?: Id
 	}
 
 	export type Transition = {

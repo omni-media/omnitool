@@ -94,6 +94,7 @@ export namespace Item {
 		| Gap
 		| Transition
 		| Spatial
+		| TextStyle
 	)
 }
 

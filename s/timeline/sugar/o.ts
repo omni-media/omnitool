@@ -153,5 +153,20 @@ export class O {
 			return state
 		})
   }
+
+	update = <K extends keyof Item.Any>(itemId: Id, key: K, value: Item.Any[K]) => {
+    this.#mutate(project => {
+      const newItems = project.items.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            [key]: value,
+          }
+        }
+        return item
+      })
+      return {...project, items: newItems}
+    })
+	}
 }
 

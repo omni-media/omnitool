@@ -13,7 +13,7 @@ type ResolveMedia = (hash: string) => DecoderSource
 export class VideoPlayer {
 	readonly currentTime = signal(0)
 	#controller = realtime(
-		tickTime => this.#tick(tickTime),
+		compositeTime => this.#tick(compositeTime),
 		currentTime => this.currentTime(currentTime)
 	)
 
@@ -42,15 +42,15 @@ export class VideoPlayer {
 		return new this(driver, canvas, root, sampler)
 	}
 
-	async #tick(t: number) {
-		const dur = this.root.duration
-		const tt = (t > dur ? dur : t) * 1000
+	async #tick(ms: number) {
+		const duration = this.root.duration
+		const tt = ms > duration ? duration : ms
 		this.root.audio?.onTimeUpdate(tt)
 		const layers = await this.root.visuals?.sampleAt(tt) ?? []
 		const frame = await this.driver.composite(layers)
 		this.context.drawImage(frame, 0, 0)
 		frame.close()
-		if (t >= dur) this.pause()
+		if (ms >= duration) this.pause()
 	}
 
 	async play() {

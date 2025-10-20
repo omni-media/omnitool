@@ -17,7 +17,7 @@ export const realtime = (
   let fps = 60
 
   let frameDuration = 1000 / fps
-  let currentTimeS = 0
+  let composeTime = 0
   let lastTime = 0
   let accumulator = 0
   let currentTime = 0
@@ -29,12 +29,12 @@ export const realtime = (
     lastTime = now
 
     accumulator += deltaTime
-    currentTime += deltaTime / 1000
+    currentTime += deltaTime
   	onUpdate(currentTime)
 
     while (accumulator >= frameDuration) {
-      onTick(currentTimeS)
-      currentTimeS += frameDuration / 1000
+      onTick(composeTime)
+      composeTime += frameDuration
       accumulator -= frameDuration
     }
 
@@ -54,11 +54,11 @@ export const realtime = (
       if (rafId !== null) cancelAnimationFrame(rafId)
       rafId = null
     },
-    seek(t) {
-      currentTimeS = Math.max(0, t)
+    seek(ms) {
+      composeTime = ms
       accumulator = 0
-      currentTime = t
-      onUpdate(t)
+      currentTime = ms
+      onUpdate(ms)
     },
     dispose() {
       this.pause()

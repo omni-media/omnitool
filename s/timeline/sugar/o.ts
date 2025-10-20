@@ -10,10 +10,12 @@ export class O {
 
 	constructor(public state: {project: TimelineFile}) {}
 
-  require<T extends Item.Any>(id: Id): T {
+	require<T extends Item.Any>(id: Id | undefined) {
+    if (id === undefined)
+    	return undefined
     const item = this.state.project.items.find(item => item.id === id)
-    return item as T
-  }
+    return item as T | undefined
+	}
 
 	#getId() {
 		return this.#nextId++

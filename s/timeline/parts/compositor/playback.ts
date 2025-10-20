@@ -67,11 +67,11 @@ export class VideoPlayer {
 		}
 	}
 
-	async seek(time: number) {
+	async seek(ms: number) {
 		this.pause()
-		this.#controller.seek(time)
-		this.root.audio?.onTimeUpdate(time)
-		const layers = await this.root.visuals?.sampleAt(time) ?? []
+		this.#controller.seek(ms)
+		this.root.audio?.onTimeUpdate(ms)
+		const layers = await this.root.visuals?.sampleAt(ms) ?? []
 		const frame = await this.driver.composite(layers)
 		this.context.drawImage(frame, 0, 0)
 		frame.close()

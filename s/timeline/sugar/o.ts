@@ -25,11 +25,22 @@ export class O {
     this.state.project = fn(this.state.project)
   }
 
-  textStyle = (style: TextStyleOptions): Item.TextStyle => ({
-		id: this.#getId(),
-		kind: Kind.TextStyle,
-		style
-  })
+	register(item: Item.Any) {
+   	this.#mutate(state => {
+      state.items.push(item)
+      return state
+   	})
+	}
+
+  textStyle = (style: TextStyleOptions): Item.TextStyle => {
+		const item = {
+			id: this.#getId(),
+			kind: Kind.TextStyle,
+			style
+		} as Item.TextStyle
+		this.register(item)
+		return item
+  }
 
   spatial = (transform: Transform): Item.Spatial => {
   	const item: Item.Spatial = {
@@ -37,6 +48,7 @@ export class O {
   		kind: Kind.Spatial,
   		transform
   	}
+		this.register(item)
   	return item
   }
 
@@ -46,12 +58,7 @@ export class O {
 			kind: Kind.Sequence,
 			childrenIds: items.map(item => item.id)
 		} as Item.Sequence
-
-		this.#mutate(state => {
-			state.items.push(item, ...items)
-			return state
-		})
-
+		this.register(item)
 		return item
 	}
 
@@ -61,12 +68,7 @@ export class O {
 			id: this.#getId(),
 			childrenIds: items.map(item => item.id)
 		} as Item.Stack
-
-		this.#mutate(state => {
-			state.items.push(item, ...items)
-			return state
-		})
-
+		this.register(item)
 		return item
 	}
 
@@ -87,7 +89,7 @@ export class O {
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration
 		}
-
+		this.register(item)
 		return item
 	}
 
@@ -108,30 +110,42 @@ export class O {
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration
 		}
-
+		this.register(item)
 		return item
 	}
 
-	text = (content: string): Item.Text => ({
-		id: this.#getId(),
-		content,
-		kind: Kind.Text,
-		duration: 2000
-	})
+	text = (content: string): Item.Text => {
+		const item = {
+			id: this.#getId(),
+			content,
+			kind: Kind.Text,
+			duration: 2000
+		} as Item.Text
+		this.register(item)
+		return item
+	}
 
-	gap = (duration: number): Item.Gap => ({
-		id: this.#getId(),
-		kind: Kind.Gap,
-		duration
-	})
+	gap = (duration: number): Item.Gap => {
+		const item = {
+			id: this.#getId(),
+			kind: Kind.Gap,
+			duration
+		} as Item.Gap
+		this.register(item)
+		return item
+	}
 
 	transition = {
-		crossfade: (duration: number): Item.Transition => ({
-			id: this.#getId(),
-			kind: Kind.Transition,
-			effect: Effect.Crossfade,
-			duration,
-		}),
+		crossfade: (duration: number): Item.Transition => {
+			const item = {
+				id: this.#getId(),
+				kind: Kind.Transition,
+				effect: Effect.Crossfade,
+				duration,
+			} as Item.Transition
+			this.register(item)
+			return item
+		},
 	}
 
   transform = (options?: TransformOptions): Transform => {
@@ -151,7 +165,6 @@ export class O {
 		this.#mutate(state => {
 			const parentItem = state.items.find(({id}) => id === parent.id) as Item.Stack
 			parentItem.childrenIds.push(...items.map(item => item.id))
-			state.items.push(...items)
 			return state
 		})
   }

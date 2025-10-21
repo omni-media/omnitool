@@ -169,19 +169,18 @@ export class O {
 		})
   }
 
-	update = <T extends Item.Any, K extends keyof T>({id}: T, key: K, value: T[K]) => {
-    this.#mutate(project => {
-      const newItems = project.items.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            [key]: value,
-          }
-        }
-        return item
-      })
-      return {...project, items: newItems}
-    })
+	set = <K extends Item.Any>(
+		id: Id,
+		partial: Partial<K>
+	) => {
+		this.#mutate(project => ({
+			...project,
+			items: project.items.map(item =>
+				item.id === id
+					? { ...item, ...partial }
+					: item
+			)
+		}))
 	}
 }
 

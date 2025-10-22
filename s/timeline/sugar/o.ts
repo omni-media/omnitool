@@ -26,10 +26,10 @@ export class O {
   }
 
 	register(item: Item.Any) {
-   	this.#mutate(state => {
-      state.items.push(item)
-      return state
-   	})
+		this.#mutate(state => ({
+			...state,
+			items: [...state.items, item]
+		}))
 	}
 
   textStyle = (style: TextStyleOptions): Item.TextStyle => {

@@ -26,10 +26,10 @@ export class O {
   }
 
 	register(item: Item.Any) {
-		this.#mutate(state => ({
-			...state,
-			items: [...state.items, item]
-		}))
+		this.#mutate(project => {
+			project.items.push(item)
+			return project
+		})
 	}
 
   textStyle = (style: TextStyleOptions): Item.TextStyle => {
@@ -169,18 +169,12 @@ export class O {
 		})
   }
 
-	set = <K extends Item.Any>(
-		id: Id,
-		partial: Partial<K>
-	) => {
-		this.#mutate(project => ({
-			...project,
-			items: project.items.map(item =>
-				item.id === id
-					? { ...item, ...partial }
-					: item
-			)
-		}))
+	set = <K extends Item.Any>(id: Id, partial: Partial<K>) => {
+		this.#mutate(project => {
+			const item = project.items.find(i => i.id === id)
+			if (item) Object.assign(item, partial)
+			return project
+		})
 	}
 }
 

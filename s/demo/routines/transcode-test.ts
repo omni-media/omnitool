@@ -21,8 +21,10 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 					{
 						kind: "text",
 						content: "omnitool",
-						fontSize: 50,
-						color: "green"
+						style: {
+							fontSize: 50,
+							fill: "green"
+						}
 					}
 				])
 				frame.close()

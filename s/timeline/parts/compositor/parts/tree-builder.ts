@@ -53,6 +53,9 @@ export abstract class TreeBuilder<T> {
 			case Kind.Audio: return this.sampler.audio(root)
 			case Kind.Text: {
 				const matrix = getWorldMat6(this.items, root, parentMatrix)
+				const styleItem = root.styleId !== undefined
+					? this.items.get(root.styleId) as Item.TextStyle
+					: undefined
 				return {
 					duration: root.duration,
 					visuals: {
@@ -62,8 +65,7 @@ export abstract class TreeBuilder<T> {
 							else return [{
 								kind: "text",
 								content: root.content,
-								color: "white",
-								fontSize: 48,
+								style: styleItem?.style,
 								matrix
 							}]
 						}

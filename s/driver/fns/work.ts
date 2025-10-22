@@ -200,11 +200,7 @@ function renderTextLayer(
 ) {
 	const text = new Text({
 		text: layer.content,
-		style: {
-			fontFamily: 'sans-serif',
-			fontSize: layer.fontSize ?? 48,
-			fill: layer.color ?? 'white'
-		}
+		style: layer.style
 	})
 	applyTransform(text, layer.matrix)
 	parent.addChild(text)

@@ -1,4 +1,5 @@
 
+import {TextStyleOptions} from "pixi.js"
 import {AsSchematic} from "@e280/comrade"
 import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
@@ -74,8 +75,7 @@ export type Composition = Layer | (Layer | Composition)[]
 export type TextLayer = {
 	kind: 'text'
 	content: string
-	fontSize?: number
-	color?: string
+	style?: TextStyleOptions
 	matrix?: Mat6
 }
 

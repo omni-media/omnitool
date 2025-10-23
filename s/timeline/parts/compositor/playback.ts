@@ -80,5 +80,15 @@ export class VideoPlayer {
 	setFPS(value: number) {
 		this.#controller.setFPS(value)
 	}
+
+	/**
+	 call this whenever your timeline state changes
+	*/
+	async update(timeline: TimelineFile) {
+		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
+		const items = new Map(timeline.items.map(i => [i.id, i]))
+		this.root = await buildHTMLNodeTree(rootItem, items, this.sampler)
+		await this.seek(this.currentTime())
+	}
 }
 

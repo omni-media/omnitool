@@ -21,9 +21,7 @@ export class O {
 	}
 
   #mutate(fn: (project: TimelineFile) => TimelineFile) {
-		Promise.resolve().then(() => {
-			this.state.project = fn(this.state.project)
-		})
+    this.state.project = fn(this.state.project)
   }
 
 	register(item: Item.Any) {

@@ -35,7 +35,7 @@
 		"@e280/renraku": "^0.5.0-29",
 		"@e280/sly": "^0.2.0-32",
 		"@e280/strata": "^0.2.1",
-		"@e280/stz": "^0.0.0-34",
+		"@e280/stz": "^0.2.13",
 		"@huggingface/transformers": "^3.7.1",
 		"comrade": "^0.0.3",
 		"gl-transitions": "^1.43.0",

@@ -1,3 +1,4 @@
+import {hex} from "@e280/stz"
 import {TextStyleOptions} from "pixi.js"
 
 import {Media} from "../parts/media.js"
@@ -6,8 +7,6 @@ import {Effect, Item, Kind} from "../parts/item.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
 
 export class O {
-	#nextId = 0
-
 	constructor(public state: {project: TimelineFile}) {}
 
 	require<T extends Item.Any>(id: Id | undefined) {
@@ -18,7 +17,7 @@ export class O {
 	}
 
 	#getId() {
-		return this.#nextId++
+		return hex.toInteger(hex.random())
 	}
 
   #mutate(fn: (project: TimelineFile) => TimelineFile) {

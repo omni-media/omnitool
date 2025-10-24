@@ -4,7 +4,7 @@ import {WebcodecsSampler} from "../parts/tree-builder.js"
 import {VideoCursor} from "../../../utils/video-cursor.js"
 import {AudioStream} from "../../../utils/audio-stream.js"
 
-const toUs = (seconds: number) => Math.round(seconds * 1_000_000)
+const toUs = (ms: number) => Math.round(ms * 1_000)
 
 export function makeWebCodecsSampler(
 	driver: Driver,
@@ -25,12 +25,12 @@ export function makeWebCodecsSampler(
 	return {
 		async video(item, matrix) {
 			const cursor = await getCursorForVideo(item)
-			const baseUs = toUs(item.start ?? 0)
+			const baseUs = toUs(item.start)
 			return {
 				duration: item.duration,
 				visuals: {
-					sampleAt: async (time: number) => {
-						const frame = await cursor.atOrNear(baseUs + toUs(time))
+					sampleAt: async (ms: number) => {
+						const frame = await cursor.atOrNear(baseUs + toUs(ms))
 						return frame ? [{kind: "image", frame, matrix}] : []
 					}
 				}

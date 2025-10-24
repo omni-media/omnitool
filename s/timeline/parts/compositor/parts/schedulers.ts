@@ -83,8 +83,9 @@ export const fixedStep = async (
 	opts: FixedStepOptions,
 	onFrame: (t: number, index: number) => Promise<void> | void
 ) => {
-	const dt = 1 / opts.fps
-	const total = Math.ceil(opts.duration * opts.fps)
+	const dt = 1000 / opts.fps
+	const durationInSeconds = opts.duration / 1000
+	const total = Math.ceil(durationInSeconds * opts.fps)
 
 	for (let i = 0; i < total; i++) {
 		if (opts.abort?.aborted) break

@@ -42,9 +42,9 @@ export function makeWebCodecsSampler(
 				audio: {
 					getStream: async function*() {
 						const source = resolveMedia(item.mediaHash)
-						const startUs = item.start
-						const endUs = (item.start + item.duration)
-						const audio = driver.decodeAudio({source, start: startUs, end: endUs})
+						const start = item.start / 1000
+						const end = (item.start + item.duration) / 1000
+						const audio = driver.decodeAudio({source, start, end})
 						const audioStream = new AudioStream(audio.getReader())
 						yield* audioStream.stream()
 					},

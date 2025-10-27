@@ -54,9 +54,9 @@ export class Filmstrip {
 		return this.options.frequency
 	}
 
-	#computeActiveRange([start, end]: TimeRange): TimeRange {
+	#computeActiveRange([start, end]: TimeRange, margin = 1): TimeRange {
 		const tileSize = end - start
-		return [start - tileSize, end + tileSize]
+		return [start - tileSize * margin, end + tileSize * margin]
 	}
 
 	async #generateTiles() {
@@ -106,15 +106,20 @@ export class Filmstrip {
  	* @param visibleRange - The current timeline viewport as a [start, end] tuple in seconds.
  	*/
 	set range(visibleRange: TimeRange) {
-		const newRange = this.#computeActiveRange(visibleRange)
-		// Avoid redundant updates
-		if (
-			this.#activeRange[0] === newRange[0] &&
-			this.#activeRange[1] === newRange[1]
-		)
-			return
+		const [visStart, visEnd] = visibleRange
+		const visibleSize = visEnd - visStart
+		const [actStart, actEnd] = this.#activeRange
 
-		this.#activeRange = newRange
+		// trigger when we're 1x visible width away from margin edges
+		const leftTrigger = actStart + visibleSize
+		const rightTrigger = actEnd - visibleSize
+
+		const nearLeftEdge = visStart < leftTrigger
+		const nearRightEdge = visEnd > rightTrigger
+
+		if (!nearLeftEdge && !nearRightEdge) return
+
+		this.#activeRange = this.#computeActiveRange(visibleRange, 2)
 		this.#update()
 	}
 

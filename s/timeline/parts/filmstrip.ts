@@ -60,7 +60,7 @@ export class Filmstrip {
 		return [start - tileSize * margin, end + tileSize * margin]
 	}
 
-	async #generateTiles() {
+	async #generatePlaceholders() {
 		const [rangeStart, rangeEnd] = this.#activeRange
 		const neededTimestamps = new Set<number>()
 
@@ -77,6 +77,23 @@ export class Filmstrip {
 		}
 
 		this.options.onPlaceholders?.([...neededTimestamps])
+	}
+
+	async #generateTiles() {
+		const [rangeStart, rangeEnd] = this.#activeRange
+		const neededTimestamps = new Set<number>()
+
+		// duration should be computed but with trim etc also
+		const duration = await this.videoTrack.computeDuration()
+		for (
+			let timestamp = rangeStart;
+			timestamp <= rangeEnd;
+			timestamp += this.options.frequency
+		) {
+			// Clamp to valid time range
+			if (timestamp >= 0 && timestamp <= duration)
+				neededTimestamps.add(+timestamp.toFixed(3))
+		}
 
 		const missingTimestamps = [...neededTimestamps]
 			.filter(t => !this.#cache.has(t))
@@ -130,6 +147,7 @@ export class Filmstrip {
 	#shouldRunAgain = false
 
 	async #update() {
+		this.#generatePlaceholders()
 		// Perform update immediately. If multiple updates are requested while updating,
 		// only the latest one will run after the current finishes (skips intermediate ones).
 		if(this.#updating) {

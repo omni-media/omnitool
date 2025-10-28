@@ -67,13 +67,13 @@ export class Filmstrip {
 		// duration should be computed but with trim etc also
 		const duration = await this.videoTrack.computeDuration()
 		for (
-			let timestamp = rangeStart;
+			let timestamp = Math.max(0, rangeStart);
 			timestamp <= rangeEnd;
 			timestamp += this.options.frequency
 		) {
 			// Clamp to valid time range
 			if (timestamp >= 0 && timestamp <= duration)
-				neededTimestamps.add(+timestamp.toFixed(3))
+				neededTimestamps.add(timestamp)
 		}
 
 		this.options.onPlaceholders?.([...neededTimestamps])
@@ -86,13 +86,13 @@ export class Filmstrip {
 		// duration should be computed but with trim etc also
 		const duration = await this.videoTrack.computeDuration()
 		for (
-			let timestamp = rangeStart;
+			let timestamp = Math.max(0, rangeStart);
 			timestamp <= rangeEnd;
 			timestamp += this.options.frequency
 		) {
 			// Clamp to valid time range
 			if (timestamp >= 0 && timestamp <= duration)
-				neededTimestamps.add(+timestamp.toFixed(3))
+				neededTimestamps.add(timestamp)
 		}
 
 		const missingTimestamps = [...neededTimestamps]

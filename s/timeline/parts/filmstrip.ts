@@ -17,7 +17,7 @@ export class Filmstrip {
 
 	private constructor(
 		private videoTrack: InputVideoTrack,
-		private options: Required<FilmstripOptions>
+		private options: FilmstripOptions
 	) {
 		this.#sink = new CanvasSink(videoTrack, options.canvasSinkOptions)
 	}
@@ -33,7 +33,8 @@ export class Filmstrip {
 				videoTrack, {
 					frequency: options.frequency ?? 1,
 					canvasSinkOptions: options.canvasSinkOptions ?? {width: 80, height: 50, fit: "fill"},
-					onChange: options.onChange
+					onChange: options.onChange,
+					onPlaceholders: options.onPlaceholders
 			})
 		else throw new Error("Source has no video track")
 	}
@@ -157,7 +158,7 @@ export class Filmstrip {
 type TimeRange = [number, number]
 
 interface FilmstripOptions {
-	frequency?: number
+	frequency: number
 	canvasSinkOptions?: CanvasSinkOptions
 	onPlaceholders?: (timestamps: number[]) => void
 	onChange: (tiles: {

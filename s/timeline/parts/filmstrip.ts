@@ -75,6 +75,8 @@ export class Filmstrip {
 				neededTimestamps.add(+timestamp.toFixed(3))
 		}
 
+		this.options.onPlaceholders?.([...neededTimestamps])
+
 		const missingTimestamps = [...neededTimestamps]
 			.filter(t => !this.#cache.has(t))
 
@@ -157,6 +159,7 @@ type TimeRange = [number, number]
 interface FilmstripOptions {
 	frequency?: number
 	canvasSinkOptions?: CanvasSinkOptions
+	onPlaceholders?: (timestamps: number[]) => void
 	onChange: (tiles: {
 		time: number
 		canvas: WrappedCanvas

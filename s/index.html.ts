@@ -29,6 +29,7 @@ export default ssg.page(import.meta.url, async orb => ({
 	body: html`
 		<section>
 			<h1>Omnitool <small>v${orb.packageVersion()}</small></h1>
+			<button class=export>export</button>
 			<button class=fetch>fetch</button>
 			<input type="file" class="file-input">
 			<div class=results></div>

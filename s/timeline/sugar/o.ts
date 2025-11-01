@@ -114,13 +114,17 @@ export class O {
 		return item
 	}
 
-	text = (content: string): Item.Text => {
+	text = (content: string, styles?: TextStyleOptions): Item.Text => {
 		const item = {
 			id: this.#getId(),
 			content,
 			kind: Kind.Text,
 			duration: 2000
 		} as Item.Text
+
+		if(styles)
+			item.styleId = this.textStyle(styles).id
+
 		this.register(item)
 		return item
 	}

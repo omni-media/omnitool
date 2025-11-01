@@ -30,6 +30,7 @@ export namespace Item {
     id: Id
     kind: Kind.Spatial
     transform: Transform
+    enabled: boolean
   }
 
 	export type Gap = {

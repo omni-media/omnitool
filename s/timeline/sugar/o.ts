@@ -45,7 +45,8 @@ export class O {
   	const item: Item.Spatial = {
   		id: this.#getId(),
   		kind: Kind.Spatial,
-  		transform
+  		transform,
+  		enabled: true
   	}
 		this.register(item)
   	return item

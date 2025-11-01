@@ -33,9 +33,11 @@ export const getWorldMat6 = (
 	let world = parent ?? I6
 	if (item.spatialId) {
 		const spatial = requireItem(items, item.spatialId) as Item.Spatial
-		// reason we put transfrom to matrix is because its easier to calculate
-		const local = transformToMat6(spatial.transform)
-		world = mul6(local, world)
+		if(spatial.enabled) {
+			// reason we put transfrom to matrix is because its easier to calculate
+			const local = transformToMat6(spatial.transform)
+			world = mul6(local, world)
+		}
 	}
 	return world
 }

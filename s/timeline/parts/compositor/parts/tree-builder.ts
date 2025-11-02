@@ -66,6 +66,7 @@ export abstract class TreeBuilder<T> {
 							if (t < 0 || t >= root.duration)
 								return []
 							else return [{
+								id: root.id,
 								kind: "text",
 								content: root.content,
 								style: styleItem?.style,
@@ -183,6 +184,7 @@ export abstract class TreeBuilder<T> {
 						const to = await incomingNode.visuals.sampleAt(localTime) as ImageLayer[]
 						if(!from[0]?.frame || !to[0]?.frame) return []
 						return [{
+							id: transitionItem.id,
 							kind: "transition",
 							name: "circle",
 							progress,

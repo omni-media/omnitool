@@ -1,10 +1,8 @@
 import {Comrade} from "@e280/comrade"
-import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter, Matrix} from "pixi.js"
+import {Sprite, Text, Texture, DOMAdapter, WebWorkerAdapter} from "pixi.js"
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
-import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
-import {makeTransition} from "../../features/transition/transition.js"
-import {Composition, DecoderSource, DriverSchematic, Layer} from "./schematic.js"
+import {DecoderSource, DriverSchematic} from "./schematic.js"
 
 DOMAdapter.set(WebWorkerAdapter)
 
@@ -111,136 +109,7 @@ export const setupDriverWork = (
 			await Promise.all(promises)
 			await output.finalize()
 		},
-
-		async composite(composition) {
-			const {stage, renderer} = await renderPIXI(1920, 1080)
-			stage.removeChildren()
-
-			const {dispose} = await renderLayer(composition, stage)
-			renderer.render(stage)
-
-			// make sure browser support webgl/webgpu otherwise it might take much longer to construct frame
-			// if its very slow on eg edge try chrome
-			const frame = new VideoFrame(renderer.canvas, {
-				timestamp: 0,
-				duration: 0,
-			})
-
-			renderer.clear()
-			dispose()
-
-			shell.transfer = [frame]
-			return frame
-		}
 	}))
 )
 
-// TODO suspicious global, probably bad
-let pixi: {
-	renderer: Renderer
-	stage: Container
-} | null = null
-
-async function renderPIXI(width: number, height: number) {
-	if (pixi)
-		return pixi
-
-	const renderer = await autoDetectRenderer({
-		width,
-		height,
-		preference: "webgl", // webgl and webgl2 causes memory leaks on chrome
-		background: "black",
-		preferWebGLVersion: 2
-	})
-
-	const stage = new Container()
-	pixi = {renderer, stage}
-
-	return pixi
-}
-
-const transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
-
 type RenderableObject = Sprite | Text | Texture
-
-async function renderLayer(
-	layer: Layer | Composition,
-	parent: Container,
-) {
-	if (Array.isArray(layer)) {
-		layer.reverse()
-		const disposers: (() => void)[] = []
-		for (const child of layer) {
-			const result = await renderLayer(child, parent)
-			disposers.push(result.dispose)
-		}
-		return {dispose: () => disposers.forEach(d => d())}
-	}
-
-	switch (layer.kind) {
-		case 'text':
-			return renderTextLayer(layer, parent)
-		case 'image':
-			return renderImageLayer(layer, parent)
-		case 'transition':
-			return renderTransitionLayer(layer, parent)
-		case 'gap': {
-			pixi?.renderer.clear()
-			return {dispose: () => {}}
-		}
-		default:
-			console.warn('Unknown layer kind', (layer as any).kind)
-			return {dispose: () => {}}
-	}
-}
-
-function renderTextLayer(
-	layer: Extract<Layer, {kind: 'text'}>,
-	parent: Container,
-) {
-	const text = new Text({
-		text: layer.content,
-		style: layer.style
-	})
-	applyTransform(text, layer.matrix)
-	parent.addChild(text)
-	return {dispose: () => text.destroy(true)}
-}
-
-function renderImageLayer(
-	layer: Extract<Layer, {kind: 'image'}>,
-	parent: Container,
-) {
-	const texture = Texture.from(layer.frame)
-	const sprite = new Sprite(texture)
-	applyTransform(sprite, layer.matrix)
-	parent.addChild(sprite)
-	return {dispose: () => {
-		sprite.destroy(true)
-		texture.destroy(true)
-		layer.frame.close()
-	}}
-}
-
-function renderTransitionLayer(
-	{from, to, progress, name}: Extract<Layer, {kind: 'transition'}>,
-	parent: Container,
-) {
-	const transition = transitions.get(name) ??
-		(transitions.set(name, makeTransition({
-			name: "circle",
-			renderer: pixi!.renderer
-		})),
-	  transitions.get(name)!
-	)
-	const texture = transition.render({from, to, progress, width: from.displayWidth, height: from.displayHeight})
-	const sprite = new Sprite(texture)
-	parent.addChild(sprite)
-	return {dispose: () => sprite.destroy(false)}
-}
-
-function applyTransform(target: Sprite | Text, worldMatrix?: Mat6) {
-  if (!worldMatrix) return
-	const mx = mat6ToMatrix(worldMatrix)
-  target.setFromMatrix(mx)
-}

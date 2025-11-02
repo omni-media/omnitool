@@ -57,7 +57,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						const frame = new VideoFrame(video)
-						return frame ? [{kind: "image", frame, matrix}] : []
+						return frame ? [{kind: "image", frame, matrix, id: item.id}] : []
 					}
 				}
 			}

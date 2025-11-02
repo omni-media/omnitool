@@ -4,6 +4,7 @@ import {AsSchematic} from "@e280/comrade"
 import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
 import {Mat6} from "../../timeline/utils/matrix.js"
+import {Id} from "../../timeline/index.js"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -26,8 +27,6 @@ export type DriverSchematic = AsSchematic<{
 		}): Promise<void>
 
 		encode(input: EncoderInput & {bridge: WritableStream<StreamTargetChunk>}): Promise<void>
-
-		composite(input: Composition): Promise<VideoFrame>
 	}
 
 	// happens on the main thread
@@ -73,6 +72,7 @@ export interface MuxOpts {
 export type Composition = Layer | (Layer | Composition)[]
 
 export type TextLayer = {
+	id: Id
 	kind: 'text'
 	content: string
 	style?: TextStyleOptions
@@ -80,12 +80,14 @@ export type TextLayer = {
 }
 
 export type ImageLayer = {
+	id: Id
 	kind: 'image'
 	frame: VideoFrame
 	matrix?: Mat6
 }
 
 export type TransitionLayer = {
+	id: Id
   kind: 'transition'
   name: string
   progress: number
@@ -94,10 +96,12 @@ export type TransitionLayer = {
 }
 
 export type GapLayer = {
+	id: Id
 	kind: 'gap'
 }
 
 export type Audio = {
+	id: Id
 	kind: "audio"
 	data: AudioData
 }

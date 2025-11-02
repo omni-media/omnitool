@@ -27,19 +27,13 @@ export class VideoPlayer {
 		this.#controller.setFPS(30)
 	}
 
-	get context() {
-		return this.canvas.getContext("2d")!
-	}
-
 	static async create(driver: Driver, timeline: TimelineFile) {
 		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
 		const items = new Map(timeline.items.map(i => [i.id, i]))
 		const sampler = makeHtmlSampler(() => "/assets/temp/gl.mp4")
 		const root = await buildHTMLNodeTree(rootItem, items, sampler)
-		const canvas = document.createElement("canvas")
-		canvas.width = 1920
-		canvas.height = 1080
-		return new this(driver, canvas, root, sampler)
+		const view = driver.compositor.pixi.renderer.canvas
+		return new this(driver, view, root, sampler)
 	}
 
 	async #tick(ms: number) {
@@ -48,7 +42,6 @@ export class VideoPlayer {
 		this.root.audio?.onTimeUpdate(tt)
 		const layers = await this.root.visuals?.sampleAt(tt) ?? []
 		const frame = await this.driver.composite(layers)
-		this.context.drawImage(frame, 0, 0)
 		frame.close()
 		if (ms >= duration) this.pause()
 	}
@@ -73,7 +66,6 @@ export class VideoPlayer {
 		this.root.audio?.onTimeUpdate(ms)
 		const layers = await this.root.visuals?.sampleAt(ms) ?? []
 		const frame = await this.driver.composite(layers)
-		this.context.drawImage(frame, 0, 0)
 		frame.close()
 	}
 

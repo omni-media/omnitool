@@ -31,7 +31,7 @@ export function makeWebCodecsSampler(
 				visuals: {
 					sampleAt: async (ms: number) => {
 						const frame = await cursor.atOrNear(baseUs + toUs(ms))
-						return frame ? [{kind: "image", frame, matrix}] : []
+						return frame ? [{kind: "image", frame, matrix, id: item.id}] : []
 					}
 				}
 			}

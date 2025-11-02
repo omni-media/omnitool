@@ -2,6 +2,7 @@ import {Comrade, tune, Thread} from "@e280/comrade"
 import {ALL_FORMATS, Input, type StreamTargetChunk} from "mediabunny"
 
 import {Machina} from "./parts/machina.js"
+import {Compositor} from "./parts/compositor.js"
 import {setupDriverHost} from "./fns/host.js"
 import {loadDecoderSource} from "./utils/load-decoder-source.js"
 import {DecoderInput, DriverSchematic, Composition, EncoderInput, DecoderSource} from "./fns/schematic.js"
@@ -18,12 +19,14 @@ export class Driver {
 			workerUrl: options?.workerUrl ?? "/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js",
 			setupHost: setupDriverHost(machina),
 		})
-		return new this(machina, thread)
+		const compositor = await Compositor.setup()
+		return new this(machina, thread, compositor)
 	}
 
 	constructor(
 		public machina: Machina,
-		public thread: Thread<DriverSchematic>
+		public thread: Thread<DriverSchematic>,
+		public compositor: Compositor
 	) {}
 
 	async hello() {
@@ -99,26 +102,8 @@ export class Driver {
 	async composite(
 		composition: Composition,
 	) {
-		const transfer = this.#collectTransferablesFromComposition(composition)
-		return await this.thread.work.composite[tune]({transfer})(composition)
+		return await this.compositor.composite(composition)
 	}
 
-	#collectTransferablesFromComposition(composition: Composition) {
-		const transferables: Transferable[] = []
-
-		const visit = (node: Composition) => {
-			if (Array.isArray(node)) {
-				for (const child of node)
-					visit(child)
-			}
-			else if (node && typeof node === 'object' && 'kind' in node) {
-				if (node.kind === 'image' && node.frame instanceof VideoFrame)
-					transferables.push(node.frame)
-			}
-		}
-
-		visit(composition)
-		return transferables
-	}
 }
 

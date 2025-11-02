@@ -5,7 +5,7 @@ import {Media} from "../parts/media.js"
 import {Driver} from "../../driver/driver.js"
 import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
-import {Export} from "../parts/compositor/export.js"
+import {Export} from "../parts/renderers/export.js"
 import {ResourcePool} from "../parts/resource-pool.js"
 import {RenderConfig} from "../../driver/fns/schematic.js"
 

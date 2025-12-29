@@ -1,10 +1,11 @@
 
 import {Driver} from "../driver/driver.js"
+import {exportTest} from "./routines/export-test.js"
+import {playbackTest} from "./routines/playback-test.js"
 import {waveformTest} from "./routines/waveform-test.js"
+import {TimelineSchemaTest } from "./routines/timeline-setup.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
-import {transcriberTest} from "./routines/transcriber-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
-import {Datafile, Omni, VideoPlayer} from "../timeline/index.js"
 
 const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
 const results = document.querySelector(".results")!
@@ -12,37 +13,13 @@ const results = document.querySelector(".results")!
 const fetchButton = document.querySelector(".fetch")
 const importButton = document.querySelector(".import") as HTMLButtonElement
 
-const playButton = document.querySelector(".play") as HTMLButtonElement
-const stopButton = document.querySelector(".stop") as HTMLButtonElement
-const seekButton = document.querySelector(".seek") as HTMLButtonElement
-
 fetchButton?.addEventListener("click", startDemoFetch)
 importButton?.addEventListener("click", startDemoImport)
 
-const omni = new Omni(driver)
-const file = await fetch("/assets/temp/gl.mp4")
-const buffer = await file.arrayBuffer()
-const uint = new Uint8Array(buffer)
+const {timeline, omni} = await TimelineSchemaTest(driver)
 
-const {videoA} = await omni.load({videoA: Datafile.make(uint)})
-const timeline =	omni.timeline(o =>
-	o.sequence(
-	o.stack(
-		o.video(videoA, {duration: 5000}),
-		o.audio(videoA, {duration: 8000})
-	),
-	o.video(videoA, {duration: 7000})
-))
-
-const player = await VideoPlayer.create(driver, timeline)
-document.body.appendChild(player.canvas)
-
-playButton.addEventListener("click", () => player.play())
-stopButton.addEventListener("click", () => player.pause())
-seekButton.addEventListener("change", async (e: Event) => {
-	const target = e.target as HTMLInputElement
-	await player.seek(+target.value)
-})
+playbackTest(driver, timeline)
+exportTest(omni, timeline)
 
 waveformTest(driver)
 // const transcriber = await transcriberTest(driver)

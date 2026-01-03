@@ -18,9 +18,9 @@ class HTMLNodeBuilder extends TreeBuilder<AudioPlaybackComponent> {
 	composeAudio_Sequence(children: Node<AudioPlaybackComponent>[]) {
 		return {
 			onTimeUpdate: (time: number) => {
-				let localTime = time
+				let localTime = Math.round(time)
 				for (const child of children) {
-					if (localTime < child.duration) {
+					if (localTime <= child.duration) {
 						if (child.audio) child.audio.onTimeUpdate(localTime)
 						break
 					}

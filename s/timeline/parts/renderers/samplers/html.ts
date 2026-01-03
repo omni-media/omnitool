@@ -45,11 +45,16 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 				// if paused seek otherwise play
 				visuals: {
 					sampleAt: async (ms) => {
-						if (ms < 0 || ms >= item.duration)
+						const mediaTime = item.start + ms
+						const endTime = item.start + item.duration
+
+						if (mediaTime < item.start || mediaTime >= endTime) {
+							video.pause()
 							return []
+						}
 
 						if(video.paused && paused) {
-							await seek(video, ms / 1000)
+							await seek(video, mediaTime / 1000)
 						}
 
 						if(video.paused && !paused) {
@@ -68,13 +73,22 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 				duration: item.duration,
 				audio: {
 					onTimeUpdate: async (ms) => {
-						const localTime = item.start + ms
-						if(audio.paused && paused) {
-							await seek(audio, localTime / 1000)
+						const mediaTime = item.start + ms
+						const endTime = item.start + item.duration
+
+						if (mediaTime < item.start || mediaTime >= endTime) {
+							audio.pause()
+							return []
 						}
+
+						if(audio.paused && paused) {
+							await seek(audio, mediaTime / 1000)
+						}
+
 						if(audio.paused && !paused) {
 							await audio.play()
 						}
+
 						return []
 					}
 				}

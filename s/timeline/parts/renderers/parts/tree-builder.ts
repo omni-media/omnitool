@@ -111,9 +111,9 @@ export abstract class TreeBuilder<T> {
 	#composeVisuals_Sequence(children: Node<T>[]): VisualComponent {
 		return {
 			sampleAt: async (time) => {
-				let localTime = time
+				let localTime = Math.round(time)
 				for (const child of children) {
-					if (localTime < child.duration) return child.visuals ? child.visuals.sampleAt(localTime) : []
+					if (localTime <= child.duration) return child.visuals ? child.visuals.sampleAt(localTime) : []
 					localTime -= child.duration
 				}
 				return []

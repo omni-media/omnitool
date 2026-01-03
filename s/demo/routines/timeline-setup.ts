@@ -10,7 +10,7 @@ export async function TimelineSchemaTest(driver: Driver) {
 
 	const {videoA} = await omni.load({videoA: Datafile.make(uint)})
 	const timeline = omni.timeline(o => {
-	const text = o.text("content")
+	const text = o.text("content", {duration: 1000})
 	const style = o.textStyle({fill: "green", fontSize: 100})
 	o.set<Item.Text>(text.id, {styleId: style.id})
 

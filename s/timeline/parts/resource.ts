@@ -4,6 +4,7 @@ export namespace Resource {
 		kind: "media"
 		filename: string
 		bytes: Uint8Array
+		url: string
 	}
 
 	export type Any = Media

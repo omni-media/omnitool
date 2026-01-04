@@ -2,13 +2,9 @@
 import {Driver} from "../../driver/driver.js"
 import {Datafile, Item, Omni} from "../../timeline/index.js"
 
-export async function TimelineSchemaTest(driver: Driver) {
+export async function TimelineSchemaTest(driver: Driver, file: File) {
 	const omni = new Omni(driver)
-	const file = await fetch("/assets/temp/gl.mp4")
-	const buffer = await file.arrayBuffer()
-	const uint = new Uint8Array(buffer)
-
-	const {videoA} = await omni.load({videoA: Datafile.make(uint)})
+	const {videoA} = await omni.load({videoA: Datafile.make(file)})
 	const timeline = omni.timeline(o => {
 	const text = o.text("content", {duration: 1000})
 	const style = o.textStyle({fill: "green", fontSize: 100})

@@ -11,15 +11,10 @@ const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.b
 const results = document.querySelector(".results")!
 
 const fetchButton = document.querySelector(".fetch")
-const importButton = document.querySelector(".import") as HTMLButtonElement
+const fileInput = document.querySelector(".file-input") as HTMLInputElement
 
 fetchButton?.addEventListener("click", startDemoFetch)
-importButton?.addEventListener("click", startDemoImport)
-
-const {timeline, omni} = await TimelineSchemaTest(driver)
-
-playbackTest(driver, timeline)
-exportTest(omni, timeline)
+fileInput?.addEventListener("input", startDemoImport)
 
 waveformTest(driver)
 // const transcriber = await transcriberTest(driver)
@@ -32,14 +27,22 @@ waveformTest(driver)
 }
 
 // transcoding tests
-async function startDemoImport()
+async function startDemoImport(e: Event)
 {
-	const [fileHandle] = await window.showOpenFilePicker()
-	const file = await fileHandle.getFile()
-	const transcode = setupTranscodeTest(driver, file)
-	await filmstripTest(file)
-	run(transcode, fileHandle.name)
-	// await transcriber.transcribe(file)
+	const file = fileInput.files?.[0]
+	if(file) {
+		const transcode = setupTranscodeTest(driver, file)
+		await filmstripTest(file)
+		run(transcode, file.name)
+		// await transcriber.transcribe(file)
+
+		const {timeline, omni} = await TimelineSchemaTest(driver, file)
+
+		playbackTest(driver, timeline, omni)
+		exportTest(omni, timeline)
+	}
+	// const [fileHandle] = await window.showOpenFilePicker()
+	// const file = await fileHandle.getFile()
 }
 
 async function startDemoFetch()

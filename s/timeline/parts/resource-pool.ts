@@ -12,16 +12,20 @@ export class ResourcePool {
 	async store(datafile: Datafile) {
 		const media = await Media.analyze(datafile)
 		const {hash} = media.datafile.checksum
-		const {filename, bytes} = media.datafile
+		const {filename, bytes, url} = media.datafile
 
 		if (this.#map.has(hash)) {
 			const alreadyExists = this.#map.require(hash)
 			alreadyExists.filename = filename
 		}
 		else
-			this.#map.set(hash, {kind: "media", filename, bytes})
+			this.#map.set(hash, {kind: "media", filename, bytes, url})
 
 		return media
+	}
+
+	require(hash: string) {
+		return this.#map.require(hash)
 	}
 }
 

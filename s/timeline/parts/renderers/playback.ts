@@ -22,15 +22,14 @@ export class VideoPlayer {
 		public canvas: HTMLCanvasElement,
 		private root: Node<AudioPlaybackComponent>,
 		private sampler: HTMLSampler,
-		private resolveMedia: ResolveMedia = _hash => "/assets/temp/gl.mp4"
 	) {
 		this.#controller.setFPS(30)
 	}
 
-	static async create(driver: Driver, timeline: TimelineFile) {
+	static async create(driver: Driver, timeline: TimelineFile, resolveMedia: ResolveMedia) {
 		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
 		const items = new Map(timeline.items.map(i => [i.id, i]))
-		const sampler = makeHtmlSampler(() => "/assets/temp/gl.mp4")
+		const sampler = makeHtmlSampler(resolveMedia)
 		const root = await buildHTMLNodeTree(rootItem, items, sampler)
 		const view = driver.compositor.pixi.renderer.canvas
 		return new this(driver, view, root, sampler)

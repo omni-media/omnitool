@@ -14,11 +14,20 @@ export class Media {
 
 	static async analyze(datafile: Datafile) {
 		const media = new this(datafile)
-		media.duration = 10
-		const {video, audio} = await this.#has("/assets/temp/gl.mp4")
+		const duration = await this.duration(datafile.url) * 1000
+		media.duration = duration
+		const {video, audio} = await this.#has(datafile.url)
 		media.hasAudio = audio
 		media.hasVideo = video
 		return media
+	}
+
+	static async duration(source: DecoderSource) {
+		const input = new Input({
+			formats: ALL_FORMATS,
+			source: await loadDecoderSource(source)
+		})
+		return input.computeDuration()
 	}
 
 	static async #has(source: DecoderSource) {

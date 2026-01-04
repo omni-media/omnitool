@@ -9,7 +9,7 @@ export class Datafile {
 		public checksum: Checksum,
 	) {}
 
-	static async make(file: File, name?: string) {
+	static async make(file: Blob, name?: string) {
 		const buffer = await file.arrayBuffer()
 		const bytes = new Uint8Array(buffer)
 		const checksum = await Checksum.make(bytes)

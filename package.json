@@ -25,10 +25,10 @@
 	"devDependencies": {
 		"@e280/science": "^0.1.4",
 		"@e280/scute": "^0.1.2",
-		"@types/node": "^24.2.0",
+		"@types/node": "^25.0.3",
 		"http-server": "^14.1.1",
 		"npm-run-all": "^4.1.5",
-		"typescript": "^5.9.2"
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"@e280/comrade": "^0.1.0",
@@ -36,16 +36,15 @@
 		"@e280/sly": "^0.2.5",
 		"@e280/strata": "^0.2.5",
 		"@e280/stz": "^0.2.15",
-		"@huggingface/transformers": "^3.7.1",
+		"@huggingface/transformers": "^3.8.1",
 		"comrade": "^0.0.3",
 		"gl-transitions": "^1.43.0",
-		"gsap": "^3.13.0",
-		"lit": "^3.3.1",
-		"mediabunny": "^1.14.3",
-		"mp4-muxer": "^5.2.1",
-		"pixi.js": "^8.10.1",
-		"wavesurfer.js": "^7.10.0",
-		"web-demuxer": "^2.3.8"
+		"gsap": "^3.14.2",
+		"lit": "^3.3.2",
+		"mediabunny": "^1.27.3",
+		"mp4-muxer": "^5.2.2",
+		"pixi.js": "^8.14.3",
+		"wavesurfer.js": "^7.12.1"
 	},
 	"homepage": "https://github.com/omni-media/omnitool#readme",
 	"repository": {

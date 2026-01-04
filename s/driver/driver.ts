@@ -40,7 +40,8 @@ export class Driver {
 		})
 
 		const audioTrack = await input.getPrimaryAudioTrack()
-		return await audioTrack?.computeDuration()
+		if (!audioTrack) throw new Error("primary audio track not found")
+		return await audioTrack.computeDuration()
 	}
 
 	async getVideoDuration(source: DecoderSource) {

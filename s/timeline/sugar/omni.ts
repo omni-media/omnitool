@@ -38,7 +38,7 @@ export class Omni {
 		return o.state.project
 	}
 
-	render = async (timeline: TimelineFile, config: RenderConfig) => {
+	render = async (timeline: TimelineFile) => {
 		await this.#export.render(timeline)
 	}
 }

@@ -1,12 +1,12 @@
 
-import {MapG} from "@e280/stz"
+import {GMap} from "@e280/stz"
 import {Hash} from "./basics.js"
 import {Media} from "./media.js"
 import {Resource} from "./resource.js"
 import {Datafile} from "../utils/datafile.js"
 
 export class ResourcePool {
-	#map = new MapG<Hash, Resource.Any>
+	#map = new GMap<Hash, Resource.Any>
 
 	/** store a media file (avoids duplicates via hash) */
 	async store(datafile: Datafile) {

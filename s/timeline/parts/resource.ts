@@ -4,6 +4,7 @@ export namespace Resource {
 		kind: "media"
 		filename: string
 		bytes: Uint8Array
+		blob: Blob
 		url: string
 	}
 

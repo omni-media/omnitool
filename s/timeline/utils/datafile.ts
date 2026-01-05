@@ -5,6 +5,7 @@ export class Datafile {
 	constructor(
 		public url: string,
 		public bytes: Uint8Array,
+		public blob: Blob,
 		public filename: string,
 		public checksum: Checksum,
 	) {}
@@ -15,7 +16,7 @@ export class Datafile {
 		const checksum = await Checksum.make(bytes)
 		const filename = name ?? checksum.nickname
 		const url = URL.createObjectURL(file)
-		return new this(url, bytes, filename, checksum)
+		return new this(url, bytes, file, filename, checksum)
 	}
 
 	static async load(path: string) {

@@ -1,13 +1,12 @@
 
-import {Driver} from "../../driver/driver.js"
-import {O, Omni, TimelineFile, VideoPlayer} from "../../timeline/index.js"
+import {O, Omni, TimelineFile} from "../../timeline/index.js"
 
-export async function playbackTest(driver: Driver, timeline: TimelineFile, omni: Omni) {
+export async function playbackTest(timeline: TimelineFile, omni: Omni) {
 	const playButton = document.querySelector(".play") as HTMLButtonElement
 	const stopButton = document.querySelector(".stop") as HTMLButtonElement
 	const seekButton = document.querySelector(".seek") as HTMLButtonElement
 	const o = new O({project: timeline})
-	const player = await VideoPlayer.create(driver, timeline, (hash) => omni.resources.require(hash).url)
+	const player = await omni.playback(timeline)
 	document.body.appendChild(player.canvas)
 
 	playButton.addEventListener("click", () => player.play())

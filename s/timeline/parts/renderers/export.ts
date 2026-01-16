@@ -9,8 +9,7 @@ export class Export {
 	#sampler
 	constructor(
 		private driver: Driver,
-		private framerate = 30,
-		private resolveMedia: (hash: string) => DecoderSource = _hash => "/assets/temp/gl.mp4"
+		private resolveMedia: (hash: string) => DecoderSource
 	) {
 		this.#sampler = makeWebCodecsSampler(this.driver, this.resolveMedia)
 	}
@@ -21,7 +20,7 @@ export class Export {
 		return await buildWebCodecsNodeTree(rootItem, items, this.#sampler)
 	}
 
-	async render(timeline: TimelineFile) {
+	async render(timeline: TimelineFile, framerate: number) {
 		const root = await this.#build(timeline)
 
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()
@@ -50,10 +49,10 @@ export class Export {
 
 		const videoPromise = (async () => {
 			let i = 0
-			const dt = 1 / this.framerate
+			const dt = 1 / framerate
 
 			await fixedStep(
-				{fps: this.framerate, duration: root.duration ?? 0},
+				{fps: framerate, duration: root.duration ?? 0},
 				async t => {
 					const layers = await root.visuals?.sampleAt(t) ?? []
 					const composed = await this.driver.composite(layers)

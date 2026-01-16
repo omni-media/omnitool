@@ -7,14 +7,17 @@ import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
 import {Export} from "../parts/renderers/export.js"
 import {ResourcePool} from "../parts/resource-pool.js"
-import {RenderConfig} from "../../driver/fns/schematic.js"
+import {VideoPlayer} from "../parts/renderers/playback.js"
 
 export class Omni {
 	resources = new ResourcePool()
 	#export: Export
 
 	constructor(private driver: Driver) {
-		this.#export = new Export(driver)
+		this.#export = new Export(
+			driver,
+			(hash) => this.resources.require(hash).url
+		)
 	}
 
 	load = async<S extends Record<string, Promise<Datafile>>>(spec: S) => {
@@ -38,8 +41,16 @@ export class Omni {
 		return o.state.project
 	}
 
-	render = async (timeline: TimelineFile) => {
-		await this.#export.render(timeline)
+	playback = async (timeline: TimelineFile) => {
+		return await VideoPlayer.create(
+			this.driver,
+			timeline,
+			(hash) => this.resources.require(hash).url
+		)
+	}
+
+	render = async (timeline: TimelineFile, framerate: number = 30) => {
+		await this.#export.render(timeline, framerate)
 	}
 }
 

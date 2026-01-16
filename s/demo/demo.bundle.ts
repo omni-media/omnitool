@@ -38,7 +38,7 @@ async function startDemoImport(e: Event)
 
 		const {timeline, omni} = await TimelineSchemaTest(driver, file)
 
-		playbackTest(driver, timeline, omni)
+		playbackTest(timeline, omni)
 		exportTest(omni, timeline)
 	}
 	// const [fileHandle] = await window.showOpenFilePicker()

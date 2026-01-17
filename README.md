@@ -132,7 +132,7 @@ Timeline items:
 - 8 `TextStyle`
 
 ## 🗺️ Roadmap
-- Planned CLI commands (not available in this repo yet):
+- CLI commands:
 
 ```bash
 # build a reusable template from a timeline

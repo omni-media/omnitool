@@ -4,17 +4,74 @@ import {O, Omni, TimelineFile} from "../../timeline/index.js"
 export async function playbackTest(timeline: TimelineFile, omni: Omni) {
 	const playButton = document.querySelector(".play") as HTMLButtonElement
 	const stopButton = document.querySelector(".stop") as HTMLButtonElement
-	const seekButton = document.querySelector(".seek") as HTMLButtonElement
+	const scrub = document.querySelector(".scrub") as HTMLInputElement
+	const playhead = document.querySelector(".playhead") as HTMLDivElement
+	const timecode = document.querySelector(".timecode") as HTMLDivElement
 	const o = new O({project: timeline})
 	const player = await omni.playback(timeline)
 	document.body.appendChild(player.canvas)
 
 	playButton.addEventListener("click", () => player.play())
 	stopButton.addEventListener("click", () => player.pause())
-	seekButton.addEventListener("change", async (e: Event) => {
-		const target = e.target as HTMLInputElement
-		await player.seek(+target.value)
+	scrub.max = String(Math.ceil(player.getDuration()))
+
+	let isScrubbing = false
+	let pendingSeek: number | null = null
+	let seekInFlight = false
+
+	const queueSeek = async (timeMs: number) => {
+		pendingSeek = timeMs
+		if (seekInFlight)
+			return
+		seekInFlight = true
+		while (pendingSeek) {
+			const next = pendingSeek
+			pendingSeek = null
+			await player.seek(next)
+		}
+		seekInFlight = false
+	}
+
+	const updateTimecode = (currentMs: number, durationMs: number) => {
+		timecode.textContent = `${formatTime(currentMs)} / ${formatTime(durationMs)}`
+	}
+
+	scrub.addEventListener("input", async () => {
+		isScrubbing = true
+		const next = Math.max(0, Math.min(+scrub.value, player.getDuration()))
+		updateTimecode(next, player.getDuration())
+		await queueSeek(next)
 	})
+
+	scrub.addEventListener("change", async () => {
+		isScrubbing = false
+		const next = Math.max(0, Math.min(+scrub.value, player.getDuration()))
+		await queueSeek(next)
+	})
+
+	const setScrubState = (timeMs: number, durationMs: number) => {
+		const clamped = Math.max(0, Math.min(timeMs, durationMs))
+		if (!isScrubbing) scrub.value = String(Math.round(clamped))
+		const progress = durationMs ? (clamped / durationMs) * 100 : 0
+		playhead.style.left = `${progress}%`
+		updateTimecode(clamped, durationMs)
+	}
+
+	const tick = () => {
+		setScrubState(player.currentTime(), player.getDuration())
+		requestAnimationFrame(tick)
+	}
+	requestAnimationFrame(tick)
 
 	player.update(o.state.project)
 }
+
+function formatTime(ms: number) {
+	const clamped = Math.max(0, ms)
+	const totalSeconds = Math.floor(clamped / 1000)
+	const minutes = Math.floor(totalSeconds / 60)
+	const seconds = totalSeconds % 60
+	const millis = Math.floor(clamped % 1000)
+	return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`
+}
+

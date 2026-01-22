@@ -49,9 +49,17 @@ export default ssg.page(import.meta.url, async orb => ({
 				<input class="width" id="width" name="width" type="range" min="100" max="1000000" value="1000" />
 			</div>
 			<div class=player>
-				<input class="seek" type="number" min="0">
-				<button class=play>play</button>
-				<button class=stop>stop</button>
+				<div class="timeline">
+					<div class="track">
+						<div class="playhead"></div>
+					</div>
+					<input class="scrub" type="range" min="0" max="0" step="1" value="0">
+				</div>
+				<div class="timecode">0:00.000 / 0:00.000</div>
+				<div class="controls">
+					<button class=play>play</button>
+					<button class=stop>stop</button>
+				</div>
 			</div>
 		</section>
 	`,

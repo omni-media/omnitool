@@ -75,6 +75,10 @@ export class VideoPlayer {
 		this.#controller.setFPS(fps(value))
 	}
 
+	getDuration() {
+		return this.root.duration
+	}
+
 	/**
 	 call this whenever your timeline state changes
 	*/

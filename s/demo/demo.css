@@ -1,5 +1,5 @@
 
-@layer vars, basics, page;
+@layer vars, basics, page, demo;
 
 @layer vars {
 	:root {
@@ -46,6 +46,9 @@
 		}
 	}
 
+}
+
+@layer demo {
 	canvas {
 		width: 500px;
 		height: 300px;
@@ -54,6 +57,54 @@
 	#filmstrip {
 		display: flex;
 		overflow-x: scroll;
+	}
+
+	.player {
+		margin-top: 2em;
+		display: grid;
+		gap: 0.8em;
+		max-width: 520px;
+	}
+
+	.player .timeline {
+		display: grid;
+		gap: 0.6em;
+	}
+
+	.player .track {
+		position: relative;
+		height: 10px;
+		border-radius: 999px;
+		background:
+			linear-gradient(90deg, #1e1e1e, #1a1a1a),
+			repeating-linear-gradient(90deg, #ffffff14 0 6px, transparent 6px 12px);
+		border: 1px solid #ffffff22;
+		overflow: hidden;
+	}
+
+	.player .playhead {
+		position: absolute;
+		left: 0%;
+		top: -6px;
+		width: 2px;
+		height: 22px;
+		background: #3cff9c;
+		box-shadow: 0 0 12px #3cff9c99;
+	}
+
+	.player .scrub {
+		width: 100%;
+	}
+
+	.player .timecode {
+		font-size: 1.2em;
+		letter-spacing: 0.06em;
+		color: #c7ffe3;
+	}
+
+	.player .controls {
+		display: flex;
+		gap: 0.8em;
 	}
 }
 

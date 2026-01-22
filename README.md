@@ -152,5 +152,6 @@ omnitool ai "make a 15s promo for tea"
 ```
 
 - smooth seeking
+- keyframes
 - server-side, not just browsers
 

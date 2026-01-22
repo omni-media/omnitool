@@ -7,7 +7,7 @@ export async function filmstripTest(file: File) {
 	const frequencySlider = document.querySelector(".frequency")! as HTMLInputElement
 	const frequencyView = document.querySelector(".frequency-view")!
 	const container = document.querySelector("#filmstrip")!
-	const FPS_10 = 1000/10 / 1000
+	const FPS_10 = 1 / 10
 	let rangeSize = 0.5
 	const filmstrip = await Filmstrip.init(
 			file,
@@ -27,20 +27,22 @@ export async function filmstripTest(file: File) {
 					fit: "fill"
 				}
 			}
-		)
+	)
 	rangeSizeSlider.addEventListener("change", () => {
 		rangeSize = +rangeSizeSlider.value
-		const [start, end] = [+rangeSlider.value, +rangeSlider.value+rangeSize]
+		const start = +rangeSlider.value
+		const end = start + rangeSize
 		filmstrip.range = [start, end]
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
 	rangeSlider.addEventListener("change", () => {
-		const [start, end] = [+rangeSlider.value, +rangeSlider.value+rangeSize]
+		const start = +rangeSlider.value
+		const end = start + rangeSize
 		filmstrip.range = [start, end]
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
 	})
 	frequencySlider.addEventListener("change", () => {
-		filmstrip.frequency = 1000/+frequencySlider.value/1000
+		filmstrip.frequency = 1 / +frequencySlider.value
 		frequencyView.textContent = `frame every ${filmstrip.frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
 	})
 	filmstrip.range = [10, 10.5]

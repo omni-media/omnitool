@@ -173,7 +173,7 @@ export class Filmstrip {
 	}
 }
 
-type TimeRange = [number, number]
+export type TimeRange = [start: number, end: number]
 
 interface FilmstripOptions {
 	frequency: number

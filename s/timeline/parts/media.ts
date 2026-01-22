@@ -14,7 +14,7 @@ export class Media {
 
 	static async analyze(datafile: Datafile) {
 		const media = new this(datafile)
-		const duration = await this.duration(datafile.url) * 1000
+		const duration = (await this.duration(datafile.url)) * 1000
 		media.duration = duration
 		const {video, audio} = await this.#has(datafile.url)
 		media.hasAudio = audio
@@ -27,7 +27,7 @@ export class Media {
 			formats: ALL_FORMATS,
 			source: await loadDecoderSource(source)
 		})
-		return input.computeDuration()
+		return await input.computeDuration()
 	}
 
 	static async #has(source: DecoderSource) {

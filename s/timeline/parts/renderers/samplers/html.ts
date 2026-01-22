@@ -1,7 +1,8 @@
 import {Item} from "../../item.js"
 import {Ms, ms} from "../../../../units/ms.js"
+import {MediaSeeker} from "../parts/seeker.js"
 import {HTMLSampler} from "../parts/tree-builder.js"
-import {Seconds, seconds} from "../../../../units/seconds.js"
+import {seconds} from "../../../../units/seconds.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL(src) : String(src))
@@ -9,6 +10,7 @@ const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL
 export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): HTMLSampler {
 	const videoElements = new Map<number, HTMLVideoElement>()
 	const audioElements = new Map<number, HTMLAudioElement>()
+	const seeker = new MediaSeeker(resolveMedia)
 
 	function getOrCreateVideoElement(clip: Item.Video) {
 		let video = videoElements.get(clip.id)
@@ -49,6 +51,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 					sampleAt: async (time: Ms) => {
 						const mediaTime = ms(item.start + time)
 						const endTime = ms(item.start + item.duration)
+						const seekTime = seconds(mediaTime / 1000)
 
 						if (mediaTime < item.start || mediaTime >= endTime) {
 							video.pause()
@@ -56,7 +59,8 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						if(video.paused && paused) {
-							await seek(video, seconds(mediaTime / 1000))
+							const frame = await seeker.seekVideo(item, video, seekTime)
+							return frame ? [{kind: "image", frame, matrix, id: item.id}] : []
 						}
 
 						if(video.paused && !paused) {
@@ -84,7 +88,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						if(audio.paused && paused) {
-							await seek(audio, seconds(mediaTime / 1000))
+							seeker.seekAudio(audio, seconds(mediaTime / 1000))
 						}
 
 						if(audio.paused && !paused) {
@@ -104,8 +108,9 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
         	URL.revokeObjectURL(element.src)
         element.remove()
       }
-      videoElements.clear()
-      audioElements.clear()
+			seeker.dispose()
+			videoElements.clear()
+			audioElements.clear()
 		},
 		async setPaused(p) {
 			paused = p
@@ -117,15 +122,3 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 	}
 }
 
-function seek(media: HTMLVideoElement | HTMLAudioElement, time: Seconds): Promise<void> {
-  return new Promise((resolve) => {
-    const onSeeked = () => {
-      media.removeEventListener("seeked", onSeeked)
-      resolve()
-    }
-    media.addEventListener("seeked", onSeeked)
-    if(media.fastSeek) {
-    	media.fastSeek(time)
-    } else media.currentTime = time
-  })
-}

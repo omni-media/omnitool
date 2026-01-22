@@ -1,4 +1,5 @@
 import {Item, Kind} from "../../item.js"
+import {Ms, ms} from "../../../../units/ms.js"
 import {ImageLayer, Layer} from "../../../../driver/fns/schematic.js"
 import {I6, Mat6, mul6, transformToMat6} from "../../../utils/matrix.js"
 
@@ -6,14 +7,14 @@ export type AudioStreamComponent = {
 	getStream: () => AsyncGenerator<AudioData>
 }
 export type AudioPlaybackComponent = {
-	onTimeUpdate: (time: number) => void
+	onTimeUpdate: (time: Ms) => void
 }
 export type VisualComponent = {
-	sampleAt: (time: number) => Promise<Layer[]>
+	sampleAt: (time: Ms) => Promise<Layer[]>
 }
 
 export type Node<T> = {
-	duration: number
+	duration: Ms
 	visuals?: VisualComponent
 	audio?: T
 }
@@ -60,10 +61,11 @@ export abstract class TreeBuilder<T> {
 					? this.items.get(root.styleId) as Item.TextStyle
 					: undefined
 				return {
-					duration: root.duration,
+					duration: ms(root.duration),
 					visuals: {
 						sampleAt: async (t) => {
-							if (t < 0 || t >= root.duration)
+							const duration = ms(root.duration)
+							if (t < 0 || t >= duration)
 								return []
 							else return [{
 								id: root.id,
@@ -77,7 +79,7 @@ export abstract class TreeBuilder<T> {
 				}
 			}
 			case Kind.Gap: return {
-				duration: root.duration,
+				duration: ms(root.duration),
 				visuals: {
 					sampleAt: async () => []
 				}
@@ -91,7 +93,7 @@ export abstract class TreeBuilder<T> {
 				const matrix = getWorldMat6(this.items, root, parentMatrix)
 				return this.#composeSequence(root, matrix)
 			}
-			default: return {duration: 0}
+			default: return {duration: ms(0)}
 		}
 	}
 
@@ -111,10 +113,10 @@ export abstract class TreeBuilder<T> {
 	#composeVisuals_Sequence(children: Node<T>[]): VisualComponent {
 		return {
 			sampleAt: async (time) => {
-				let localTime = Math.round(time)
+				let localTime = ms(Math.round(time))
 				for (const child of children) {
 					if (localTime <= child.duration) return child.visuals ? child.visuals.sampleAt(localTime) : []
-					localTime -= child.duration
+					localTime = ms(localTime - child.duration)
 				}
 				return []
 			}
@@ -122,7 +124,7 @@ export abstract class TreeBuilder<T> {
 	}
 
 	#composeStack(children: Node<T>[]): Node<T> {
-		const duration = Math.max(0, ...children.map(k => (Number.isFinite(k.duration) ? k.duration : 0)))
+		const duration = ms(Math.max(0, ...children.map(k => (Number.isFinite(k.duration) ? k.duration : 0))))
 		return {
 			duration,
 			visuals: this.#composeVisuals_Stack(children),
@@ -133,7 +135,7 @@ export abstract class TreeBuilder<T> {
 	async #composeSequence(sequence: Item.Sequence, parentMatrix?: Mat6): Promise<Node<T>> {
 		const childItems = sequence.childrenIds.map(id => requireItem(this.items, id))
 		const children = await this.#processChildren(childItems, parentMatrix)
-		const duration = children.reduce((a, k) => a + k.duration, 0)
+		const duration = ms(children.reduce((a, k) => a + k.duration, 0))
 		return {
 			duration,
 			visuals: this.#composeVisuals_Sequence(children),
@@ -168,9 +170,9 @@ export abstract class TreeBuilder<T> {
 	}
 
 	async #createTransitionNode(transitionItem: Item.Transition, outgoingNode: Node<T>, incomingNode: Node<T>): Promise<Node<T>> {
-		const overlap = Math.max(0, Math.min(transitionItem.duration, outgoingNode.duration, incomingNode.duration))
-		const start = Math.max(0, outgoingNode.duration - overlap)
-		const combinedDuration = outgoingNode.duration + incomingNode.duration - overlap
+		const overlap = ms(Math.max(0, Math.min(transitionItem.duration, outgoingNode.duration, incomingNode.duration)))
+		const start = ms(Math.max(0, outgoingNode.duration - overlap))
+		const combinedDuration = ms(outgoingNode.duration + incomingNode.duration - overlap)
 		return {
 			duration: combinedDuration,
 			visuals: {
@@ -178,7 +180,7 @@ export abstract class TreeBuilder<T> {
 					if (!outgoingNode.visuals || !incomingNode.visuals) return []
 					if (t < start) return outgoingNode.visuals.sampleAt(t)
 					if (t < outgoingNode.duration) {
-						const localTime = t - start
+						const localTime = ms(t - start)
 						const progress = overlap > 0 ? (localTime / overlap) : 1
 						const from = await outgoingNode.visuals.sampleAt(t) as ImageLayer[]
 						const to = await incomingNode.visuals.sampleAt(localTime) as ImageLayer[]
@@ -192,7 +194,7 @@ export abstract class TreeBuilder<T> {
 							to: to[0].frame,
 						}]
 					}
-					return incomingNode.visuals.sampleAt(t - outgoingNode.duration + overlap)
+					return incomingNode.visuals.sampleAt(ms(t - outgoingNode.duration + overlap))
 				}
 			},
 			audio: this.composeAudio_Sequence([outgoingNode, incomingNode])

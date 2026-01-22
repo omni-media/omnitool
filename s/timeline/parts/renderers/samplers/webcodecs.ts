@@ -1,10 +1,12 @@
 import {Item} from "../../item.js"
+import {Ms, ms} from "../../../../units/ms.js"
+import {seconds} from "../../../../units/seconds.js"
 import {Driver} from "../../../../driver/driver.js"
 import {WebcodecsSampler} from "../parts/tree-builder.js"
 import {VideoCursor} from "../../../utils/video-cursor.js"
 import {AudioStream} from "../../../utils/audio-stream.js"
 
-const toUs = (ms: number) => Math.round(ms * 1_000)
+const toUs = (ms: Ms) => Math.round(ms * 1_000)
 
 export function makeWebCodecsSampler(
 	driver: Driver,
@@ -25,12 +27,12 @@ export function makeWebCodecsSampler(
 	return {
 		async video(item, matrix) {
 			const cursor = await getCursorForVideo(item)
-			const baseUs = toUs(item.start)
+			const baseUs = toUs(ms(item.start))
 			return {
-				duration: item.duration,
+				duration: ms(item.duration),
 				visuals: {
-					sampleAt: async (ms: number) => {
-						const frame = await cursor.atOrNear(baseUs + toUs(ms))
+					sampleAt: async (time) => {
+						const frame = await cursor.atOrNear(baseUs + toUs(time))
 						return frame ? [{kind: "image", frame, matrix, id: item.id}] : []
 					}
 				}
@@ -38,12 +40,12 @@ export function makeWebCodecsSampler(
 		},
 		async audio(item) {
 			return {
-				duration: item.duration,
+				duration: ms(item.duration),
 				audio: {
 					getStream: async function*() {
 						const source = resolveMedia(item.mediaHash)
-						const start = item.start / 1000
-						const end = (item.start + item.duration) / 1000
+						const start = seconds(item.start / 1000)
+						const end = seconds((item.start + item.duration) / 1000)
 						const audio = driver.decodeAudio({source, start, end})
 						const audioStream = new AudioStream(audio.getReader())
 						yield* audioStream.stream()

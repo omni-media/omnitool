@@ -1,5 +1,7 @@
 import {Item} from "../../item.js"
+import {Ms, ms} from "../../../../units/ms.js"
 import {HTMLSampler} from "../parts/tree-builder.js"
+import {Seconds, seconds} from "../../../../units/seconds.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL(src) : String(src))
@@ -41,12 +43,12 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 		async video(item, matrix) {
 			const video = getOrCreateVideoElement(item)
 			return {
-				duration: item.duration,
+				duration: ms(item.duration),
 				// if paused seek otherwise play
 				visuals: {
-					sampleAt: async (ms) => {
-						const mediaTime = item.start + ms
-						const endTime = item.start + item.duration
+					sampleAt: async (time: Ms) => {
+						const mediaTime = ms(item.start + time)
+						const endTime = ms(item.start + item.duration)
 
 						if (mediaTime < item.start || mediaTime >= endTime) {
 							video.pause()
@@ -54,7 +56,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						if(video.paused && paused) {
-							await seek(video, mediaTime / 1000)
+							await seek(video, seconds(mediaTime / 1000))
 						}
 
 						if(video.paused && !paused) {
@@ -70,11 +72,11 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 		async audio(item) {
 			const audio = getOrCreateAudioElement(item)
 			return {
-				duration: item.duration,
+				duration: ms(item.duration),
 				audio: {
-					onTimeUpdate: async (ms) => {
-						const mediaTime = item.start + ms
-						const endTime = item.start + item.duration
+					onTimeUpdate: async (time: Ms) => {
+						const mediaTime = ms(item.start + time)
+						const endTime = ms(item.start + item.duration)
 
 						if (mediaTime < item.start || mediaTime >= endTime) {
 							audio.pause()
@@ -82,7 +84,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 						}
 
 						if(audio.paused && paused) {
-							await seek(audio, mediaTime / 1000)
+							await seek(audio, seconds(mediaTime / 1000))
 						}
 
 						if(audio.paused && !paused) {
@@ -115,7 +117,7 @@ export function makeHtmlSampler(resolveMedia: (hash: string) => DecoderSource): 
 	}
 }
 
-function seek(media: HTMLVideoElement | HTMLAudioElement, time: number): Promise<void> {
+function seek(media: HTMLVideoElement | HTMLAudioElement, time: Seconds): Promise<void> {
   return new Promise((resolve) => {
     const onSeeked = () => {
       media.removeEventListener("seeked", onSeeked)

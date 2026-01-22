@@ -1,6 +1,8 @@
 import {signal} from "@e280/strata"
 
+import {fps} from "../../../units/fps.js"
 import {TimelineFile} from "../basics.js"
+import {Ms, ms} from "../../../units/ms.js"
 import {realtime} from "./parts/schedulers.js"
 import {Driver} from "../../../driver/driver.js"
 import {makeHtmlSampler} from "./samplers/html.js"
@@ -23,7 +25,7 @@ export class VideoPlayer {
 		private root: Node<AudioPlaybackComponent>,
 		private sampler: HTMLSampler,
 	) {
-		this.#controller.setFPS(30)
+		this.#controller.setFPS(fps(30))
 	}
 
 	static async create(driver: Driver, timeline: TimelineFile, resolveMedia: ResolveMedia) {
@@ -35,7 +37,7 @@ export class VideoPlayer {
 		return new this(driver, view, root, sampler)
 	}
 
-	async #tick(ms: number) {
+	async #tick(ms: Ms) {
 		const duration = this.root.duration
 		const tt = ms > duration ? duration : ms
 		this.root.audio?.onTimeUpdate(tt)
@@ -59,17 +61,18 @@ export class VideoPlayer {
 		}
 	}
 
-	async seek(ms: number) {
+	async seek(msValue: number) {
 		this.pause()
-		this.#controller.seek(ms)
-		this.root.audio?.onTimeUpdate(ms)
-		const layers = await this.root.visuals?.sampleAt(ms) ?? []
+		const time = ms(msValue)
+		this.#controller.seek(time)
+		this.root.audio?.onTimeUpdate(time)
+		const layers = await this.root.visuals?.sampleAt(time) ?? []
 		const frame = await this.driver.composite(layers)
 		frame.close()
 	}
 
 	setFPS(value: number) {
-		this.#controller.setFPS(value)
+		this.#controller.setFPS(fps(value))
 	}
 
 	/**

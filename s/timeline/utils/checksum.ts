@@ -1,11 +1,13 @@
 
 import {Hex, Thumbprint} from "@e280/stz"
 
+import {Hash} from "../parts/basics.js"
+
 export class Checksum {
 	constructor(
 		public data: Uint8Array,
 		public bytes: Uint8Array,
-		public hash: string,
+		public hash: Hash,
 		public nickname: string,
 	) {}
 

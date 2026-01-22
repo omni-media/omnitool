@@ -24,8 +24,7 @@ export class ResourcePool {
 		return media
 	}
 
-	require(hash: string) {
+	require(hash: Hash) {
 		return this.#map.require(hash)
 	}
 }
-

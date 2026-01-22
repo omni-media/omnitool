@@ -1,4 +1,5 @@
 import {Item} from "../../item.js"
+import {Ms, ms} from "../../../../units/ms.js"
 import {AudioPlaybackComponent, HTMLSampler, Node, TreeBuilder} from "./tree-builder.js"
 
 class HTMLNodeBuilder extends TreeBuilder<AudioPlaybackComponent> {
@@ -8,7 +9,7 @@ class HTMLNodeBuilder extends TreeBuilder<AudioPlaybackComponent> {
 
 	composeAudio_Stack(children: Node<AudioPlaybackComponent>[]) {
 		return {
-			onTimeUpdate: (time: number) => {
+			onTimeUpdate: (time: Ms) => {
 				for (const child of children) {
 					if (child.audio) child.audio.onTimeUpdate(time)
 				}
@@ -17,14 +18,14 @@ class HTMLNodeBuilder extends TreeBuilder<AudioPlaybackComponent> {
 	}
 	composeAudio_Sequence(children: Node<AudioPlaybackComponent>[]) {
 		return {
-			onTimeUpdate: (time: number) => {
-				let localTime = Math.round(time)
+			onTimeUpdate: (time: Ms) => {
+				let localTime = ms(Math.round(time))
 				for (const child of children) {
 					if (localTime <= child.duration) {
 						if (child.audio) child.audio.onTimeUpdate(localTime)
 						break
 					}
-					localTime -= child.duration
+					localTime = ms(localTime - child.duration)
 				}
 			}
 		}

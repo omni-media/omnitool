@@ -1,4 +1,5 @@
 import {TimelineFile} from "../basics.js"
+import {fps} from "../../../units/fps.js"
 import {fixedStep} from "./parts/schedulers.js"
 import {Driver} from "../../../driver/driver.js"
 import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
@@ -22,6 +23,7 @@ export class Export {
 
 	async render(timeline: TimelineFile, framerate: number) {
 		const root = await this.#build(timeline)
+		const frameRate = fps(framerate)
 
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()
 		const audioStream = new TransformStream<AudioData, AudioData>()
@@ -49,10 +51,10 @@ export class Export {
 
 		const videoPromise = (async () => {
 			let i = 0
-			const dt = 1 / framerate
+			const dt = 1 / frameRate
 
 			await fixedStep(
-				{fps: framerate, duration: root.duration ?? 0},
+				{fps: frameRate, duration: root.duration},
 				async t => {
 					const layers = await root.visuals?.sampleAt(t) ?? []
 					const composed = await this.driver.composite(layers)

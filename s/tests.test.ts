@@ -1,8 +1,10 @@
 
-import {Science} from "@e280/science"
+import { Science } from "@e280/science"
 import driver from "./driver/driver.test.js"
+import treeTest from "./timeline/parts/renderers/tree.test.js"
 
 await Science.run({
+	treeTest,
 	driver,
 })
 

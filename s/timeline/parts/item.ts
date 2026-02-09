@@ -1,7 +1,9 @@
+
 import {TextStyleOptions} from "pixi.js"
 
 import {Id, Hash} from "./basics.js"
 import {Transform} from "../types.js"
+import {Ms} from "../../units/ms.js"
 
 export enum Kind {
 	Sequence,
@@ -20,18 +22,18 @@ export enum Effect {
 }
 
 export namespace Item {
-  export type TextStyle = {
-    id: Id
-    kind: Kind.TextStyle
+	export type TextStyle = {
+		id: Id
+		kind: Kind.TextStyle
 		style: TextStyleOptions
-  }
+	}
 
-  export type Spatial = {
-    id: Id
-    kind: Kind.Spatial
-    transform: Transform
-    enabled: boolean
-  }
+	export type Spatial = {
+		id: Id
+		kind: Kind.Spatial
+		transform: Transform
+		enabled: boolean
+	}
 
 	export type Gap = {
 		id: Id
@@ -99,3 +101,10 @@ export namespace Item {
 	)
 }
 
+export type ContainerItem = Item.Sequence | Item.Stack
+export type NonContainerItem = Exclude<Item.Any, ContainerItem>
+
+export type PlayableItem = Item.Any & {
+	start: Ms
+	duration: Ms
+}

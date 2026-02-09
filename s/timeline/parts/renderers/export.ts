@@ -1,29 +1,30 @@
+
+import {Item} from "../item.js"
+import {I6} from "../../utils/matrix.js"
 import {TimelineFile} from "../basics.js"
 import {fps} from "../../../units/fps.js"
+import {VideoCursor} from "./parts/cursor.js"
 import {fixedStep} from "./parts/schedulers.js"
 import {Driver} from "../../../driver/driver.js"
-import {makeWebCodecsSampler} from "./samplers/webcodecs.js"
+import {seconds} from "../../../units/seconds.js"
+import {AudioStream} from "./parts/streams/audio.js"
+import {computeTimelineDuration, walk} from "./parts/handy.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
-import {buildWebCodecsNodeTree} from "./parts/webcodecs-tree.js"
 
 export class Export {
-	#sampler
+	#cursor
+
 	constructor(
 		private driver: Driver,
 		private resolveMedia: (hash: string) => DecoderSource
 	) {
-		this.#sampler = makeWebCodecsSampler(this.driver, this.resolveMedia)
-	}
-
-	async #build(timeline: TimelineFile) {
-		const rootItem = new Map(timeline.items.map(i => [i.id, i])).get(timeline.rootId)!
-		const items = new Map(timeline.items.map(i => [i.id, i]))
-		return await buildWebCodecsNodeTree(rootItem, items, this.#sampler)
+		this.#cursor = new VideoCursor(driver, resolveMedia)
 	}
 
 	async render(timeline: TimelineFile, framerate: number) {
-		const root = await this.#build(timeline)
 		const frameRate = fps(framerate)
+		const cursor = this.#cursor.cursor(timeline)
+		const items = new Map(timeline.items.map(item => [item.id, item]))
 
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()
 		const audioStream = new TransformStream<AudioData, AudioData>()
@@ -41,22 +42,41 @@ export class Export {
 		const audioWriter = audioStream.writable.getWriter()
 
 		const audioPromise = (async () => {
-			if (root.audio) {
-				for await (const chunk of root.audio.getStream()) {
+			const audioItems: Item.Audio[] = []
+			walk(
+				timeline.rootId,
+				items,
+				I6,
+				{
+					audio: item => audioItems.push(item)
+				}
+			)
+
+			for (const item of audioItems) {
+				const source = this.resolveMedia(item.mediaHash)
+				const start = seconds(item.start / 1000)
+				const end = seconds((item.start + item.duration) / 1000)
+
+				const audio = this.driver.decodeAudio({ source, start, end })
+				const stream = new AudioStream(audio.getReader())
+
+				for await (const chunk of stream.stream()) {
 					await audioWriter.write(chunk)
 				}
 			}
+
 			await audioWriter.close()
 		})()
 
 		const videoPromise = (async () => {
 			let i = 0
 			const dt = 1 / frameRate
+			const duration = computeTimelineDuration(timeline.rootId, timeline)
 
 			await fixedStep(
-				{fps: frameRate, duration: root.duration},
-				async t => {
-					const layers = await root.visuals?.sampleAt(t) ?? []
+				{fps: frameRate, duration},
+				async timecode => {
+					const layers = await cursor.next(timecode)
 					const composed = await this.driver.composite(layers)
 					const vf = new VideoFrame(composed, {
 						timestamp: Math.round(i * dt * 1_000_000),
@@ -73,6 +93,6 @@ export class Export {
 		await audioPromise
 		await videoPromise
 		await encodePromise
-		// this.#sampler.dispose()
 	}
 }
+

@@ -1,8 +1,10 @@
-import {debounce} from "@e280/stz"
+
 import {ALL_FORMATS, Input, VideoSampleSink} from "mediabunny"
 
 import {Item} from "../../item.js"
-import {Seconds} from "../../../../units/seconds.js"
+import {Sampler} from "./sampler.js"
+import {Ms} from "../../../../units/ms.js"
+import {TimelineFile} from "../../basics.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 
@@ -11,39 +13,40 @@ type VideoSeekerState = {
 	sink: VideoSampleSink | null
 }
 
-export class MediaSeeker {
+export class VideoSeeker {
 	readonly #videoSeekers = new Map<number, VideoSeekerState>()
 
-	constructor(private resolveMedia: (hash: string) => DecoderSource) {}
+	sampler = new Sampler(
+		async (item, time, matrix) => {
+			const sink = await this.#getOrCreateVideoSeeker(item)
 
-	async seekVideo(
-		clip: Item.Video,
-		video: HTMLVideoElement,
-		time: Seconds,
+			if (!sink)
+				return []
+
+			const sample = await sink.getSample(time / 1000)
+
+			if (!sample)
+				return []
+
+			const frame = sample.toVideoFrame()
+			sample.close()
+
+			return frame ? [{ kind: "image", frame, matrix, id: item.id }] : []
+		},
+	)
+
+	constructor(private resolveMedia: (hash: string) => DecoderSource) { }
+
+	async seek(
+		timeline: TimelineFile,
+		time: Ms,
+
 	) {
-		const sink = await this.#getOrCreateVideoSeeker(clip)
-
-		if (!sink)
-			return null
-
-		const sample = await sink.getSample(time)
-
-		if (!sample)
-			return null
-
-		const frame = sample.toVideoFrame()
-		sample.close()
-
-		this.#sync(video, time)
-		return frame
-	}
-
-	seekAudio(media: HTMLAudioElement, time: Seconds) {
-		return media.currentTime = time
+		return this.sampler.sample(timeline, time)
 	}
 
 	dispose() {
-		for (const {input} of this.#videoSeekers.values()) {
+		for (const { input } of this.#videoSeekers.values()) {
 			input.dispose()
 		}
 		this.#videoSeekers.clear()
@@ -62,11 +65,8 @@ export class MediaSeeker {
 		const canDecode = !!track && await track.canDecode()
 		const sink = canDecode && track ? new VideoSampleSink(track) : null
 
-		this.#videoSeekers.set(clip.id, {input, sink})
+		this.#videoSeekers.set(clip.id, { input, sink })
 		return sink
 	}
-
-	#sync = debounce(500, async (video: HTMLVideoElement, time: Seconds) => {
-		video.currentTime = time
-	})
 }
+

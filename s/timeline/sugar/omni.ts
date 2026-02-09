@@ -7,7 +7,7 @@ import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
 import {Export} from "../parts/renderers/export.js"
 import {ResourcePool} from "../parts/resource-pool.js"
-import {VideoPlayer} from "../parts/renderers/playback.js"
+import {VideoPlayer} from "../parts/renderers/player.js"
 
 export class Omni {
 	resources = new ResourcePool()
@@ -22,7 +22,7 @@ export class Omni {
 
 	load = async<S extends Record<string, Promise<Datafile>>>(spec: S) => {
 		return Object.fromEntries(await Promise.all(Object.entries(spec).map(
-			async([key, value]) => [key, await this.resources.store(await value)]
+			async ([key, value]) => [key, await this.resources.store(await value)]
 		))) as {[K in keyof S]: Media}
 	}
 
@@ -42,10 +42,10 @@ export class Omni {
 	}
 
 	playback = async (timeline: TimelineFile) => {
-		return await VideoPlayer.create(
+		return new VideoPlayer(
 			this.driver,
-			timeline,
-			(hash) => this.resources.require(hash).url
+			(hash) => this.resources.require(hash).url,
+			timeline
 		)
 	}
 

@@ -1,13 +1,14 @@
 import {Driver} from "../../driver/driver.js"
 import {Waveform} from "../../timeline/parts/waveform.js"
 
-export async function waveformTest(driver: Driver) {
-	const container = document.querySelector(".waveform-demo") as HTMLElement
-	const widthSlider = document.querySelector(".width") as HTMLInputElement
-	const waveform = await Waveform.init(driver, "/assets/temp/gl.mp4", container)
+export async function waveformTest(driver: Driver, source: File, root: HTMLElement) {
+	const container = root.querySelector(".waveform-canvas") as HTMLElement
+	const widthSlider = root.querySelector(".width") as HTMLInputElement
+	container.replaceChildren()
+	const waveform = await Waveform.init(driver, source, container)
 
-	widthSlider.addEventListener("change", () => {
+	widthSlider.oninput = () => {
 		const width = +widthSlider.value
 		waveform.width = width
-	})
+	}
 }

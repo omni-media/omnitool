@@ -1,15 +1,19 @@
 
 import {O, Omni, TimelineFile} from "../../timeline/index.js"
 
-export async function playbackTest(timeline: TimelineFile, omni: Omni) {
-	const playButton = document.querySelector(".play") as HTMLButtonElement
-	const stopButton = document.querySelector(".stop") as HTMLButtonElement
-	const scrub = document.querySelector(".scrub") as HTMLInputElement
-	const playhead = document.querySelector(".playhead") as HTMLDivElement
-	const timecode = document.querySelector(".timecode") as HTMLDivElement
+export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTMLElement) {
+	const playButton = root.querySelector(".play") as HTMLButtonElement
+	const stopButton = root.querySelector(".stop") as HTMLButtonElement
+	const scrub = root.querySelector(".scrub") as HTMLInputElement
+	const playhead = root.querySelector(".playhead") as HTMLDivElement
+	const timecode = root.querySelector(".timecode") as HTMLDivElement
+	const canvasSlot = root.querySelector(".player-canvas") as HTMLDivElement
 	const o = new O({project: timeline})
 	const player = await omni.playback(timeline)
-	document.body.appendChild(player.canvas)
+	canvasSlot.replaceChildren(player.canvas)
+
+	playButton.disabled = false
+	stopButton.disabled = false
 
 	playButton.addEventListener("click", () => player.play())
 	stopButton.addEventListener("click", () => player.pause())

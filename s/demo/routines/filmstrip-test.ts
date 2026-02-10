@@ -1,14 +1,16 @@
 import {Filmstrip} from "../../timeline/parts/filmstrip.js"
 
-export async function filmstripTest(file: File) {
-	const rangeSlider = document.querySelector(".range") as HTMLInputElement
-	const rangeView = document.querySelector(".range-view")!
-	const rangeSizeSlider = document.querySelector(".range-size")! as HTMLInputElement
-	const frequencySlider = document.querySelector(".frequency")! as HTMLInputElement
-	const frequencyView = document.querySelector(".frequency-view")!
-	const container = document.querySelector("#filmstrip")!
+export async function filmstripTest(file: File, root: HTMLElement) {
+	const rangeSlider = root.querySelector(".range") as HTMLInputElement
+	const rangeView = root.querySelector(".range-view")!
+	const rangeSizeSlider = root.querySelector(".range-size")! as HTMLInputElement
+	const frequencySlider = root.querySelector(".frequency")! as HTMLInputElement
+	const frequencyView = root.querySelector(".frequency-view")!
+	const container = root.querySelector(".filmstrip")!
 	const FPS_10 = 1 / 10
 	let rangeSize = 0.5
+	container.replaceChildren()
+
 	const filmstrip = await Filmstrip.init(
 			file,
 			{
@@ -28,23 +30,23 @@ export async function filmstripTest(file: File) {
 				}
 			}
 	)
-	rangeSizeSlider.addEventListener("change", () => {
+	rangeSizeSlider.oninput = () => {
 		rangeSize = +rangeSizeSlider.value
 		const start = +rangeSlider.value
 		const end = start + rangeSize
 		filmstrip.range = [start, end]
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
-	})
-	rangeSlider.addEventListener("change", () => {
+	}
+	rangeSlider.oninput = () => {
 		const start = +rangeSlider.value
 		const end = start + rangeSize
 		filmstrip.range = [start, end]
 		rangeView.textContent = `visible time range: [${start}, ${end}]`
-	})
-	frequencySlider.addEventListener("change", () => {
+	}
+	frequencySlider.oninput = () => {
 		filmstrip.frequency = 1 / +frequencySlider.value
 		frequencyView.textContent = `frame every ${filmstrip.frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
-	})
+	}
 	filmstrip.range = [10, 10.5]
 }
 

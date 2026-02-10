@@ -1,6 +1,6 @@
 
 import {Driver} from "../driver/driver.js"
-import {exportTest} from "./routines/export-test.js"
+import type {Omni, TimelineFile} from "../timeline/index.js"
 import {playbackTest} from "./routines/playback-test.js"
 import {waveformTest} from "./routines/waveform-test.js"
 import {TimelineSchemaTest } from "./routines/timeline-setup.js"
@@ -8,16 +8,15 @@ import {filmstripTest} from "./routines/filmstrip-test.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
 
 const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
-const results = document.querySelector(".results")!
 
-const fetchButton = document.querySelector(".fetch")
-const fileInput = document.querySelector(".file-input") as HTMLInputElement
+const transcodeCard = document.querySelector("[data-demo='transcode']") as HTMLElement
+const filmstripCard = document.querySelector("[data-demo='filmstrip']") as HTMLElement
+const waveformCard = document.querySelector("[data-demo='waveform']") as HTMLElement
+const playbackCard = document.querySelector("[data-demo='playback']") as HTMLElement
+const exportCard = document.querySelector("[data-demo='export']") as HTMLElement
+const exportButton = exportCard.querySelector("[data-action='export']") as HTMLButtonElement
 
-fetchButton?.addEventListener("click", startDemoFetch)
-fileInput?.addEventListener("input", startDemoImport)
-
-waveformTest(driver)
-// const transcriber = await transcriberTest(driver)
+let exportState: {timeline: TimelineFile; omni: Omni} | null = null
 
 // hello world test
 {
@@ -26,53 +25,103 @@ waveformTest(driver)
 	else console.error("❌ FAIL driver call didn't work")
 }
 
-// transcoding tests
-async function startDemoImport(e: Event)
+const setProgress = (card: HTMLElement, state: "idle" | "running" | "done") => {
+	const progress = card.querySelector(".progress") as HTMLProgressElement
+	const status = card.querySelector(".status") as HTMLSpanElement
+
+	if (state === "running") {
+		progress.removeAttribute("value")
+		status.textContent = "running"
+	} else if (state === "done") {
+		progress.value = 1
+		status.textContent = "done"
+	} else {
+		progress.value = 0
+		status.textContent = "idle"
+	}
+}
+
+const bindDemo = (
+	card: HTMLElement,
+	run: (file: File, card: HTMLElement) => Promise<void>
+) => {
+	const input = card.querySelector("input[type='file']") as HTMLInputElement
+	const button = card.querySelector("[data-action='run']") as HTMLButtonElement
+
+	button.disabled = true
+	input.addEventListener("input", () => {
+		button.disabled = !input.files?.length
+	})
+
+	button.addEventListener("click", async () => {
+		const file = input.files?.[0]
+		if (!file)
+			return
+
+		button.disabled = true
+		setProgress(card, "running")
+		try {
+			await run(file, card)
+			setProgress(card, "done")
+		} finally {
+			button.disabled = false
+		}
+	})
+}
+
+bindDemo(transcodeCard, async (file, card) => {
+	const preview = card.querySelector(".demo-preview") as HTMLDivElement
+	const transcode = setupTranscodeTest(driver, file)
+	preview.replaceChildren(transcode.canvas)
+	await transcode.run()
+})
+
+bindDemo(filmstripCard, async (file, card) => {
+	await filmstripTest(file, card)
+})
+
+bindDemo(waveformCard, async (file, card) => {
+	await waveformTest(driver, file, card)
+})
+
 {
-	const file = fileInput.files?.[0]
-	if(file) {
-		const transcode = setupTranscodeTest(driver, file)
-		await filmstripTest(file)
-		run(transcode, file.name)
-		// await transcriber.transcribe(file)
+	const input = playbackCard.querySelector("input[type='file']") as HTMLInputElement
+	input.addEventListener("input", async () => {
+		const file = input.files?.[0]
+		if (!file)
+			return
 
 		const {timeline, omni} = await TimelineSchemaTest(driver, file)
-
-		playbackTest(timeline, omni)
-		exportTest(omni, timeline)
-	}
-	// const [fileHandle] = await window.showOpenFilePicker()
-	// const file = await fileHandle.getFile()
+		await playbackTest(timeline, omni, playbackCard)
+	})
 }
 
-async function startDemoFetch()
 {
+	const input = exportCard.querySelector("input[type='file']") as HTMLInputElement
+	input.addEventListener("input", async () => {
+		const file = input.files?.[0]
+		if (!file)
+			return
 
-	// which videos to run tests on
-	const videos = [
-		"/assets/temp/gl.mp4",
-	]
+		setProgress(exportCard, "running")
+		const {timeline, omni} = await TimelineSchemaTest(driver, file)
+		exportState = {timeline, omni}
+		exportButton.disabled = false
 
-	// running each test in sequence
-	for (const url of videos) {
-		const transcode = setupTranscodeTest(driver, "/assets/temp/gl.mp4")
-		run(transcode, url)
-	}
+		const preview = exportCard.querySelector(".demo-preview") as HTMLDivElement
+		const player = await omni.playback(timeline)
+		await player.seek(0)
+		preview.replaceChildren(player.canvas)
+		setProgress(exportCard, "done")
+	})
 }
 
-async function run(transcode: ReturnType<typeof setupTranscodeTest>, label: string) {
-	// create result div
-	const div = document.createElement("div")
-	results.append(div)
+exportButton.addEventListener("click", async () => {
+	if (!exportState)
+		return
 
-	// add video label
-	const p = document.createElement("p")
-	p.textContent = label
-	div.append(p)
+	setProgress(exportCard, "running")
+	await exportState.omni.render(exportState.timeline)
+	setProgress(exportCard, "done")
+})
 
-	// add the canvas to dom
-	div.append(transcode.canvas)
-
-	// run the test
-	await transcode.run()
-}

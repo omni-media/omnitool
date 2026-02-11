@@ -2,23 +2,16 @@
 import {Science, test, expect} from "@e280/science"
 
 import {Item, Kind} from "../item.js"
+import {ms} from "../../../units/ms.js"
 import {itemsAt} from "./parts/handy.js"
 import {TimelineFile} from "../basics.js"
-import {Mat6} from "../../utils/matrix.js"
-import {Ms, ms} from "../../../units/ms.js"
 import {Sampler} from "./parts/sampler.js"
-import {Layer} from "../../../driver/fns/schematic.js"
 
 export default Science.suite({
 	"Sampling Logic (Time Mapping)": {
 		"Video: Samples correctly within bounds": test(async () => {
 
-			const sampler = new Sampler(
-				async (item: Item.Any, time: Ms, matrix: Mat6): Promise<Layer[]> => {
-					const image = new ImageBitmap()
-					return [{ kind: 'image', id: 0, frame: new VideoFrame(image) }]
-				}
-			)
+			const sampler = new Sampler(() => "/assets/test.mp4")
 
 			const text: Item.Text = {
 				id: 1,

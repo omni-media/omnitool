@@ -11,7 +11,7 @@ export type RealtimeController = {
 }
 
 export const realtime = (
-	onTick: (tickTime: Ms) => void,
+	onTick: () => void,
 	onUpdate: (currentTime: Ms) => void
 ): RealtimeController => {
 
@@ -37,7 +37,7 @@ export const realtime = (
   	onUpdate(currentTime)
 
     while (accumulator >= frameDuration) {
-      onTick(composeTime)
+      onTick()
       composeTime = ms(composeTime + frameDuration)
       accumulator = ms(accumulator - frameDuration)
     }

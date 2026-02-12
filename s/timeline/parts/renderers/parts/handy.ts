@@ -50,6 +50,26 @@ export function itemsAt(p: Props): At[] {
 	return results
 }
 
+interface FromProps {
+	timeline: TimelineFile
+	from: Ms
+}
+
+export function itemsFrom(p: FromProps): At[] {
+	const results: At[] = []
+	const itemMap = new Map(p.timeline.items.map(item => [item.id, item]))
+
+	walkFrom(p.timeline.rootId, itemMap, p.from, I6, {
+		sequence: () => { },
+		stack: () => { },
+		video: (item, localTime, matrix) => results.push({ item, localTime, matrix }),
+		text: (item, localTime, matrix) => results.push({ item, localTime, matrix }),
+		audio: (item, localTime) => results.push({ item, localTime, matrix: I6 })
+	})
+
+	return results
+}
+
 export function walk(
 	id: Id,
 	items: Map<Id, Item.Any>,
@@ -189,6 +209,85 @@ function walkAt(
 
 		case Kind.Audio:
 			callbacks.audio(item, time)
+			break
+	}
+}
+
+function walkFrom(
+	id: Id,
+	items: Map<Id, Item.Any>,
+	from: Ms,
+	parentMatrix: Mat6,
+	callbacks: WalkAtCallbacks,
+	ancestors: ContainerItem[] = []
+) {
+	const item = items.get(id)
+	if (!item) return
+
+	let currentMatrix = parentMatrix
+
+	if ("spatialId" in item && item.spatialId) {
+		const spatial = items.get(item.spatialId) as Item.Spatial
+		if (spatial.enabled) {
+			const local = transformToMat6(spatial.transform)
+			currentMatrix = mul6(local, currentMatrix)
+		}
+	}
+
+	switch (item.kind) {
+		case Kind.Stack:
+			callbacks.stack(item, from, currentMatrix, ancestors)
+			for (const childId of item.childrenIds) {
+				walkFrom(childId, items, from, currentMatrix, callbacks, [...ancestors, item])
+			}
+			break
+
+		case Kind.Sequence: {
+			callbacks.sequence(item, from, currentMatrix, ancestors)
+
+			let offset = ms(0)
+
+			for (const childId of item.childrenIds) {
+				const child = items.get(childId)
+
+				if (!child)
+					continue
+				if (!isPlayableItem(child)) {
+					continue
+				}
+
+				const end = ms(offset + child.duration)
+				if (from >= end) {
+					offset = end
+					continue
+				}
+
+				const localTime = ms(Math.max(0, from - offset))
+				walkFrom(
+					childId,
+					items,
+					localTime,
+					currentMatrix,
+					callbacks,
+					[...ancestors, item]
+				)
+
+				offset = end
+			}
+
+			break
+		}
+
+		case Kind.Video:
+			callbacks.video(item, from, currentMatrix, ancestors)
+			break
+
+		case Kind.Text:
+			callbacks.text(item, from, currentMatrix, ancestors)
+			break
+
+		case Kind.Audio:
+			callbacks.audio(item, from)
 			break
 	}
 }

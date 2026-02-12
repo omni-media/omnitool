@@ -1,7 +1,7 @@
 
 import {ALL_FORMATS, AudioBufferSink, Input, VideoSampleSink} from "mediabunny"
 
-import {itemsAt} from "./handy.js"
+import {itemsAt, itemsFrom} from "./handy.js"
 import {Item, Kind} from "../../item.js"
 import {TimelineFile} from "../../basics.js"
 import {Mat6} from "../../../utils/matrix.js"
@@ -13,6 +13,22 @@ type SinkState = {
 	input: Input
 	videoSink?: VideoSampleSink | null
 	audioSink?: AudioBufferSink | null
+}
+
+type AudioStreamState = {
+	iter: AsyncGenerator<{
+		buffer: AudioBuffer;
+		timestamp: number
+	}>
+	offsetSec: number
+	current: {
+		buffer: AudioBuffer
+		timestamp: number
+	} | null
+	nextPromise: Promise<IteratorResult<{
+		buffer: AudioBuffer
+		timestamp: number
+	}>> | null
 }
 
 export class Sampler {
@@ -45,19 +61,66 @@ export class Sampler {
 		timeline: TimelineFile,
 		from: Ms
 	): AsyncGenerator<{ buffer: AudioBuffer; timestamp: number }> {
-		// todo - tweak it soit returns every audio item from time {from} to the end of timeline
-		const items = itemsAt({ timeline, timecode: from })
-		for (const { item, localTime } of items) {
+		const timelineFromSec = from / 1000
+		const items = itemsFrom({ timeline, from })
+
+		const streams: AudioStreamState[] = []
+
+		await Promise.all(items.map(async ({ item, localTime }) => {
 			if (item.kind !== Kind.Audio)
-				continue
+				return
 
 			const sink = await this.#getOrCreateSink(item.mediaHash)
-
 			if (!sink?.audioSink)
-				continue
+				return
 
-			for await (const chunk of sink.audioSink.buffers(localTime / 1000)) {
-				yield { buffer: chunk.buffer, timestamp: chunk.timestamp }
+			const localTimeSec = (item.start + localTime) / 1000
+			const offset = timelineFromSec - localTimeSec
+			const iter = sink.audioSink.buffers(localTimeSec)
+			const first = await iter.next()
+
+			if (first.done)
+				return
+
+			streams.push({
+				iter,
+				offsetSec: offset,
+				current: first.value,
+				nextPromise: iter.next()
+			})
+		}))
+
+		while (streams.length > 0) {
+			let bestIndex = 0
+			let bestTime =
+				streams[0].offsetSec +
+				streams[0].current!.timestamp
+
+			for (let i = 1; i < streams.length; i++) {
+				const ts =
+					streams[i].offsetSec +
+					streams[i].current!.timestamp
+
+				if (ts < bestTime) {
+					bestTime = ts
+					bestIndex = i
+				}
+			}
+
+			const stream = streams[bestIndex]
+
+			yield {
+				buffer: stream.current!.buffer,
+				timestamp: stream.offsetSec + stream.current!.timestamp
+			}
+
+			const result = await stream.nextPromise!
+
+			if (result.done) {
+				streams.splice(bestIndex, 1)
+			} else {
+				stream.current = result.value
+				stream.nextPromise = stream.iter.next()
 			}
 		}
 	}

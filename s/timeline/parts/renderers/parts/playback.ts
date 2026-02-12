@@ -25,7 +25,6 @@ export class Playback {
 
 	audioContext = new AudioContext({sampleRate: 48000})
 	audioGain = this.audioContext.createGain()
-	audioTask: Promise<void> | null = null
 	audioNodes = new Set<AudioBufferSourceNode>()
 
 	#audioAbort: AbortController | null = null
@@ -71,7 +70,7 @@ export class Playback {
 		this.audioNodes.clear()
 
 		this.#controller.play()
-		this.audioTask = this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
+		this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
 	}
 
 	pause() {
@@ -110,37 +109,31 @@ export class Playback {
 	async #startAudio(signal: AbortSignal, from: Seconds) {
 		const ctx = this.audioContext
 
-		if (!this.#audioStartSec || signal.aborted)
+		if (!this.#audioStartSec)
 			return
 
-		for await (const {buffer, timestamp} of this.sampler.sampleAudio(this.timeline, ms(from * 1000))) {
+		for await (const {buffer, timestamp} of this.sampler.sampleAudio(
+			this.timeline,
+			ms(from * 1000)
+		)) {
 
-			if (signal.aborted)
+			if (signal.aborted || !this.#controller.isPlaying())
 				return
 
-			if (!this.#controller.isPlaying())
-				return
+			while (timestamp - (ctx.currentTime - this.#audioStartSec + from) > 0.75)
+				await new Promise(r => setTimeout(r, 25))
 
 			const node = ctx.createBufferSource()
 			node.buffer = buffer
 			node.connect(this.audioGain)
-			this.audioNodes.add(node)
 			node.onended = () => this.audioNodes.delete(node)
-			const startTimestamp = this.#audioStartSec + timestamp - from
+			this.audioNodes.add(node)
 
-			if (startTimestamp >= ctx.currentTime) {
-				node.start(startTimestamp)
-			} else {
-				const offset = ctx.currentTime - startTimestamp
-				node.start(ctx.currentTime, offset)
-			}
+			const startAt = this.#audioStartSec + timestamp - from
 
-			while (!signal.aborted && this.#controller.isPlaying()) {
-				const playbackSec = ctx.currentTime - this.#audioStartSec + from
-				const aheadSec = timestamp - playbackSec
-				if (aheadSec < 0.75) break
-				await new Promise(r => setTimeout(r, 25))
-			}
+			startAt >= ctx.currentTime
+				? node.start(startAt)
+				: node.start(ctx.currentTime, ctx.currentTime - startAt)
 
 		}
 	}

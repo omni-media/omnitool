@@ -56,7 +56,7 @@ export class VideoPlayer {
 	}
 
 	currentTime() {
-		return this.playback.currentTime.value
+		return this.playback.currentTime
 	}
 
 	/**

@@ -1,27 +1,21 @@
 
-import {signal} from '@e280/strata'
-
 import {Sampler} from './sampler.js'
 import {realtime} from './schedulers.js'
 import {TimelineFile} from '../../basics.js'
 import {Fps} from '../../../../units/fps.js'
 import {ms, Ms} from '../../../../units/ms.js'
 import {seconds, Seconds} from '../../../../units/seconds.js'
-import {DecoderSource, Layer} from '../../../../driver/fns/schematic.js'
+import {DecoderSource} from '../../../../driver/fns/schematic.js'
 
 export class Playback {
-	private resolveNext: ((layers: Layer[]) => void) | null = null
-	readonly currentTime = signal(ms(0))
 
 	sampler: Sampler
 	#playbackStart = ms(0)
 
 	#audioStartSec: number | null = null
 
-	#controller = realtime(
-		() => this.#tick(this.getPlaybackTime()),
-		(time) => this.currentTime.value = time
-	)
+	#controller = realtime()
+	onTick = this.#controller.onTick
 
 	audioContext = new AudioContext({sampleRate: 48000})
 	audioGain = this.audioContext.createGain()
@@ -38,17 +32,14 @@ export class Playback {
 		this.sampler = new Sampler(this.resolveMedia)
 	}
 
-	async *samples(): AsyncGenerator<Layer[]> {
-		while (this.#controller.isPlaying()) {
-			yield await new Promise<Layer[]>(resolve => {
-				this.resolveNext = resolve
-			})
+	async *samples() {
+		for await (const _ of this.#controller.ticks()) {
+			yield this.sampler.sample(this.timeline, this.currentTime)
 		}
 	}
 
 	async seek(time: Ms) {
 		this.pause()
-		this.#controller.seek(time)
 		this.#playbackStart = time
 
 		return await this.sampler.sample(this.timeline, time)
@@ -58,7 +49,7 @@ export class Playback {
 		this.timeline = timeline
 		await this.audioContext.resume()
 
-		this.#playbackStart = this.currentTime.value
+		this.#playbackStart = this.currentTime
 		this.#audioStartSec = this.audioContext.currentTime
 
 		this.#audioAbort?.abort()
@@ -74,7 +65,7 @@ export class Playback {
 	}
 
 	pause() {
-		this.#playbackStart = this.getPlaybackTime()
+		this.#playbackStart = this.currentTime
 		this.#controller.pause()
 		this.#audioAbort?.abort()
 
@@ -84,22 +75,12 @@ export class Playback {
 		this.audioNodes.clear()
 	}
 
-	getPlaybackTime(): Ms {
+	get currentTime() {
 		if (!this.#controller.isPlaying() || !this.#audioStartSec)
 			return this.#playbackStart
 
 		const elapsedMs = (this.audioContext.currentTime - this.#audioStartSec) * 1000
 		return ms(this.#playbackStart + elapsedMs)
-	}
-
-	async #tick(time: Ms) {
-		if (!this.#controller.isPlaying()) return
-		if (!this.resolveNext) return
-
-		const resolve = this.resolveNext
-		this.resolveNext = null
-
-		resolve(await this.sampler.sample(this.timeline, time))
 	}
 
 	setFps(fps: Fps) {

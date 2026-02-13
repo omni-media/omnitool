@@ -1,80 +1,77 @@
+
+import { Pub, pub } from "@e280/stz"
 import {Fps, fps} from "../../../../units/fps.js"
 import {Ms, ms} from "../../../../units/ms.js"
 
-export type RealtimeController = {
+export type RealtimeGenerator = {
 	play(): void
 	pause(): void
-	seek(t: Ms): void
-	dispose(): void
 	setFPS(v: Fps): void
 	isPlaying(): boolean
+	ticks(): AsyncGenerator<void>
+	onTick: Pub<[]>
 }
 
-export const realtime = (
-	onTick: () => void,
-	onUpdate: (currentTime: Ms) => void
-): RealtimeController => {
+export const realtime = (): RealtimeGenerator => {
 
-  let playing = false
-  let rafId: number | null = null
-  let frameRate = fps(60)
+	let playing = false
+	let frameRate = fps(60)
+	let frameDuration = 1000 / frameRate
 
-  let frameDuration = ms(1000 / frameRate)
-  let composeTime = ms(0)
-  let lastTime = ms(0)
-  let accumulator = ms(0)
-  let currentTime = ms(0)
+	let lastNow = 0
+	let lastComposite = 0
 
-  const tick = (now: number) => {
-    if (!playing) return
+	const onTick = pub()
+	let resolveTick: (() => void) | null = null
 
-    const nowMs = ms(now)
-    const deltaTime = ms(nowMs - lastTime)
-    lastTime = nowMs
+	const loop = (now: number) => {
+		requestAnimationFrame(loop)
 
-    accumulator = ms(accumulator + deltaTime)
-    currentTime = ms(currentTime + deltaTime)
-  	onUpdate(currentTime)
+		if (!playing) return
 
-    while (accumulator >= frameDuration) {
-      onTick()
-      composeTime = ms(composeTime + frameDuration)
-      accumulator = ms(accumulator - frameDuration)
-    }
+		lastNow = now
 
-    rafId = requestAnimationFrame(tick)
-  }
+		while (now - lastComposite >= frameDuration) {
+			lastComposite += frameDuration
 
-  return {
-    play() {
-      if (playing) return
-      playing = true
-      lastTime = ms(performance.now())
-      rafId = requestAnimationFrame(tick)
-    },
-    pause() {
-      if (!playing) return
-      playing = false
-      if (rafId !== null) cancelAnimationFrame(rafId)
-      rafId = null
-    },
-    seek(time) {
-      composeTime = time
-      accumulator = ms(0)
-      currentTime = time
-      onUpdate(time)
-    },
-    dispose() {
-      this.pause()
-    },
-    isPlaying() {
-      return playing
-    },
-    setFPS(v) {
-    	frameRate = v
-    	frameDuration = ms(1000 / frameRate)
-    }
-  }
+			resolveTick?.()
+			resolveTick = null
+			onTick()
+		}
+	}
+
+	async function* ticks(): AsyncGenerator<void> {
+		lastNow = performance.now()
+		lastComposite = lastNow
+		requestAnimationFrame(loop)
+
+		while (true) {
+			await new Promise<void>(r => resolveTick = r)
+			yield
+		}
+
+	}
+
+	return {
+		play() {
+			if (playing) return
+			playing = true
+			lastNow = performance.now()
+			lastComposite = lastNow
+		},
+		pause() {
+			playing = false
+		},
+		setFPS(v: Fps) {
+			frameRate = v
+			frameDuration = 1000 / frameRate
+		},
+		isPlaying() {
+			return playing
+		},
+		ticks,
+		onTick
+	}
 }
 
 export type FixedStepOptions = {
@@ -97,3 +94,4 @@ export const fixedStep = async (
 		await onFrame(t, i)
 	}
 }
+

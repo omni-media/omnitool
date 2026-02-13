@@ -23,6 +23,8 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 	let pendingSeek: number | null = null
 	let seekInFlight = false
 
+	player.playback.onTick.on(() => setScrubState(player.currentTime(), player.getDuration()))
+
 	const queueSeek = async (timeMs: number) => {
 		pendingSeek = timeMs
 		if (seekInFlight)
@@ -60,12 +62,6 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 		playhead.style.left = `${progress}%`
 		updateTimecode(clamped, durationMs)
 	}
-
-	const tick = () => {
-		setScrubState(player.currentTime(), player.getDuration())
-		requestAnimationFrame(tick)
-	}
-	requestAnimationFrame(tick)
 
 	player.update(o.state.project)
 }

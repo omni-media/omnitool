@@ -125,7 +125,7 @@ export class Sampler {
 		}
 	}
 
-	async video(item: Item.Video, time: Ms, matrix: Mat6): Promise<Layer[]> {
+	protected async video(item: Item.Video, time: Ms, matrix: Mat6): Promise<Layer[]> {
 		const sink = await this.#getOrCreateSink(item.mediaHash)
 
 		if (!sink?.videoSink)
@@ -142,7 +142,7 @@ export class Sampler {
 		return frame ? [{ kind: "image", frame, matrix, id: item.id }] : []
 	}
 
-	text(items: Item.Any[], item: Item.Text, time: Ms, matrix: Mat6): Layer[] {
+	protected text(items: Item.Any[], item: Item.Text, time: Ms, matrix: Mat6): Layer[] {
 		const styleItem = item.styleId !== undefined
 			? items.find(({ id }) => id === item.styleId) as Item.TextStyle
 			: undefined

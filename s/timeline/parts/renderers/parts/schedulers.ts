@@ -77,7 +77,6 @@ export const realtime = (): RealtimeGenerator => {
 export type FixedStepOptions = {
 	fps: Fps
 	duration: Ms
-	abort?: AbortSignal
 }
 
 export const fixedStep = async (
@@ -89,7 +88,6 @@ export const fixedStep = async (
 	const total = Math.ceil(durationInSeconds * opts.fps)
 
 	for (let i = 0; i < total; i++) {
-		if (opts.abort?.aborted) break
 		const t = ms(i * dt)
 		await onFrame(t, i)
 	}

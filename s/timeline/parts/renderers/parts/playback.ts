@@ -93,7 +93,7 @@ export class Playback {
 		if (!this.#audioStartSec)
 			return
 
-		for await (const {buffer, timestamp} of this.sampler.sampleAudio(
+		for await (const {sample, timestamp} of this.sampler.sampleAudio(
 			this.timeline,
 			ms(from * 1000)
 		)) {
@@ -105,7 +105,7 @@ export class Playback {
 				await new Promise(r => setTimeout(r, 25))
 
 			const node = ctx.createBufferSource()
-			node.buffer = buffer
+			node.buffer = sample.toAudioBuffer()
 			node.connect(this.audioGain)
 			node.onended = () => this.audioNodes.delete(node)
 			this.audioNodes.add(node)

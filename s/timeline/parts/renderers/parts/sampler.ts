@@ -1,5 +1,5 @@
 
-import {ALL_FORMATS, AudioBufferSink, Input, VideoSampleSink} from "mediabunny"
+import {ALL_FORMATS, AudioSample, AudioSampleSink, Input, VideoSampleSink} from "mediabunny"
 
 import {itemsAt, itemsFrom} from "./handy.js"
 import {Item, Kind} from "../../item.js"
@@ -12,23 +12,14 @@ import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js
 type SinkState = {
 	input: Input
 	videoSink?: VideoSampleSink | null
-	audioSink?: AudioBufferSink | null
+	audioSink?: AudioSampleSink | null
 }
 
 type AudioStreamState = {
-	iter: AsyncGenerator<{
-		buffer: AudioBuffer;
-		timestamp: number
-	}>
+	iter: AsyncGenerator<AudioSample>
 	offsetSec: number
-	current: {
-		buffer: AudioBuffer
-		timestamp: number
-	} | null
-	nextPromise: Promise<IteratorResult<{
-		buffer: AudioBuffer
-		timestamp: number
-	}>> | null
+	current: AudioSample | null
+	nextPromise: Promise<IteratorResult<AudioSample>> | null
 }
 
 export class Sampler {
@@ -60,7 +51,10 @@ export class Sampler {
 	async *sampleAudio(
 		timeline: TimelineFile,
 		from: Ms
-	): AsyncGenerator<{ buffer: AudioBuffer; timestamp: number }> {
+	): AsyncGenerator<{
+		sample: AudioSample
+		timestamp: number
+	}> {
 		const timelineFromSec = from / 1000
 		const items = itemsFrom({ timeline, from })
 
@@ -76,7 +70,7 @@ export class Sampler {
 
 			const localTimeSec = (item.start + localTime) / 1000
 			const offset = timelineFromSec - localTimeSec
-			const iter = sink.audioSink.buffers(localTimeSec)
+			const iter = sink.audioSink.samples(localTimeSec)
 			const first = await iter.next()
 
 			if (first.done)
@@ -110,7 +104,7 @@ export class Sampler {
 			const stream = streams[bestIndex]
 
 			yield {
-				buffer: stream.current!.buffer,
+				sample: stream.current!,
 				timestamp: stream.offsetSec + stream.current!.timestamp
 			}
 
@@ -178,7 +172,7 @@ export class Sampler {
 		const canDecodeVideo = !!videoTrack && await videoTrack.canDecode()
 
 		const videoSink = canDecodeVideo && videoTrack ? new VideoSampleSink(videoTrack) : null
-		const audioSink = canDecodeAudio && audioTrack ? new AudioBufferSink(audioTrack) : null
+		const audioSink = canDecodeAudio && audioTrack ? new AudioSampleSink(audioTrack) : null
 
 		this.#sinks.set(hash, {input, videoSink, audioSink})
 

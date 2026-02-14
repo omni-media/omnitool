@@ -70,6 +70,7 @@ export namespace Item {
 		mediaHash: Hash
 		start: number
 		duration: number
+		gain?: number
 	}
 
 	export type Text = {

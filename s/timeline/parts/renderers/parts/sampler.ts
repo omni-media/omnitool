@@ -18,6 +18,7 @@ type SinkState = {
 type AudioStreamState = {
 	iter: AsyncGenerator<AudioSample>
 	offsetSec: number
+	gain: number
 	current: AudioSample | null
 	nextPromise: Promise<IteratorResult<AudioSample>> | null
 }
@@ -54,6 +55,7 @@ export class Sampler {
 	): AsyncGenerator<{
 		sample: AudioSample
 		timestamp: number
+		gain: number
 	}> {
 		const timelineFromSec = from / 1000
 		const items = itemsFrom({ timeline, from })
@@ -79,6 +81,7 @@ export class Sampler {
 			streams.push({
 				iter,
 				offsetSec: offset,
+				gain: item.gain ?? 1,
 				current: first.value,
 				nextPromise: iter.next()
 			})
@@ -105,7 +108,8 @@ export class Sampler {
 
 			yield {
 				sample: stream.current!,
-				timestamp: stream.offsetSec + stream.current!.timestamp
+				timestamp: stream.offsetSec + stream.current!.timestamp,
+				gain: stream.gain
 			}
 
 			const result = await stream.nextPromise!

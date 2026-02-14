@@ -97,7 +97,8 @@ export class O {
 		media: Media,
 		options?: {
 			start?: number,
-			duration?: number
+			duration?: number,
+			gain?: number
 		}): Item.Audio => {
 
 		if(!media.hasAudio)
@@ -108,7 +109,8 @@ export class O {
 			id: this.#getId(),
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
-			duration: options?.duration ?? media.duration
+			duration: options?.duration ?? media.duration,
+			gain: options?.gain ?? 1
 		}
 		this.register(item)
 		return item

@@ -8,6 +8,7 @@ import {VideoCursor} from './parts/cursor.js'
 import {fixedStep} from './parts/schedulers.js'
 import {Driver} from '../../../driver/driver.js'
 import {resampleToPlanar} from './parts/resamplers.js'
+import {applyGainToPlanar} from './parts/audio-gain.js'
 import {computeTimelineDuration } from './parts/handy.js'
 import {DecoderSource} from '../../../driver/fns/schematic.js'
 
@@ -44,8 +45,9 @@ export class Export {
 		const audioPromise = (async () => {
 			const mixer = new AudioMix()
 			const inputs = (async function* () {
-				for await (const {sample, timestamp} of sampler.sampleAudio(timeline, ms(0))) {
+				for await (const {sample, timestamp, gain} of sampler.sampleAudio(timeline, ms(0))) {
 					const {data} = resampleToPlanar(sample, 48000)
+					applyGainToPlanar(data, gain)
 					yield {
 						planes: data,
 						sampleRate: 48000,

@@ -1,6 +1,6 @@
 
 import {ms} from '../../../units/ms.js'
-import {Sampler} from './parts/sampler.js'
+import {LayerSampler} from './parts/sampler.js'
 import {TimelineFile} from '../basics.js'
 import {fps} from '../../../units/fps.js'
 import {AudioMix} from './parts/audio-mix.js'
@@ -25,7 +25,7 @@ export class Export {
 	async render(timeline: TimelineFile, framerate: number) {
 		const frameRate = fps(framerate)
 		const cursor = this.#cursor.cursor(timeline)
-		const sampler = new Sampler(this.resolveMedia)
+		const sampler = new LayerSampler(this.resolveMedia)
 
 		const videoStream = new TransformStream<VideoFrame, VideoFrame>()
 		const audioStream = new TransformStream<AudioData, AudioData>()
@@ -99,4 +99,3 @@ export class Export {
 		await encodePromise
 	}
 }
-

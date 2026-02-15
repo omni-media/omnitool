@@ -1,6 +1,6 @@
 
 import {Item} from "../../item.js"
-import {Sampler} from "./sampler.js"
+import {LayerSampler} from "./sampler.js"
 import {TimelineFile} from "../../basics.js"
 import {ms, Ms} from "../../../../units/ms.js"
 import {Driver} from "../../../../driver/driver.js"
@@ -13,7 +13,7 @@ import {DecoderSource, Layer} from "../../../../driver/fns/schematic.js"
  * should be done from mediabunny custom decoder/encoder
  */
 
-class CursorSampler extends Sampler {
+class CursorLayerSampler extends LayerSampler {
 	#videoCursors = new Map<number, VideoFrameCursor>()
 
 	constructor(
@@ -95,13 +95,13 @@ class CursorSampler extends Sampler {
 }
 
 export class VideoCursor {
-	#sampler: CursorSampler
+	#sampler: CursorLayerSampler
 
 	constructor(
 		driver: Driver,
 		resolveMedia: (hash: string) => DecoderSource
 	) {
-		this.#sampler = new CursorSampler(driver, resolveMedia)
+		this.#sampler = new CursorLayerSampler(driver, resolveMedia)
 	}
 
 	cursor(timeline: TimelineFile) {
@@ -120,5 +120,3 @@ type StreamCursor<T> = {
 }
 
 type VideoFrameCursor = StreamCursor<VideoFrame>
-
-

@@ -1,5 +1,5 @@
 
-import {Sampler} from './sampler.js'
+import {LayerSampler} from './sampler.js'
 import {realtime} from './schedulers.js'
 import {TimelineFile} from '../../basics.js'
 import {Fps} from '../../../../units/fps.js'
@@ -9,7 +9,7 @@ import {DecoderSource} from '../../../../driver/fns/schematic.js'
 
 export class Playback {
 
-	sampler: Sampler
+	sampler: LayerSampler
 	#playbackStart = ms(0)
 
 	#audioStartSec: number | null = null
@@ -29,7 +29,7 @@ export class Playback {
 	) {
 		this.audioGain.connect(this.audioContext.destination)
 		this.audioGain.gain.value = 0.7 ** 2
-		this.sampler = new Sampler(this.resolveMedia)
+		this.sampler = new LayerSampler(this.resolveMedia)
 	}
 
 	async *samples() {
@@ -119,4 +119,3 @@ export class Playback {
 		}
 	}
 }
-

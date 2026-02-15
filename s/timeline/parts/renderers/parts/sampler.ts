@@ -23,7 +23,7 @@ type AudioStreamState = {
 	nextPromise: Promise<IteratorResult<AudioSample>> | null
 }
 
-export class Sampler {
+export class LayerSampler {
 	readonly #sinks = new Map<string, SinkState>()
 
 	constructor(

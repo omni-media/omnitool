@@ -1,12 +1,12 @@
 
 import {ALL_FORMATS, AudioSample, AudioSampleSink, Input, VideoSampleSink} from "mediabunny"
 
-import {Item, Kind} from "../../item.js"
+import {ContainerItem, Item, Kind} from "../../item.js"
 import {TimelineFile} from "../../basics.js"
 import {ms, Ms} from "../../../../units/ms.js"
-import {computeTimelineDuration, itemsFrom} from "./handy.js"
-import {I6, Mat6, mul6, transformToMat6} from "../../../utils/matrix.js"
+import {Mat6} from "../../../utils/matrix.js"
 import {DecoderSource, Layer} from "../../../../driver/fns/schematic.js"
+import {computeTimelineDuration, computeWorldMatrix, itemsFrom} from "./handy.js"
 import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 
 type SinkState = {
@@ -36,7 +36,7 @@ export class Sampler {
 		if (!root)
 			return []
 
-		return await this.#sampleItem(timeline, items, root, timecode, I6)
+		return await this.#sampleItem(timeline, items, root, timecode, [])
 	}
 
 	async *sampleAudio(
@@ -153,9 +153,9 @@ export class Sampler {
 		items: Map<number, Item.Any>,
 		item: Item.Any,
 		time: Ms,
-		parentMatrix: Mat6
+		ancestors: ContainerItem[]
 	): Promise<Layer[]> {
-		const matrix = this.#applySpatial(items, item, parentMatrix)
+		const matrix = computeWorldMatrix(items, ancestors, item)
 
 		switch (item.kind) {
 			case Kind.Stack: {
@@ -163,7 +163,7 @@ export class Sampler {
 					item.childrenIds.map(id => {
 						const child = items.get(id)
 						return child
-							? this.#sampleItem(timeline, items, child, time, matrix)
+							? this.#sampleItem(timeline, items, child, time, [...ancestors, item])
 							: Promise.resolve([])
 					})
 				)
@@ -171,7 +171,7 @@ export class Sampler {
 			}
 
 			case Kind.Sequence:
-				return await this.#sampleSequence(timeline, items, item, time, matrix)
+				return await this.#sampleSequence(timeline, items, item, time, ancestors)
 
 			case Kind.Video:
 				if (time < 0 || time >= item.duration)
@@ -198,7 +198,7 @@ export class Sampler {
 		items: Map<number, Item.Any>,
 		sequence: Item.Sequence,
 		time: Ms,
-		parentMatrix: Mat6
+		ancestors: ContainerItem[]
 	): Promise<Layer[]> {
 		let offset = ms(0)
 		const children = this.#sequenceChildren(items, sequence)
@@ -220,7 +220,7 @@ export class Sampler {
 				const isWithinCombined = time < ms(offset + meta.combined)
 
 				if (isBeforeTransition) {
-					return await this.#sampleItem(timeline, items, child, ms(time - offset), parentMatrix)
+					return await this.#sampleItem(timeline, items, child, ms(time - offset), [...ancestors, sequence])
 				}
 
 				if (isDuringTransition) {
@@ -232,7 +232,7 @@ export class Sampler {
 						nextNext,
 						time,
 						offset,
-						parentMatrix,
+						[...ancestors, sequence],
 						meta
 					)
 					return layers
@@ -240,7 +240,7 @@ export class Sampler {
 
 				if (isWithinCombined) {
 					const localIncomingTime = ms(time - meta.incomingStart)
-					return await this.#sampleItem(timeline, items, nextNext, localIncomingTime, parentMatrix)
+					return await this.#sampleItem(timeline, items, nextNext, localIncomingTime, [...ancestors, sequence])
 				}
 
 				offset = ms(offset + meta.combined)
@@ -252,7 +252,7 @@ export class Sampler {
 
 			const isWithinChild = time < ms(offset + duration)
 			if (isWithinChild)
-				return await this.#sampleItem(timeline, items, child, ms(time - offset), parentMatrix)
+				return await this.#sampleItem(timeline, items, child, ms(time - offset), [...ancestors, sequence])
 
 			offset = ms(offset + duration)
 		}
@@ -274,7 +274,7 @@ export class Sampler {
 		incoming: Item.Any,
 		time: Ms,
 		offset: Ms,
-		parentMatrix: Mat6,
+		ancestors: ContainerItem[],
 		meta: {overlap: Ms; transitionStart: Ms; combined: Ms}
 	): Promise<Layer[]> {
 		const localTime = ms(time - meta.transitionStart)
@@ -284,14 +284,14 @@ export class Sampler {
 			items,
 			outgoing,
 			ms(time - offset),
-			parentMatrix
+			ancestors
 		)
 		const toLayers = await this.#sampleItem(
 			timeline,
 			items,
 			incoming,
 			localTime,
-			parentMatrix
+			ancestors
 		)
 		const fromImage = fromLayers.find(l => l.kind === "image")
 		const toImage = toLayers.find(l => l.kind === "image")
@@ -329,22 +329,6 @@ export class Sampler {
 		const combined = ms(outgoingDur + incomingDur - overlap)
 
 		return {outgoingDur, incomingDur, overlap, transitionStart, transitionEnd, incomingStart, combined}
-	}
-
-
-	#applySpatial(
-		items: Map<number, Item.Any>,
-		item: Item.Any,
-		parentMatrix: Mat6
-	) {
-		if ("spatialId" in item && item.spatialId) {
-			const spatial = items.get(item.spatialId) as Item.Spatial | undefined
-			if (spatial?.enabled) {
-				const local = transformToMat6(spatial.transform)
-				return mul6(local, parentMatrix)
-			}
-		}
-		return parentMatrix
 	}
 
 	async #getOrCreateSink(hash: string) {

@@ -9,11 +9,11 @@ function isPlayableItem(item: Item.Any): item is PlayableItem {
 }
 
 type WalkAtCallbacks = {
-	sequence: (x: Item.Sequence, localTime: Ms, matrix: Mat6, ancestors: ContainerItem[]) => void
-	stack: (x: Item.Stack, localTime: Ms, matrix: Mat6, ancestors: ContainerItem[]) => void
-	video: (x: Item.Video, localTime: Ms, matrix: Mat6, ancestors: ContainerItem[]) => void
-	text: (x: Item.Text, localTime: Ms, matrix: Mat6, ancestors: ContainerItem[]) => void
-	audio: (x: Item.Audio, localTime: Ms) => void
+	sequence: (x: Item.Sequence, localTime: Ms, ancestors: ContainerItem[]) => void
+	stack: (x: Item.Stack, localTime: Ms, ancestors: ContainerItem[]) => void
+	video: (x: Item.Video, localTime: Ms, ancestors: ContainerItem[]) => void
+	text: (x: Item.Text, localTime: Ms, ancestors: ContainerItem[]) => void
+	audio: (x: Item.Audio, localTime: Ms, ancestors: ContainerItem[]) => void
 }
 
 type WalkCallbacks = {
@@ -32,19 +32,19 @@ interface Props {
 interface At {
 	item: Item.Any
 	localTime: Ms
-	matrix: Mat6
+	ancestors: ContainerItem[]
 }
 
 export function itemsAt(p: Props): At[] {
 	const results: At[] = []
 	const itemMap = new Map(p.timeline.items.map(item => [item.id, item]))
 
-	walkAt(p.timeline.rootId, itemMap, p.timecode, I6, {
+	walkAt(p.timeline.rootId, itemMap, p.timecode, {
 		sequence: () => { },
 		stack: () => { },
-		video: (item, localTime, matrix) => results.push({ item, localTime, matrix }),
-		text: (item, localTime, matrix) => results.push({ item, localTime, matrix }),
-		audio: (item, localTime) => results.push({ item, localTime, matrix: I6 })
+		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		audio: (item, localTime, ancestors) => results.push({ item, localTime, ancestors })
 	})
 
 	return results
@@ -59,15 +59,44 @@ export function itemsFrom(p: FromProps): At[] {
 	const results: At[] = []
 	const itemMap = new Map(p.timeline.items.map(item => [item.id, item]))
 
-	walkFrom(p.timeline.rootId, itemMap, p.from, I6, {
+	walkFrom(p.timeline.rootId, itemMap, p.from, {
 		sequence: () => { },
 		stack: () => { },
-		video: (item, localTime, matrix) => results.push({ item, localTime, matrix }),
-		text: (item, localTime, matrix) => results.push({ item, localTime, matrix }),
-		audio: (item, localTime) => results.push({ item, localTime, matrix: I6 })
+		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		audio: (item, localTime, ancestors) => results.push({ item, localTime, ancestors })
 	})
 
 	return results
+}
+
+export function computeWorldMatrix(
+	items: Map<Id, Item.Any>,
+	ancestors: ContainerItem[],
+	item: Item.Any
+): Mat6 {
+	let world = I6
+
+	for (const ancestor of ancestors) {
+		world = applySpatialIfAny(items, ancestor, world)
+	}
+
+	return applySpatialIfAny(items, item, world)
+}
+
+function applySpatialIfAny(
+	items: Map<Id, Item.Any>,
+	item: Item.Any,
+	parentMatrix: Mat6
+) {
+	if ("spatialId" in item && item.spatialId) {
+		const spatial = items.get(item.spatialId) as Item.Spatial | undefined
+		if (spatial?.enabled) {
+			const local = transformToMat6(spatial.transform)
+			return mul6(local, parentMatrix)
+		}
+	}
+	return parentMatrix
 }
 
 export function walk(
@@ -141,33 +170,22 @@ function walkAt(
 	id: Id,
 	items: Map<Id, Item.Any>,
 	time: Ms,
-	parentMatrix: Mat6,
 	callbacks: WalkAtCallbacks,
 	ancestors: ContainerItem[] = []
 ) {
 	const item = items.get(id)
 	if (!item) return
 
-	let currentMatrix = parentMatrix
-
-	if ("spatialId" in item && item.spatialId) {
-		const spatial = items.get(item.spatialId) as Item.Spatial
-		if (spatial.enabled) {
-			const local = transformToMat6(spatial.transform)
-			currentMatrix = mul6(local, currentMatrix)
-		}
-	}
-
 	switch (item.kind) {
 		case Kind.Stack:
-			callbacks.stack(item, time, currentMatrix, ancestors)
+			callbacks.stack(item, time, ancestors)
 			for (const childId of item.childrenIds) {
-				walkAt(childId, items, time, currentMatrix, callbacks, [...ancestors, item])
+				walkAt(childId, items, time, callbacks, [...ancestors, item])
 			}
 			break
 
 		case Kind.Sequence: {
-			callbacks.sequence(item, time, currentMatrix, ancestors)
+			callbacks.sequence(item, time, ancestors)
 
 			let offset = ms(0)
 
@@ -186,7 +204,6 @@ function walkAt(
 						childId,
 						items,
 						localTime,
-						currentMatrix,
 						callbacks,
 						[...ancestors, item]
 					)
@@ -200,15 +217,15 @@ function walkAt(
 		}
 
 		case Kind.Video:
-			callbacks.video(item, time, currentMatrix, ancestors)
+			callbacks.video(item, time, ancestors)
 			break
 
 		case Kind.Text:
-			callbacks.text(item, time, currentMatrix, ancestors)
+			callbacks.text(item, time, ancestors)
 			break
 
 		case Kind.Audio:
-			callbacks.audio(item, time)
+			callbacks.audio(item, time, ancestors)
 			break
 	}
 }
@@ -217,33 +234,22 @@ function walkFrom(
 	id: Id,
 	items: Map<Id, Item.Any>,
 	from: Ms,
-	parentMatrix: Mat6,
 	callbacks: WalkAtCallbacks,
 	ancestors: ContainerItem[] = []
 ) {
 	const item = items.get(id)
 	if (!item) return
 
-	let currentMatrix = parentMatrix
-
-	if ("spatialId" in item && item.spatialId) {
-		const spatial = items.get(item.spatialId) as Item.Spatial
-		if (spatial.enabled) {
-			const local = transformToMat6(spatial.transform)
-			currentMatrix = mul6(local, currentMatrix)
-		}
-	}
-
 	switch (item.kind) {
 		case Kind.Stack:
-			callbacks.stack(item, from, currentMatrix, ancestors)
+			callbacks.stack(item, from, ancestors)
 			for (const childId of item.childrenIds) {
-				walkFrom(childId, items, from, currentMatrix, callbacks, [...ancestors, item])
+				walkFrom(childId, items, from, callbacks, [...ancestors, item])
 			}
 			break
 
 		case Kind.Sequence: {
-			callbacks.sequence(item, from, currentMatrix, ancestors)
+			callbacks.sequence(item, from, ancestors)
 
 			let offset = ms(0)
 
@@ -267,7 +273,6 @@ function walkFrom(
 					childId,
 					items,
 					localTime,
-					currentMatrix,
 					callbacks,
 					[...ancestors, item]
 				)
@@ -279,15 +284,15 @@ function walkFrom(
 		}
 
 		case Kind.Video:
-			callbacks.video(item, from, currentMatrix, ancestors)
+			callbacks.video(item, from, ancestors)
 			break
 
 		case Kind.Text:
-			callbacks.text(item, from, currentMatrix, ancestors)
+			callbacks.text(item, from, ancestors)
 			break
 
 		case Kind.Audio:
-			callbacks.audio(item, from)
+			callbacks.audio(item, from, ancestors)
 			break
 	}
 }

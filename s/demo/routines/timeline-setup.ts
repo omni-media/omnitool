@@ -13,8 +13,8 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 	return o.sequence(
 		o.stack(
 			text,
-			o.video(videoA, {duration: 3000, start: 3000}),
-			o.audio(videoA, {duration: 1000, start: 3000})
+			o.video(videoA, {duration: 3000, start: 1000}),
+			o.audio(videoA, {duration: 1000})
 		),
 		o.gap(500),
 		o.video(videoA, {duration: 7000, start: 5000})

@@ -303,10 +303,34 @@ export function computeTimelineDuration(
 
 	switch (item.kind) {
 		case Kind.Sequence: {
+			const children = item.childrenIds
+				.map(childId => timeline.items.find(x => x.id === childId))
+				.filter(Boolean) as Item.Any[]
+
 			let total = ms(0)
 
-			for (const childId of item.childrenIds) {
-				total = ms(total + computeTimelineDuration(childId, timeline))
+			for (let i = 0; i < children.length; i++) {
+				const child = children[i]
+
+				if (child.kind === Kind.Transition)
+					continue
+
+				const next = children[i + 1]
+				const nextNext = children[i + 2]
+
+				if (next?.kind === Kind.Transition && nextNext && nextNext.kind !== Kind.Transition) {
+					const outgoingDur = computeTimelineDuration(child.id, timeline)
+					const incomingDur = computeTimelineDuration(nextNext.id, timeline)
+					const overlap = Math.max(
+						0,
+						Math.min(next.duration, outgoingDur, incomingDur)
+					)
+					total = ms(total + outgoingDur + incomingDur - overlap)
+					i += 2
+					continue
+				}
+
+				total = ms(total + computeTimelineDuration(child.id, timeline))
 			}
 
 			return total

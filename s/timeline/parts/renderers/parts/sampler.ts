@@ -1,11 +1,11 @@
 
 import {ALL_FORMATS, AudioSample, AudioSampleSink, Input, VideoSampleSink} from "mediabunny"
 
-import {itemsAt, itemsFrom} from "./handy.js"
 import {Item, Kind} from "../../item.js"
 import {TimelineFile} from "../../basics.js"
-import {Mat6} from "../../../utils/matrix.js"
 import {ms, Ms} from "../../../../units/ms.js"
+import {computeTimelineDuration, itemsFrom} from "./handy.js"
+import {I6, Mat6, mul6, transformToMat6} from "../../../utils/matrix.js"
 import {DecoderSource, Layer} from "../../../../driver/fns/schematic.js"
 import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 
@@ -31,22 +31,12 @@ export class Sampler {
 	) { }
 
 	async sample(timeline: TimelineFile, timecode: Ms) {
-		const items = itemsAt({ timeline, timecode })
-		const promises = items.map(({ item, matrix, localTime }) => {
-			switch (item.kind) {
-				case Kind.Video:
-					return this.video(item, localTime, matrix)
+		const items = new Map(timeline.items.map(item => [item.id, item]))
+		const root = items.get(timeline.rootId)
+		if (!root)
+			return []
 
-				case Kind.Text:
-					return this.text(timeline.items, item, localTime, matrix)
-
-				default:
-					return Promise.resolve([])
-			}
-		})
-
-		const layers = await Promise.all(promises)
-		return layers.flat()
+		return await this.#sampleItem(timeline, items, root, timecode, I6)
 	}
 
 	async *sampleAudio(
@@ -156,6 +146,205 @@ export class Sampler {
 			style: styleItem?.style,
 			matrix
 		}]
+	}
+
+	async #sampleItem(
+		timeline: TimelineFile,
+		items: Map<number, Item.Any>,
+		item: Item.Any,
+		time: Ms,
+		parentMatrix: Mat6
+	): Promise<Layer[]> {
+		const matrix = this.#applySpatial(items, item, parentMatrix)
+
+		switch (item.kind) {
+			case Kind.Stack: {
+				const layers = await Promise.all(
+					item.childrenIds.map(id => {
+						const child = items.get(id)
+						return child
+							? this.#sampleItem(timeline, items, child, time, matrix)
+							: Promise.resolve([])
+					})
+				)
+				return layers.flat()
+			}
+
+			case Kind.Sequence:
+				return await this.#sampleSequence(timeline, items, item, time, matrix)
+
+			case Kind.Video:
+				if (time < 0 || time >= item.duration)
+					return []
+				return await this.video(item, time, matrix)
+
+			case Kind.Text:
+				return this.text(timeline.items, item, time, matrix)
+
+			case Kind.Gap:
+			case Kind.Audio:
+			case Kind.Transition:
+			case Kind.Spatial:
+			case Kind.TextStyle:
+				return []
+
+			default:
+				return []
+		}
+	}
+
+	async #sampleSequence(
+		timeline: TimelineFile,
+		items: Map<number, Item.Any>,
+		sequence: Item.Sequence,
+		time: Ms,
+		parentMatrix: Mat6
+	): Promise<Layer[]> {
+		let offset = ms(0)
+		const children = this.#sequenceChildren(items, sequence)
+
+		for (let i = 0; i < children.length; i++) {
+			const child = children[i]
+
+			if (child.kind === Kind.Transition)
+				continue
+
+			const next = children[i + 1]
+			const nextNext = children[i + 2]
+
+			if (next?.kind === Kind.Transition && nextNext && nextNext.kind !== Kind.Transition) {
+				const meta = this.#transitionMeta(timeline, child, nextNext, next, offset)
+
+				const isBeforeTransition = time < meta.transitionStart
+				const isDuringTransition = time < meta.transitionEnd
+				const isWithinCombined = time < ms(offset + meta.combined)
+
+				if (isBeforeTransition) {
+					return await this.#sampleItem(timeline, items, child, ms(time - offset), parentMatrix)
+				}
+
+				if (isDuringTransition) {
+					const layers = await this.#sampleTransition(
+						timeline,
+						items,
+						child,
+						next,
+						nextNext,
+						time,
+						offset,
+						parentMatrix,
+						meta
+					)
+					return layers
+				}
+
+				if (isWithinCombined) {
+					const localIncomingTime = ms(time - meta.incomingStart)
+					return await this.#sampleItem(timeline, items, nextNext, localIncomingTime, parentMatrix)
+				}
+
+				offset = ms(offset + meta.combined)
+				i += 2
+				continue
+			}
+
+			const duration = computeTimelineDuration(child.id, timeline)
+
+			const isWithinChild = time < ms(offset + duration)
+			if (isWithinChild)
+				return await this.#sampleItem(timeline, items, child, ms(time - offset), parentMatrix)
+
+			offset = ms(offset + duration)
+		}
+
+		return []
+	}
+
+	#sequenceChildren(items: Map<number, Item.Any>, sequence: Item.Sequence) {
+		return sequence.childrenIds
+			.map(id => items.get(id))
+			.filter(Boolean) as Item.Any[]
+	}
+
+	async #sampleTransition(
+		timeline: TimelineFile,
+		items: Map<number, Item.Any>,
+		outgoing: Item.Any,
+		transition: Item.Transition,
+		incoming: Item.Any,
+		time: Ms,
+		offset: Ms,
+		parentMatrix: Mat6,
+		meta: {overlap: Ms; transitionStart: Ms; combined: Ms}
+	): Promise<Layer[]> {
+		const localTime = ms(time - meta.transitionStart)
+		const progress = meta.overlap > 0 ? (localTime / Number(meta.overlap)) : 1
+		const fromLayers = await this.#sampleItem(
+			timeline,
+			items,
+			outgoing,
+			ms(time - offset),
+			parentMatrix
+		)
+		const toLayers = await this.#sampleItem(
+			timeline,
+			items,
+			incoming,
+			localTime,
+			parentMatrix
+		)
+		const fromImage = fromLayers.find(l => l.kind === "image")
+		const toImage = toLayers.find(l => l.kind === "image")
+
+		if (!fromImage?.frame || !toImage?.frame)
+			return []
+
+		return [{
+			id: transition.id,
+			kind: "transition",
+			name: "circle",
+			progress,
+			from: fromImage.frame,
+			to: toImage.frame,
+		}]
+	}
+
+	#transitionMeta(
+		timeline: TimelineFile,
+		outgoing: Item.Any,
+		incoming: Item.Any,
+		transition: Item.Transition,
+		offset: Ms
+	) {
+		const outgoingDur = computeTimelineDuration(outgoing.id, timeline)
+		const incomingDur = computeTimelineDuration(incoming.id, timeline)
+		const overlap = ms(Math.max(
+			0,
+			Math.min(transition.duration, outgoingDur, incomingDur)
+		))
+
+		const transitionStart = ms(offset + outgoingDur - overlap)
+		const transitionEnd = ms(offset + outgoingDur)
+		const incomingStart = transitionStart
+		const combined = ms(outgoingDur + incomingDur - overlap)
+
+		return {outgoingDur, incomingDur, overlap, transitionStart, transitionEnd, incomingStart, combined}
+	}
+
+
+	#applySpatial(
+		items: Map<number, Item.Any>,
+		item: Item.Any,
+		parentMatrix: Mat6
+	) {
+		if ("spatialId" in item && item.spatialId) {
+			const spatial = items.get(item.spatialId) as Item.Spatial | undefined
+			if (spatial?.enabled) {
+				const local = transformToMat6(spatial.transform)
+				return mul6(local, parentMatrix)
+			}
+		}
+		return parentMatrix
 	}
 
 	async #getOrCreateSink(hash: string) {

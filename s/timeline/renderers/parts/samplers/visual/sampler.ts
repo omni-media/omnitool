@@ -1,6 +1,5 @@
 
 import {VideoSink} from "./parts/sink.js"
-import {Mat6} from "../../../../utils/matrix.js"
 import {ms, Ms} from "../../../../../units/ms.js"
 import {TimelineFile} from "../../../../parts/basics.js"
 import {ContainerItem, Item, Kind} from "../../../../parts/item.js"
@@ -17,10 +16,7 @@ export class LayerSampler {
 	async sample(timeline: TimelineFile, timecode: Ms) {
 		const items = new Map(timeline.items.map(item => [item.id, item]))
 		const root = items.get(timeline.rootId)
-
-		if (!root) return []
-
-		return await this.#sampleItem(timeline, items, root, timecode, [])
+		return root ? this.#sampleItem(timeline, items, root, timecode, []) : []
 	}
 
 	async #sampleItem(
@@ -39,26 +35,34 @@ export class LayerSampler {
 
 		switch (item.kind) {
 			case Kind.Stack: {
-				const nextAncestors = [...ancestors, item]
-				const layers = await Promise.all(
+				const stackAncestors = [...ancestors, item]
+				return (await Promise.all(
 					item.childrenIds.map(id => {
 						const child = items.get(id)
 						return child
-							? this.#sampleItem(timeline, items, child, time, nextAncestors)
-							: Promise.resolve([])
+							? this.#sampleItem(timeline, items, child, time, stackAncestors)
+							: []
 					})
-				)
-				return layers.flat()
+				)).flat()
 			}
 
 			case Kind.Sequence:
-				return await this.#sequence(timeline, items, item, time, ancestors)
+				return this.#sequence(timeline, items, item, time, ancestors)
 
-			case Kind.Video:
-				return await this.#video(item, time, matrix)
+			case Kind.Video: {
+				const sink = await this.#sink.getSink(item.mediaHash)
+				const sample = await sink?.getSample(time / 1000)
+				const frame = sample?.toVideoFrame()
+				sample?.close()
+				return frame ? [{ kind: "image", frame, matrix, id: item.id }] : []
+			}
 
-			case Kind.Text:
-				return this.#text(items, item, matrix)
+			case Kind.Text: {
+				const style = item.styleId
+					? (items.get(item.styleId) as Item.TextStyle)?.style
+					: undefined
+				return [{ id: item.id, kind: "text", content: item.content, style, matrix }]
+			}
 
 			default:
 				return []
@@ -68,118 +72,100 @@ export class LayerSampler {
 	async #sequence(
 		timeline: TimelineFile,
 		items: Map<number, Item.Any>,
-		sequence: Item.Sequence,
-		seqTime: Ms,
+		seq: Item.Sequence,
+		time: Ms,
 		ancestors: ContainerItem[]
 	): Promise<Layer[]> {
-		const children = sequence.childrenIds.map(id => items.get(id)).filter((i): i is Item.Any => !!i)
-		const nextAncestors = [...ancestors, sequence]
+		const children = seq.childrenIds
+			.map(id => items.get(id))
+			.filter((i): i is Item.Any => !!i)
 
+		const nextAncestors = [...ancestors, seq]
 		let cursor = ms(0)
 
 		for (let i = 0; i < children.length; i++) {
-			const current = children[i]
+			const outgoing = children[i]
+			if (outgoing.kind === Kind.Transition)
+				continue
 
-			if (current.kind === Kind.Transition) continue
+			const outgoingDuration = computeTimelineDuration(outgoing.id, timeline)
+			const outgoingStart = cursor
+			const outgoingEnd = ms(outgoingStart + outgoingDuration)
 
-			const next = children[i + 1]
-			const nextNext = children[i + 2]
+			const nextItem = children[i + 1]
+			const hasTransition = nextItem?.kind === Kind.Transition
 
-			const currentDur = computeTimelineDuration(current.id, timeline)
+			if (!hasTransition) {
+				const isInsideOutgoing = time < outgoingEnd
 
-			if (next?.kind === Kind.Transition && nextNext && nextNext.kind !== Kind.Transition) {
-				const nextDur = computeTimelineDuration(nextNext.id, timeline)
-				const overlap = Math.max(0, Math.min(next.duration, currentDur, nextDur))
-
-				const endOfSolo = cursor + currentDur - overlap
-				const endOfTransition = cursor + currentDur
-
-				if (seqTime < endOfSolo) {
-					return this.#sampleItem(timeline, items, current, ms(seqTime - cursor), nextAncestors)
+				if (isInsideOutgoing) {
+					const outgoingLocalTime = ms(time - outgoingStart)
+					return this.#sampleItem(timeline, items, outgoing, outgoingLocalTime, nextAncestors)
 				}
 
-				if (seqTime < endOfTransition) {
-					const transitionLocal = ms(seqTime - endOfSolo)
-					return this.#transition(
-						timeline, items, nextAncestors,
-						current, nextNext, next,
-						ms(seqTime - cursor),
-						transitionLocal,
-						ms(overlap)
-					)
-				}
-
-				cursor = ms(cursor + currentDur - overlap)
-				i += 1
+				cursor = outgoingEnd
 				continue
 			}
 
-			if (seqTime < cursor + currentDur) {
-				return this.#sampleItem(timeline, items, current, ms(seqTime - cursor), nextAncestors)
+			const transition = nextItem as Item.Transition
+			const incoming = children[i + 2]
+			const validIncoming = incoming && incoming.kind !== Kind.Transition
+
+			if (!validIncoming) {
+				cursor = outgoingEnd
+				continue
 			}
 
-			cursor = ms(cursor + currentDur)
+			const incomingDuration = computeTimelineDuration(incoming.id, timeline)
+			const overlapDuration = Math.max(0, Math.min(transition.duration, outgoingDuration, incomingDuration))
+			const outgoingSoloEnd = ms(outgoingEnd - overlapDuration)
+
+			const isInsideOutgoingSolo = time < outgoingSoloEnd
+			const isInsideTransition = time < outgoingEnd
+
+			if (isInsideOutgoingSolo) {
+				const outgoingLocalTime = ms(time - outgoingStart)
+				return this.#sampleItem(timeline, items, outgoing, outgoingLocalTime, nextAncestors)
+			}
+
+			if (isInsideTransition) {
+				const incomingLocalTime = ms(time - outgoingSoloEnd)
+				const outgoingLocalTime = ms(time - outgoingStart)
+				const progress = overlapDuration > 0 ? incomingLocalTime / overlapDuration : 1
+
+				return this.#transition(
+					transition,
+					progress,
+					this.#sampleItem(timeline, items, outgoing, outgoingLocalTime, nextAncestors),
+					this.#sampleItem(timeline, items, incoming, incomingLocalTime, nextAncestors)
+				)
+			}
+
+			cursor = outgoingSoloEnd
+			i++
 		}
 
 		return []
 	}
 
 	async #transition(
-		timeline: TimelineFile,
-		items: Map<number, Item.Any>,
-		ancestors: ContainerItem[],
-		fromItem: Item.Any,
-		toItem: Item.Any,
-		transition: Item.Transition,
-		fromTime: Ms,
-		toTime: Ms,
-		overlap: Ms
+		trans: Item.Transition,
+		progress: number,
+		p1: Promise<Layer[]>,
+		p2: Promise<Layer[]>
 	): Promise<Layer[]> {
-		const [fromLayers, toLayers] = await Promise.all([
-			this.#sampleItem(timeline, items, fromItem, fromTime, ancestors),
-			this.#sampleItem(timeline, items, toItem, toTime, ancestors)
-		])
+		const [l1, l2] = await Promise.all([p1, p2])
+		const f1 = l1.find(l => l.kind === "image")?.frame
+		const f2 = l2.find(l => l.kind === "image")?.frame
 
-		const fromFrame = fromLayers.find(l => l.kind === "image")
-		const toFrame = toLayers.find(l => l.kind === "image")
-
-		if (!fromFrame?.frame || !toFrame?.frame) return []
-
-		return [{
-			id: transition.id,
+		return f1 && f2 ? [{
+			id: trans.id,
 			kind: "transition",
 			name: "circle",
-			progress: overlap > 0 ? (toTime / overlap) : 1,
-			from: fromFrame.frame,
-			to: toFrame.frame,
-		}]
-	}
-
-	async #video(item: Item.Video, time: Ms, matrix: Mat6): Promise<Layer[]> {
-		const sink = await this.#sink.getSink(item.mediaHash)
-		if (!sink) return []
-
-		const sample = await sink.getSample(time / 1000)
-		if (!sample) return []
-
-		const frame = sample.toVideoFrame()
-		sample.close()
-
-		return frame ? [{ kind: "image", frame, matrix, id: item.id }] : []
-	}
-
-	#text(items: Map<number, Item.Any>, item: Item.Text, matrix: Mat6): Layer[] {
-		const styleItem = item.styleId !== undefined
-			? items.get(item.styleId) as Item.TextStyle
-			: undefined
-
-		return [{
-			id: item.id,
-			kind: "text",
-			content: item.content,
-			style: styleItem?.style,
-			matrix
-		}]
+			progress,
+			from: f1,
+			to: f2
+		}] : []
 	}
 }
 

@@ -83,23 +83,23 @@ export class Export {
 		const dt = 1 / frameRate
 		const duration = computeTimelineDuration(timeline.rootId, timeline)
 
-			await fixedStep(
-				{fps: frameRate, duration},
-				async timecode => {
-					const layers = await cursor.next(timecode)
-					const composed = await this.driver.composite(layers)
+		await fixedStep(
+			{fps: frameRate, duration},
+			async timecode => {
+				const layers = await cursor.next(timecode)
+				const composed = await this.driver.composite(layers)
 
-					const vf = new VideoFrame(composed, {
-						timestamp: Math.round(i * dt * 1_000_000),
-						duration: Math.round(dt * 1_000_000)
-					})
+				const vf = new VideoFrame(composed, {
+					timestamp: Math.round(i * dt * 1_000_000),
+					duration: Math.round(dt * 1_000_000)
+				})
 
-					await writer.write(vf)
-					composed.close()
-					i++
-				}
-			)
-			await writer.close()
+				await writer.write(vf)
+				composed.close()
+				i++
+			}
+		)
+		await writer.close()
 	}
 
 	async *makeAudioInputs(timeline: TimelineFile) {

@@ -1,8 +1,8 @@
 
-import {ms, Ms} from '../../../../units/ms.js'
-import {Id, TimelineFile} from '../../basics.js'
-import {ContainerItem, Item, Kind, PlayableItem} from '../../item.js'
-import {I6, Mat6, mul6, transformToMat6} from '../../../utils/matrix.js'
+import {ms, Ms} from '../../../units/ms.js'
+import {Id, TimelineFile} from '../../parts/basics.js'
+import {I6, Mat6, mul6, transformToMat6} from '../../utils/matrix.js'
+import {ContainerItem, Item, Kind, PlayableItem} from '../../parts/item.js'
 
 function isPlayableItem(item: Item.Any): item is PlayableItem {
 	return 'duration' in item

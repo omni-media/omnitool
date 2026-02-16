@@ -5,9 +5,9 @@ import {Media} from "../parts/media.js"
 import {Driver} from "../../driver/driver.js"
 import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
-import {Export} from "../parts/renderers/export.js"
+import {Export} from "../renderers/export/export.js"
 import {ResourcePool} from "../parts/resource-pool.js"
-import {VideoPlayer} from "../parts/renderers/player.js"
+import {VideoPlayer} from "../renderers/player/player.js"
 
 export class Omni {
 	resources = new ResourcePool()

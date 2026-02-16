@@ -1,10 +1,10 @@
 
-import {Item} from "../../item.js"
-import {LayerSampler} from "./sampler.js"
-import {TimelineFile} from "../../basics.js"
 import {ms, Ms} from "../../../../units/ms.js"
-import {Driver} from "../../../../driver/driver.js"
+import {Item} from "../../../parts/item.js"
 import {Mat6} from "../../../utils/matrix.js"
+import {Driver} from "../../../../driver/driver.js"
+import {TimelineFile} from "../../../parts/basics.js"
+import {LayerSampler} from "../../parts/samplers/visual/sampler.js"
 import {DecoderSource, Layer} from "../../../../driver/fns/schematic.js"
 
 /**
@@ -13,7 +13,7 @@ import {DecoderSource, Layer} from "../../../../driver/fns/schematic.js"
  * should be done from mediabunny custom decoder/encoder
  */
 
-class CursorLayerSampler extends LayerSampler {
+class CursorSampler extends LayerSampler {
 	#videoCursors = new Map<number, VideoFrameCursor>()
 
 	constructor(
@@ -94,14 +94,14 @@ class CursorLayerSampler extends LayerSampler {
 	}
 }
 
-export class VideoCursor {
-	#sampler: CursorLayerSampler
+export class CursorLayerSampler {
+	#sampler: CursorSampler
 
 	constructor(
 		driver: Driver,
 		resolveMedia: (hash: string) => DecoderSource
 	) {
-		this.#sampler = new CursorLayerSampler(driver, resolveMedia)
+		this.#sampler = new CursorSampler(driver, resolveMedia)
 	}
 
 	cursor(timeline: TimelineFile) {
@@ -120,3 +120,4 @@ type StreamCursor<T> = {
 }
 
 type VideoFrameCursor = StreamCursor<VideoFrame>
+

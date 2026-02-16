@@ -1,17 +1,17 @@
 
 import {Science, test, expect} from "@e280/science"
 
-import {Item, Kind} from "../item.js"
-import {ms} from "../../../units/ms.js"
+import {ms} from "../../units/ms.js"
 import {itemsAt} from "./parts/handy.js"
-import {TimelineFile} from "../basics.js"
-import {Sampler} from "./parts/sampler.js"
+import {Item, Kind} from "../parts/item.js"
+import {TimelineFile} from "../parts/basics.js"
+import {LayerSampler} from "./parts/samplers/visual/sampler.js"
 
 export default Science.suite({
 	"Sampling Logic (Time Mapping)": {
 		"Video: Samples correctly within bounds": test(async () => {
 
-			const sampler = new Sampler(() => "/assets/test.mp4")
+			const sampler = new LayerSampler(() => "/assets/test.mp4")
 
 			const text: Item.Text = {
 				id: 1,
@@ -35,16 +35,16 @@ export default Science.suite({
 				]
 			}
 
-			const at = itemsAt({ timeline, timecode: ms(1000) })
+			const at = itemsAt({timeline, timecode: ms(1000)})
 			expect(at.length).is(1)
 
 			const entry = at[0]
 			expect(entry.item.kind).is(Kind.Text)
+
 			const sample = await sampler.sample(
 				timeline,
 				entry.localTime
 			)
-
 			expect(sample.length).is(1)
 		}),
 

@@ -1,7 +1,8 @@
 
-import { Pub, pub } from "@e280/stz"
-import {Fps, fps} from "../../../../units/fps.js"
-import {Ms, ms} from "../../../../units/ms.js"
+import {Pub, pub} from "@e280/stz"
+
+import {ms, Ms} from "../../../units/ms.js"
+import {fps, Fps} from "../../../units/fps.js"
 
 export type RealtimeGenerator = {
 	play(): void

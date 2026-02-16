@@ -1,10 +1,10 @@
 
 import {ms} from "../../../units/ms.js"
-import {TimelineFile} from "../basics.js"
 import {fps} from "../../../units/fps.js"
 import {Playback} from "./parts/playback.js"
 import {Driver} from "../../../driver/driver.js"
-import {computeTimelineDuration} from "./parts/handy.js"
+import {TimelineFile} from "../../parts/basics.js"
+import {computeTimelineDuration} from "../parts/handy.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 
 type ResolveMedia = (hash: string) => DecoderSource

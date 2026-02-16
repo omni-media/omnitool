@@ -1,15 +1,16 @@
 
-import {LayerSampler} from './sampler.js'
-import {realtime} from './schedulers.js'
-import {TimelineFile} from '../../basics.js'
 import {Fps} from '../../../../units/fps.js'
 import {ms, Ms} from '../../../../units/ms.js'
+import {realtime} from '../../parts/schedulers.js'
+import {TimelineFile} from '../../../parts/basics.js'
 import {seconds, Seconds} from '../../../../units/seconds.js'
 import {DecoderSource} from '../../../../driver/fns/schematic.js'
+import {AudioSampler} from '../../parts/samplers/audio/sampler.js'
+import {LayerSampler} from '../../parts/samplers/visual/sampler.js'
 
 export class Playback {
-
-	sampler: LayerSampler
+	visualSampler: LayerSampler
+	audioSampler: AudioSampler
 	#playbackStart = ms(0)
 
 	#audioStartSec: number | null = null
@@ -29,12 +30,13 @@ export class Playback {
 	) {
 		this.audioGain.connect(this.audioContext.destination)
 		this.audioGain.gain.value = 0.7 ** 2
-		this.sampler = new LayerSampler(this.resolveMedia)
+		this.visualSampler = new LayerSampler(this.resolveMedia)
+		this.audioSampler = new AudioSampler(this.resolveMedia)
 	}
 
 	async *samples() {
 		for await (const _ of this.#controller.ticks()) {
-			yield this.sampler.sample(this.timeline, this.currentTime)
+			yield this.visualSampler.sample(this.timeline, this.currentTime)
 		}
 	}
 
@@ -42,7 +44,7 @@ export class Playback {
 		this.pause()
 		this.#playbackStart = time
 
-		return await this.sampler.sample(this.timeline, time)
+		return await this.visualSampler.sample(this.timeline, time)
 	}
 
 	async start(timeline: TimelineFile) {
@@ -93,7 +95,7 @@ export class Playback {
 		if (!this.#audioStartSec)
 			return
 
-		for await (const {sample, timestamp} of this.sampler.sampleAudio(
+		for await (const {sample, timestamp} of this.audioSampler.sampleAudio(
 			this.timeline,
 			ms(from * 1000)
 		)) {
@@ -119,3 +121,4 @@ export class Playback {
 		}
 	}
 }
+

@@ -73,7 +73,7 @@ export class LayerSampler {
 		}
 	}
 
-	protected async sampleVideo(item: Item.Video, time: Ms): Promise<VideoFrame | undefined> {
+	protected async sampleVideo(item: Item.Video, time: Ms) {
 		const sink = await this.#sink.getSink(item.mediaHash)
 		const sample = await sink?.getSample(time / 1000)
 		const frame = sample?.toVideoFrame()
@@ -88,76 +88,132 @@ export class LayerSampler {
 		time: Ms,
 		ancestors: ContainerItem[]
 	): Promise<Layer[]> {
+
+		const state = this.#resolveSequenceAtTime(
+			timeline,
+			items,
+			seq,
+			time
+		)
+
+		if (!state)
+			return []
+
+		const nextAnc = [...ancestors, seq]
+
+		if (state.type === 'single') {
+			return this.#sampleItem(
+				timeline,
+				items,
+				state.item,
+				state.localTime,
+				nextAnc
+			)
+		}
+
+		return this.#transition(
+			state.transition,
+			state.progress,
+			this.#sampleItem(
+				timeline,
+				items,
+				state.outgoing,
+				state.outgoingTime,
+				nextAnc
+			),
+			this.#sampleItem(
+				timeline,
+				items,
+				state.incoming,
+				state.incomingTime,
+				nextAnc
+			)
+		)
+	}
+
+	#resolveSequenceAtTime(
+		timeline: TimelineFile,
+		items: Map<number, Item.Any>,
+		seq: Item.Sequence,
+		time: Ms
+	) {
+
 		const children = seq.childrenIds
 			.map(id => items.get(id))
 			.filter((i): i is Item.Any => !!i)
 
-		const nextAncestors = [...ancestors, seq]
 		let cursor = ms(0)
 
 		for (let i = 0; i < children.length; i++) {
+
 			const outgoing = children[i]
 			if (outgoing.kind === Kind.Transition)
 				continue
 
-			const outgoingDuration = computeTimelineDuration(outgoing.id, timeline)
-			const outgoingStart = cursor
-			const outgoingEnd = ms(outgoingStart + outgoingDuration)
+			const outDur = computeTimelineDuration(outgoing.id, timeline)
 
-			const nextItem = children[i + 1]
-			const hasTransition = nextItem?.kind === Kind.Transition
+			const outStart = cursor
+			const outEnd = ms(outStart + outDur)
+
+			const next = children[i + 1]
+			const hasTransition = next?.kind === Kind.Transition
 
 			if (!hasTransition) {
-				const isInsideOutgoing = time < outgoingEnd
-
-				if (isInsideOutgoing) {
-					const outgoingLocalTime = ms(time - outgoingStart)
-					return this.#sampleItem(timeline, items, outgoing, outgoingLocalTime, nextAncestors)
+				if (time < outEnd) {
+					return {
+						type: 'single',
+						item: outgoing,
+						localTime: ms(time - outStart)
+					} as const
 				}
 
-				cursor = outgoingEnd
+				cursor = outEnd
 				continue
 			}
 
-			const transition = nextItem as Item.Transition
+			const transition = next as Item.Transition
 			const incoming = children[i + 2]
-			const validIncoming = incoming && incoming.kind !== Kind.Transition
 
-			if (!validIncoming) {
-				cursor = outgoingEnd
+			if (!incoming || incoming.kind === Kind.Transition) {
+				cursor = outEnd
 				continue
 			}
 
-			const incomingDuration = computeTimelineDuration(incoming.id, timeline)
-			const overlapDuration = Math.max(0, Math.min(transition.duration, outgoingDuration, incomingDuration))
-			const outgoingSoloEnd = ms(outgoingEnd - overlapDuration)
+			const inDur = computeTimelineDuration(incoming.id, timeline)
 
-			const isInsideOutgoingSolo = time < outgoingSoloEnd
-			const isInsideTransition = time < outgoingEnd
+			const overlap =
+				Math.max(0, Math.min(transition.duration, outDur, inDur))
 
-			if (isInsideOutgoingSolo) {
-				const outgoingLocalTime = ms(time - outgoingStart)
-				return this.#sampleItem(timeline, items, outgoing, outgoingLocalTime, nextAncestors)
+			const outSoloEnd = ms(outEnd - overlap)
+
+			if (time < outSoloEnd) {
+				return {
+					type: 'single',
+					item: outgoing,
+					localTime: ms(time - outStart)
+				} as const
 			}
 
-			if (isInsideTransition) {
-				const incomingLocalTime = ms(time - outgoingSoloEnd)
-				const outgoingLocalTime = ms(time - outgoingStart)
-				const progress = overlapDuration > 0 ? incomingLocalTime / overlapDuration : 1
+			if (time < outEnd) {
+				const inLocal = ms(time - outSoloEnd)
+				const outLocal = ms(time - outStart)
 
-				return this.#transition(
-					transition,
-					progress,
-					this.#sampleItem(timeline, items, outgoing, outgoingLocalTime, nextAncestors),
-					this.#sampleItem(timeline, items, incoming, incomingLocalTime, nextAncestors)
-				)
+				return {
+					type: 'transition',
+					outgoing,
+					incoming,
+					outgoingTime: outLocal,
+					incomingTime: inLocal,
+					progress: overlap > 0 ? inLocal / overlap : 1,
+					transition
+				} as const
 			}
 
-			cursor = outgoingSoloEnd
+			cursor = outSoloEnd
 			i++
 		}
 
-		return []
+		return null
 	}
 
 	async #transition(

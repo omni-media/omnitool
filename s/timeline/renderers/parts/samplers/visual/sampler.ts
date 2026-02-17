@@ -170,6 +170,11 @@ export class LayerSampler {
 		const f1 = l1.find(l => l.kind === "image")?.frame
 		const f2 = l2.find(l => l.kind === "image")?.frame
 
+		const rest = [
+			...l1.filter(l => l.kind !== "image"),
+			...l2.filter(l => l.kind !== "image")
+		]
+
 		return f1 && f2 ? [{
 			id: trans.id,
 			kind: "transition",
@@ -177,7 +182,7 @@ export class LayerSampler {
 			progress,
 			from: f1,
 			to: f2
-		}] : []
+		}, ...rest] : rest
 	}
 }
 

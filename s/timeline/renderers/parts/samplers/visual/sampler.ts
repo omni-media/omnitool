@@ -5,12 +5,18 @@ import {TimelineFile} from "../../../../parts/basics.js"
 import {ContainerItem, Item, Kind} from "../../../../parts/item.js"
 import {computeTimelineDuration, computeWorldMatrix} from "../../handy.js"
 import {DecoderSource, Layer} from "../../../../../driver/fns/schematic.js"
+import {createDefaultVideoSampler, VideoSampler} from "./parts/defaults.js"
 
 export class LayerSampler {
 	readonly #sink
+	readonly #sampleVideo: VideoSampler
 
-	constructor(resolveMedia: (hash: string) => DecoderSource) {
+	constructor(
+		resolveMedia: (hash: string) => DecoderSource,
+		sampleVideo?: VideoSampler
+	) {
 		this.#sink = new VideoSink(resolveMedia)
+		this.#sampleVideo = sampleVideo ?? createDefaultVideoSampler(this.#sink)
 	}
 
 	async sample(timeline: TimelineFile, timecode: Ms) {
@@ -51,7 +57,7 @@ export class LayerSampler {
 				if (time < 0 || time >= item.duration)
 					return []
 
-				const frame = await this.sampleVideo(item, time)
+				const frame = await this.#sampleVideo(item, time)
 				return frame
 					? [{kind: "image", frame, matrix, id: item.id}]
 					: []
@@ -71,14 +77,6 @@ export class LayerSampler {
 			default:
 				return []
 		}
-	}
-
-	protected async sampleVideo(item: Item.Video, time: Ms) {
-		const sink = await this.#sink.getSink(item.mediaHash)
-		const sample = await sink?.getSample(time / 1000)
-		const frame = sample?.toVideoFrame()
-		sample?.close()
-		return frame ?? undefined
 	}
 
 	async #sequence(

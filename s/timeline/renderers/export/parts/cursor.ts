@@ -12,14 +12,26 @@ import {DecoderSource} from "../../../../driver/fns/schematic.js"
  * should be done from mediabunny custom decoder/encoder
  */
 
-class CursorSampler extends LayerSampler {
+export class CursorLayerSampler {
+	#sampler: LayerSampler
 	#videoCursors = new Map<number, VideoFrameCursor>()
 
 	constructor(
 		private driver: Driver,
-		private resolveMediaFn: (hash: string) => DecoderSource
+		private resolveMedia: (hash: string) => DecoderSource
 	) {
-		super(resolveMediaFn)
+		this.#sampler = new LayerSampler(resolveMedia, (item, time) => {
+			const mediaTime = toUs(ms(item.start + time))
+			const cursor = this.#getCursorForVideo(item)
+			return cursor.next(mediaTime)
+		})
+	}
+
+	cursor(timeline: TimelineFile) {
+		return {
+			next: (timecode: Ms) => this.#sampler.sample(timeline, timecode),
+			cancel: () => this.#cancel(),
+		}
 	}
 
 	#getCursorForVideo(videoItem: Item.Video) {
@@ -27,7 +39,7 @@ class CursorSampler extends LayerSampler {
 		if (existing)
 			return existing
 
-		const source = this.resolveMediaFn(videoItem.mediaHash)
+		const source = this.resolveMedia(videoItem.mediaHash)
 		const video = this.driver.decodeVideo({ source })
 		const cursor = this.#cursor(video.getReader())
 
@@ -35,16 +47,7 @@ class CursorSampler extends LayerSampler {
 		return cursor
 	}
 
-	protected async sampleVideo(
-		item: Item.Video,
-		time: Ms
-	): Promise<VideoFrame | undefined> {
-		const mediaTime = toUs(ms(item.start + time))
-		const cursor = this.#getCursorForVideo(item)
-		return await cursor.next(mediaTime)
-	}
-
-	async cancel() {
+	async #cancel() {
 		await Promise.all(
 			[...this.#videoCursors.values()].map(cursor => cursor.cancel())
 		)
@@ -85,24 +88,6 @@ class CursorSampler extends LayerSampler {
 			},
 
 			cancel: async () => await reader.cancel()
-		}
-	}
-}
-
-export class CursorLayerSampler {
-	#sampler: CursorSampler
-
-	constructor(
-		driver: Driver,
-		resolveMedia: (hash: string) => DecoderSource
-	) {
-		this.#sampler = new CursorSampler(driver, resolveMedia)
-	}
-
-	cursor(timeline: TimelineFile) {
-		return {
-			next: (timecode: Ms) => this.#sampler.sample(timeline, timecode),
-			cancel: () => this.#sampler.cancel(),
 		}
 	}
 }

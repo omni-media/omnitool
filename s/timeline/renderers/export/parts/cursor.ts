@@ -1,11 +1,10 @@
 
 import {ms, Ms} from "../../../../units/ms.js"
 import {Item} from "../../../parts/item.js"
-import {Mat6} from "../../../utils/matrix.js"
 import {Driver} from "../../../../driver/driver.js"
 import {TimelineFile} from "../../../parts/basics.js"
 import {LayerSampler} from "../../parts/samplers/visual/sampler.js"
-import {DecoderSource, Layer} from "../../../../driver/fns/schematic.js"
+import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 /**
  * forward-only frame cursor optimized for export purposes.
@@ -36,17 +35,13 @@ class CursorSampler extends LayerSampler {
 		return cursor
 	}
 
-	async video(
+	protected async sampleVideo(
 		item: Item.Video,
-		time: Ms,
-		matrix: Mat6
-	): Promise<Layer[]> {
+		time: Ms
+	): Promise<VideoFrame | undefined> {
 		const mediaTime = toUs(ms(item.start + time))
 		const cursor = this.#getCursorForVideo(item)
-		const frame = await cursor.next(mediaTime)
-		return frame
-			? [{ kind: "image", frame, matrix, id: item.id }]
-			: []
+		return await cursor.next(mediaTime)
 	}
 
 	async cancel() {

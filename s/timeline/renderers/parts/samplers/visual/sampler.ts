@@ -26,47 +26,59 @@ export class LayerSampler {
 		time: Ms,
 		ancestors: ContainerItem[]
 	): Promise<Layer[]> {
-		if (item.kind === Kind.Video || item.kind === Kind.Text) {
-			const duration = item.kind === Kind.Video ? item.duration : ms(item.duration)
-			if (time < 0 || time >= duration) return []
-		}
-
 		const matrix = computeWorldMatrix(items, ancestors, item)
 
 		switch (item.kind) {
 			case Kind.Stack: {
-				const stackAncestors = [...ancestors, item]
-				return (await Promise.all(
-					item.childrenIds.map(id => {
-						const child = items.get(id)
-						return child
-							? this.#sampleItem(timeline, items, child, time, stackAncestors)
-							: []
-					})
-				)).flat()
+				const nextAnc = [...ancestors, item]
+
+				const layers = await Promise.all(
+					item.childrenIds
+						.map(id => items.get(id))
+						.filter((item): item is Item.Any => !!item)
+						.map(child =>
+							this.#sampleItem(timeline, items, child, time, nextAnc)
+						)
+				)
+
+				return layers.flat()
 			}
 
 			case Kind.Sequence:
 				return this.#sequence(timeline, items, item, time, ancestors)
 
 			case Kind.Video: {
-				const sink = await this.#sink.getSink(item.mediaHash)
-				const sample = await sink?.getSample(time / 1000)
-				const frame = sample?.toVideoFrame()
-				sample?.close()
-				return frame ? [{ kind: "image", frame, matrix, id: item.id }] : []
+				if (time < 0 || time >= item.duration)
+					return []
+
+				const frame = await this.sampleVideo(item, time)
+				return frame
+					? [{kind: "image", frame, matrix, id: item.id}]
+					: []
 			}
 
 			case Kind.Text: {
+				if (time < 0 || time >= item.duration)
+					return []
+
 				const style = item.styleId
 					? (items.get(item.styleId) as Item.TextStyle)?.style
 					: undefined
-				return [{ id: item.id, kind: "text", content: item.content, style, matrix }]
+
+				return [{id: item.id, kind: "text", content: item.content, style, matrix}]
 			}
 
 			default:
 				return []
 		}
+	}
+
+	protected async sampleVideo(item: Item.Video, time: Ms): Promise<VideoFrame | undefined> {
+		const sink = await this.#sink.getSink(item.mediaHash)
+		const sample = await sink?.getSample(time / 1000)
+		const frame = sample?.toVideoFrame()
+		sample?.close()
+		return frame ?? undefined
 	}
 
 	async #sequence(

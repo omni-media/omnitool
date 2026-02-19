@@ -7,12 +7,12 @@ import {Effect, Item, Kind} from "../parts/item.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
 
 export class O {
-	constructor(public state: {project: TimelineFile}) {}
+	constructor(public timeline: TimelineFile) {}
 
 	require<T extends Item.Any>(id: Id | undefined) {
     if (id === undefined)
     	return undefined
-    const item = this.state.project.items.find(item => item.id === id)
+    const item = this.timeline.items.find(item => item.id === id)
     return item as T | undefined
 	}
 
@@ -21,7 +21,7 @@ export class O {
 	}
 
   #mutate(fn: (project: TimelineFile) => TimelineFile) {
-    this.state.project = fn(this.state.project)
+    this.timeline = fn(this.timeline)
   }
 
 	register(item: Item.Any) {

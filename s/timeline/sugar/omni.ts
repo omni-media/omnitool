@@ -28,17 +28,15 @@ export class Omni {
 
 	timeline = (fn: (o: O) => Item.Any): TimelineFile => {
 		const o = new O({
-			project: {
-				format: "timeline",
-				info: "https://omniclip.app/",
-				version: 0,
-				items: [],
-				rootId: 0
-			}
+			format: "timeline",
+			info: "https://omniclip.app/",
+			version: 0,
+			items: [],
+			rootId: 0
 		})
 		const root = fn(o)
-		o.state.project.rootId = root.id
-		return o.state.project
+		o.timeline.rootId = root.id
+		return o.timeline
 	}
 
 	playback = async (timeline: TimelineFile) => {

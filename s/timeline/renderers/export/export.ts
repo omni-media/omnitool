@@ -31,7 +31,7 @@ export class Export {
 		const videoWriter = videoStream.writable.getWriter()
 		const audioWriter = audioStream.writable.getWriter()
 
-		const encodePromise = this.driver.encode({
+		const encode = this.driver.encode({
 			video: videoStream.readable,
 			audio: audioStream.readable,
 			config: {
@@ -40,12 +40,14 @@ export class Export {
 			}
 		})
 
-		const audioPromise = this.#produceAudio(timeline, audioWriter)
-		const videoPromise = this.#produceVideo(timeline, frameRate, videoWriter)
+		const audio = this.#produceAudio(timeline, audioWriter)
+		const video = this.#produceVideo(timeline, frameRate, videoWriter)
 
-		await audioPromise
-		await videoPromise
-		await encodePromise
+		await Promise.all([
+			audio,
+			video,
+			encode
+		])
 	}
 
 	async #produceAudio(
@@ -53,9 +55,9 @@ export class Export {
 		writer: WritableStreamDefaultWriter<AudioData>
 	) {
 		const mixer = new AudioMix()
-		const inputs = this.makeAudioInputs(timeline)
+		const stream = this.#streamAudio(timeline)
 
-		for await (const chunk of mixer.mix(inputs)) {
+		for await (const chunk of mixer.mix(stream)) {
 			const data = new AudioData({
 				format: 'f32-planar',
 				sampleRate: chunk.sampleRate,
@@ -75,34 +77,30 @@ export class Export {
 
 	async #produceVideo(
 		timeline: TimelineFile,
-		frameRate: Fps,
+		fps: Fps,
 		writer: WritableStreamDefaultWriter<VideoFrame>
 	) {
 		const cursor = this.#cursor.cursor(timeline)
-		let i = 0
-		const dt = 1 / frameRate
+		const dt = 1 / fps
 		const duration = computeTimelineDuration(timeline.rootId, timeline)
 
-		await fixedStep(
-			{fps: frameRate, duration},
-			async timecode => {
-				const layers = await cursor.next(timecode)
-				const composed = await this.driver.composite(layers)
+		await fixedStep({fps, duration}, async (timecode, i) => {
+			const layers = await cursor.next(timecode)
+			const composed = await this.driver.composite(layers)
 
-				const vf = new VideoFrame(composed, {
-					timestamp: Math.round(i * dt * 1_000_000),
-					duration: Math.round(dt * 1_000_000)
-				})
+			const frame = new VideoFrame(composed, {
+				timestamp: Math.round(i * dt * 1_000_000),
+				duration: Math.round(dt * 1_000_000)
+			})
 
-				await writer.write(vf)
-				composed.close()
-				i++
-			}
-		)
+			await writer.write(frame)
+			composed.close()
+		})
+
 		await writer.close()
 	}
 
-	async *makeAudioInputs(timeline: TimelineFile) {
+	async *#streamAudio(timeline: TimelineFile) {
 		const audioSampler = new AudioSampler(this.resolveMedia)
 
 		for await (const {sample, timestamp, gain}

@@ -64,10 +64,10 @@ export const setupDriverWork = (
 			}
 		},
 
-		async encode({video, audio, config, bridge}) {
+		async encode({video, audio, config, writable}) {
 			const output = new Output({
 				format: new Mp4OutputFormat(),
-				target: new StreamTarget(bridge, {chunked: true})
+				target: new StreamTarget(writable, {chunked: true})
 			})
 			// since AudioSample is not transferable it fails to transfer encoder bitrate config
 			// so it needs to be hardcoded not set through constants eg QUALITY_LOW

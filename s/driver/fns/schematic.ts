@@ -26,7 +26,7 @@ export type DriverSchematic = AsSchematic<{
 			end?: number
 		}): Promise<void>
 
-		encode(input: EncoderInput & {bridge: WritableStream<StreamTargetChunk>}): Promise<void>
+		encode(input: EncoderInput & {writable: WritableStream<StreamTargetChunk>}): Promise<void>
 	}
 
 	// happens on the main thread

@@ -4,7 +4,7 @@ import {fps} from "../../../units/fps.js"
 import {Playback} from "./parts/playback.js"
 import {Driver} from "../../../driver/driver.js"
 import {TimelineFile} from "../../parts/basics.js"
-import {computeTimelineDuration} from "../parts/handy.js"
+import {computeItemDuration} from "../parts/handy.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 
 type ResolveMedia = (hash: string) => DecoderSource
@@ -49,7 +49,7 @@ export class VideoPlayer {
 	}
 
 	getDuration() {
-		return computeTimelineDuration(
+		return computeItemDuration(
 			this.timeline.rootId,
 			this.timeline
 		)

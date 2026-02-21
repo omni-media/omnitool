@@ -297,12 +297,11 @@ function walkFrom(
 	}
 }
 
-export function computeTimelineDuration(
+export function computeItemDuration(
 	id: number,
 	timeline: TimelineFile
 ): Ms {
-	const item = timeline.items
-		.find(item => item.id === id)
+	const item = timeline.items.find(item => item.id === id)
 
 	if (!item) return ms(0)
 
@@ -317,25 +316,21 @@ export function computeTimelineDuration(
 			for (let i = 0; i < children.length; i++) {
 				const child = children[i]
 
-				if (child.kind === Kind.Transition)
-					continue
+				if (child.kind === Kind.Transition) {
+					const prev = children[i - 1]
+					const next = children[i + 1]
 
-				const next = children[i + 1]
-				const nextNext = children[i + 2]
+					if (prev && next && prev.kind !== Kind.Transition && next.kind !== Kind.Transition) {
+						const prevDur = computeItemDuration(prev.id, timeline)
+						const nextDur = computeItemDuration(next.id, timeline)
+						const overlap = Math.max(0, Math.min(child.duration, prevDur, nextDur))
 
-				if (next?.kind === Kind.Transition && nextNext && nextNext.kind !== Kind.Transition) {
-					const outgoingDur = computeTimelineDuration(child.id, timeline)
-					const incomingDur = computeTimelineDuration(nextNext.id, timeline)
-					const overlap = Math.max(
-						0,
-						Math.min(next.duration, outgoingDur, incomingDur)
-					)
-					total = ms(total + outgoingDur + incomingDur - overlap)
-					i += 2
+						total = ms(total - overlap)
+					}
 					continue
 				}
 
-				total = ms(total + computeTimelineDuration(child.id, timeline))
+				total = ms(total + computeItemDuration(child.id, timeline))
 			}
 
 			return total
@@ -345,17 +340,21 @@ export function computeTimelineDuration(
 			let longest = ms(0)
 
 			for (const childId of item.childrenIds) {
-				const duration = computeTimelineDuration(childId, timeline)
-				if (duration > longest)
+				const duration = computeItemDuration(childId, timeline)
+				if (duration > longest) {
 					longest = duration
+				}
 			}
 
 			return longest
 		}
 
-		default:
-			// audio / video / text
-			return isPlayableItem(item) ? item.duration : ms(0)
+		default: {
+			if (!isPlayableItem(item))
+				return ms(0)
+
+			return item.duration
+		}
 	}
 }
 

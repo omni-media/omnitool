@@ -7,7 +7,7 @@ import {Item} from "../parts/item.js"
 import {Driver} from "../../driver/driver.js"
 import {Datafile} from "../utils/datafile.js"
 import {loadVideo} from "../../demo/routines/load-video.js"
-import {computeTimelineDuration} from "../renderers/parts/handy.js"
+import {computeItemDuration} from "../renderers/parts/handy.js"
 
 export async function setupTest() {
 	const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
@@ -33,8 +33,8 @@ export default Science.suite({
 		const video = o.video(videoA)
 		o.addChildren(rootItem, video)
 
-		const videoDuration = computeTimelineDuration(video.id, o.timeline)
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const videoDuration = computeItemDuration(video.id, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 
 		expect(videoDuration).is(timelineDuration)
 	}),
@@ -46,7 +46,8 @@ export default Science.suite({
 			o.video(videoA),
 			o.video(videoA),
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
+		console.log(timelineDuration, "dur")
 		expect(timelineDuration).is(videoA.duration * 3)
 	}),
 
@@ -57,7 +58,7 @@ export default Science.suite({
 			o.video(videoA),
 			o.video(videoA),
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(videoA.duration)
 	}),
 
@@ -71,7 +72,7 @@ export default Science.suite({
 			),
 			o.video(videoA),
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(videoA.duration * 3)
 	}),
 
@@ -84,7 +85,7 @@ export default Science.suite({
 				o.video(videoA)
 			)
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(videoA.duration * 2)
 	}),
 
@@ -92,8 +93,8 @@ export default Science.suite({
 		const {omni} = await setupTest()
 		const o1 = new O(omni.timeline(o => o.sequence()))
 		const o2 = new O(omni.timeline(o => o.stack()))
-		const duration1 = computeTimelineDuration(o1.timeline.rootId, o1.timeline)
-		const duration2 = computeTimelineDuration(o2.timeline.rootId, o2.timeline)
+		const duration1 = computeItemDuration(o1.timeline.rootId, o1.timeline)
+		const duration2 = computeItemDuration(o2.timeline.rootId, o2.timeline)
 		expect(duration1).is(0)
 		expect(duration2).is(0)
 	}),
@@ -106,7 +107,7 @@ export default Science.suite({
 			o.transition.crossfade(transitionDuration),
 			o.video(videoA)
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		const expectedDuration = (videoA.duration * 2) - transitionDuration
 		expect(timelineDuration).is(expectedDuration)
 	}),
@@ -119,7 +120,7 @@ export default Science.suite({
 			o.transition.crossfade(transitionDuration),
 			o.video(videoA)
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(videoA.duration)
 	}),
 
@@ -131,7 +132,7 @@ export default Science.suite({
 			o.video(videoA),
 			o.transition.crossfade(1000),
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(videoA.duration * 2)
 	}),
 
@@ -143,7 +144,7 @@ export default Science.suite({
 			o.transition.crossfade(duration * 2),
 			o.video(videoA, {duration})
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(duration)
 	}),
 
@@ -157,7 +158,7 @@ export default Science.suite({
 			o.transition.crossfade(transitionDuration),
 			o.video(videoA)
 		)))
-		const timelineDuration = computeTimelineDuration(o.timeline.rootId, o.timeline)
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		const expected = (videoA.duration * 3) - (transitionDuration * 2)
 		expect(timelineDuration).is(expected)
 	}),

@@ -4,7 +4,7 @@ import {CursorLayerSampler} from "./cursor.js"
 import {Driver} from "../../../../driver/driver.js"
 import {fixedStep} from "../../parts/schedulers.js"
 import {TimelineFile} from "../../../parts/basics.js"
-import {computeTimelineDuration} from "../../parts/handy.js"
+import {computeItemDuration} from "../../parts/handy.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 
 export function produceVideo({
@@ -24,7 +24,7 @@ export function produceVideo({
 	const sampler = new CursorLayerSampler(driver, resolveMedia)
 	const cursor = sampler.cursor(timeline)
 	const dt = 1 / fps
-	const duration = computeTimelineDuration(timeline.rootId, timeline)
+	const duration = computeItemDuration(timeline.rootId, timeline)
 
 	async function produce() {
 		await fixedStep({fps, duration}, async (timecode, i) => {

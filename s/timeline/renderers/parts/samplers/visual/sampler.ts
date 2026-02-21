@@ -3,7 +3,7 @@ import {VideoSink} from "./parts/sink.js"
 import {ms, Ms} from "../../../../../units/ms.js"
 import {TimelineFile} from "../../../../parts/basics.js"
 import {ContainerItem, Item, Kind} from "../../../../parts/item.js"
-import {computeTimelineDuration, computeWorldMatrix} from "../../handy.js"
+import {computeItemDuration, computeWorldMatrix} from "../../handy.js"
 import {DecoderSource, Layer} from "../../../../../driver/fns/schematic.js"
 import {createDefaultVideoSampler, VideoSampler} from "./parts/defaults.js"
 
@@ -87,7 +87,7 @@ export class LayerSampler {
 		ancestors: ContainerItem[]
 	): Promise<Layer[]> {
 
-		const state = this.#resolveSequenceAtTime(
+		const state = this.#resolveSequenceAt(
 			timeline,
 			items,
 			seq,
@@ -99,7 +99,7 @@ export class LayerSampler {
 
 		const nextAnc = [...ancestors, seq]
 
-		if (state.type === 'single') {
+		if (!state.isTransitioning) {
 			return this.#sampleItem(
 				timeline,
 				items,
@@ -129,7 +129,7 @@ export class LayerSampler {
 		)
 	}
 
-	#resolveSequenceAtTime(
+	#resolveSequenceAt(
 		timeline: TimelineFile,
 		items: Map<number, Item.Any>,
 		seq: Item.Sequence,
@@ -144,28 +144,27 @@ export class LayerSampler {
 
 		for (let i = 0; i < children.length; i++) {
 
-			const outgoing = children[i]
-			if (outgoing.kind === Kind.Transition)
+			const currentItem = children[i]
+			if (currentItem.kind === Kind.Transition)
 				continue
 
-			const outDur = computeTimelineDuration(outgoing.id, timeline)
-
-			const outStart = cursor
-			const outEnd = ms(outStart + outDur)
+			const currentItemStart = cursor
+			const currentItemDuration = computeItemDuration(currentItem.id, timeline)
+			const currentItemEnd = ms(currentItemStart + currentItemDuration)
 
 			const next = children[i + 1]
 			const hasTransition = next?.kind === Kind.Transition
 
 			if (!hasTransition) {
-				if (time < outEnd) {
+				if (time < currentItemEnd) {
 					return {
-						type: 'single',
-						item: outgoing,
-						localTime: ms(time - outStart)
+						isTransitioning: false,
+						item: currentItem,
+						localTime: ms(time - currentItemStart)
 					} as const
 				}
 
-				cursor = outEnd
+				cursor = currentItemEnd
 				continue
 			}
 
@@ -173,33 +172,30 @@ export class LayerSampler {
 			const incoming = children[i + 2]
 
 			if (!incoming || incoming.kind === Kind.Transition) {
-				cursor = outEnd
+				cursor = currentItemEnd
 				continue
 			}
 
-			const inDur = computeTimelineDuration(incoming.id, timeline)
+			const incomingItemDuration = computeItemDuration(incoming.id, timeline)
+			const overlap = Math.max(0, Math.min(transition.duration, currentItemDuration, incomingItemDuration))
+			const currentItemSoloEnd = ms(currentItemEnd - overlap)
 
-			const overlap =
-				Math.max(0, Math.min(transition.duration, outDur, inDur))
-
-			const outSoloEnd = ms(outEnd - overlap)
-
-			if (time < outSoloEnd) {
+			if (time < currentItemSoloEnd) {
 				return {
-					type: 'single',
-					item: outgoing,
-					localTime: ms(time - outStart)
+					isTransitioning: false,
+					item: currentItem,
+					localTime: ms(time - currentItemStart)
 				} as const
 			}
 
-			if (time < outEnd) {
-				const inLocal = ms(time - outSoloEnd)
-				const outLocal = ms(time - outStart)
+			if (time < currentItemEnd) {
+				const inLocal = ms(time - currentItemSoloEnd)
+				const outLocal = ms(time - currentItemStart)
 
 				return {
-					type: 'transition',
-					outgoing,
+					isTransitioning: true,
 					incoming,
+					outgoing: currentItem,
 					outgoingTime: outLocal,
 					incomingTime: inLocal,
 					progress: overlap > 0 ? inLocal / overlap : 1,
@@ -207,7 +203,7 @@ export class LayerSampler {
 				} as const
 			}
 
-			cursor = outSoloEnd
+			cursor = currentItemSoloEnd
 			i++
 		}
 

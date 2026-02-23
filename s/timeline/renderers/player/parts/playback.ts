@@ -5,14 +5,14 @@ import {realtime} from '../../parts/schedulers.js'
 import {TimelineFile} from '../../../parts/basics.js'
 import {seconds, Seconds} from '../../../../units/seconds.js'
 import {DecoderSource} from '../../../../driver/fns/schematic.js'
-import {AudioSampler} from '../../parts/samplers/audio/sampler.js'
-import {LayerSampler} from '../../parts/samplers/visual/sampler.js'
+import {createAudioSampler} from '../../parts/samplers/audio/sampler.js'
+import {createVisualSampler} from '../../parts/samplers/visual/sampler.js'
 
 export class Playback {
-	visualSampler: LayerSampler
-	audioSampler: AudioSampler
-	#playbackStart = ms(0)
+	visualSampler
+	audioSampler
 
+	#playbackStart = ms(0)
 	#audioStartSec: number | null = null
 
 	#controller = realtime()
@@ -21,7 +21,6 @@ export class Playback {
 	audioContext = new AudioContext({sampleRate: 48000})
 	audioGain = this.audioContext.createGain()
 	audioNodes = new Set<AudioBufferSourceNode>()
-
 	#audioAbort: AbortController | null = null
 
 	constructor(
@@ -30,8 +29,8 @@ export class Playback {
 	) {
 		this.audioGain.connect(this.audioContext.destination)
 		this.audioGain.gain.value = 0.7 ** 2
-		this.visualSampler = new LayerSampler(this.resolveMedia)
-		this.audioSampler = new AudioSampler(this.resolveMedia)
+		this.visualSampler = createVisualSampler(this.resolveMedia)
+		this.audioSampler = createAudioSampler(this.resolveMedia)
 	}
 
 	async *samples() {

@@ -3,8 +3,8 @@ import {ms, Ms} from "../../../../units/ms.js"
 import {Item} from "../../../parts/item.js"
 import {Driver} from "../../../../driver/driver.js"
 import {TimelineFile} from "../../../parts/basics.js"
-import {LayerSampler} from "../../parts/samplers/visual/sampler.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
+import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
 
 /**
  * forward-only frame cursor optimized for export purposes.
@@ -13,14 +13,14 @@ import {DecoderSource} from "../../../../driver/fns/schematic.js"
  */
 
 export class CursorLayerSampler {
-	#sampler: LayerSampler
+	#sampler
 	#videoCursors = new Map<number, VideoFrameCursor>()
 
 	constructor(
 		private driver: Driver,
 		private resolveMedia: (hash: string) => DecoderSource
 	) {
-		this.#sampler = new LayerSampler(resolveMedia, (item, time) => {
+		this.#sampler = createVisualSampler(resolveMedia, (item, time) => {
 			const mediaTime = toUs(ms(item.start + time))
 			const cursor = this.#getCursorForVideo(item)
 			return cursor.next(mediaTime)

@@ -9,7 +9,7 @@ type SinkState = {
 	sink: AudioSampleSink | null
 }
 
-export class AudioSink {
+export class AudioSinkPool {
 	readonly #sinks = new Map<string, SinkState>()
 
 	constructor(

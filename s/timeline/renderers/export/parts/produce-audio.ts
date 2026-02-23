@@ -5,7 +5,7 @@ import {resampleToPlanar} from "./resamplers.js"
 import {applyGainToPlanar} from "./audio-gain.js"
 import {TimelineFile} from "../../../parts/basics.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
-import {AudioSampler} from "../../parts/samplers/audio/sampler.js"
+import {createAudioSampler} from "../../parts/samplers/audio/sampler.js"
 
 export function produceAudio({
 	timeline,
@@ -44,7 +44,7 @@ export function produceAudio({
 }
 
 async function *streamAudio(timeline: TimelineFile, resolveMedia: (hash: string) => DecoderSource) {
-	const audioSampler = new AudioSampler(resolveMedia)
+	const audioSampler = createAudioSampler(resolveMedia)
 
 	for await (const {sample, timestamp, gain}
 		of audioSampler.sampleAudio(timeline, ms(0))) {

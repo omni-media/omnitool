@@ -28,9 +28,7 @@ export class VideoSink {
 		})
 
 		const videoTrack = await input.getPrimaryVideoTrack()
-
 		const canDecodeVideo = !!videoTrack && await videoTrack.canDecode()
-
 		const sink = canDecodeVideo && videoTrack ? new VideoSampleSink(videoTrack) : null
 
 		this.#sinks.set(hash, {input, sink})

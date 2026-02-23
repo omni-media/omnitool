@@ -28,9 +28,7 @@ export class AudioSink {
 		})
 
 		const audioTrack = await input.getPrimaryAudioTrack()
-
 		const canDecodeAudio = !!audioTrack && await audioTrack.canDecode()
-
 		const sink = canDecodeAudio && audioTrack ? new AudioSampleSink(audioTrack) : null
 
 		this.#sinks.set(hash, {input, sink})

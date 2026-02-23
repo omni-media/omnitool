@@ -2,101 +2,113 @@
 import {AudioSample} from "mediabunny"
 
 import {itemsFrom} from "../../handy.js"
-import {Kind} from "../../../../parts/item.js"
 import {AudioSink} from "./parts/sink.js"
 import {Ms} from "../../../../../units/ms.js"
+import {Kind} from "../../../../parts/item.js"
 import {TimelineFile} from "../../../../parts/basics.js"
+import {seconds, Seconds} from "../../../../../units/seconds.js"
 import {DecoderSource} from "../../../../../driver/fns/schematic.js"
 
-type AudioStreamState = {
-	iter: AsyncGenerator<AudioSample>
-	offsetSec: number
+type ActiveStream = {
+	offset: Seconds
 	gain: number
-	current: AudioSample | null
-	nextPromise: Promise<IteratorResult<AudioSample>> | null
-}
-
-export class AudioSampler {
-	#sink
-
-	constructor(
-		resolveMedia: (hash: string) => DecoderSource
-	) {
-		this.#sink = new AudioSink(resolveMedia)
-	}
-
-	async *sampleAudio(
-		timeline: TimelineFile,
-		from: Ms
-	): AsyncGenerator<{
+	currentSample: AudioSample
+	timelineTime: () => Seconds
+	output: () => {
 		sample: AudioSample
 		timestamp: number
 		gain: number
-	}> {
-		const timelineFromSec = from / 1000
-		const items = itemsFrom({ timeline, from })
+	}
+	advance: () => Promise<boolean>
+}
 
-		const streams: AudioStreamState[] = []
+export class AudioSampler {
+	readonly #sink: AudioSink
 
-		await Promise.all(items.map(async ({ item, localTime }) => {
-			if (item.kind !== Kind.Audio)
-				return
+	constructor(resolveMedia: (hash: string) => DecoderSource) {
+		this.#sink = new AudioSink(resolveMedia)
+	}
 
-			const sink = await this.#sink.getSink(item.mediaHash)
-			if (!sink)
-				return
-
-			const localTimeSec = (item.start + localTime) / 1000
-			const offset = timelineFromSec - localTimeSec
-			const iter = sink.samples(localTimeSec)
-			const first = await iter.next()
-
-			if (first.done)
-				return
-
-			streams.push({
-				iter,
-				offsetSec: offset,
-				gain: item.gain ?? 1,
-				current: first.value,
-				nextPromise: iter.next()
-			})
-		}))
+	async *sampleAudio(timeline: TimelineFile, from: Ms) {
+		const items = itemsFrom({timeline, from})
+		const streams = await this.#initStreams(items, from)
 
 		while (streams.length > 0) {
-			let bestIndex = 0
-			let bestTime =
-				streams[0].offsetSec +
-				streams[0].current!.timestamp
+			const {stream, index} = this.#findEarliestStream(streams)
 
-			for (let i = 1; i < streams.length; i++) {
-				const ts =
-					streams[i].offsetSec +
-					streams[i].current!.timestamp
+			yield stream.output()
 
-				if (ts < bestTime) {
-					bestTime = ts
-					bestIndex = i
-				}
-			}
+			const advancing = await stream.advance()
 
-			const stream = streams[bestIndex]
-
-			yield {
-				sample: stream.current!,
-				timestamp: stream.offsetSec + stream.current!.timestamp,
-				gain: stream.gain
-			}
-
-			const result = await stream.nextPromise!
-
-			if (result.done) {
-				streams.splice(bestIndex, 1)
-			} else {
-				stream.current = result.value
-				stream.nextPromise = stream.iter.next()
+			if (!advancing) {
+				streams.splice(index, 1)
 			}
 		}
+	}
+
+	async #initStreams(items: ReturnType<typeof itemsFrom>, from: Ms): Promise<ActiveStream[]> {
+		const streams = await Promise.all(
+			items.map(async ({item, localTime}) => {
+				if (item.kind !== Kind.Audio)
+					return
+
+				const sink = await this.#sink.getSink(item.mediaHash)
+				if (!sink)
+					return
+
+				const mediaTime = item.start + localTime
+				const offset = seconds((from - mediaTime) / 1000)
+				const iter = sink.samples(mediaTime / 1000)
+
+				const first = await iter.next()
+				if (first.done)
+					return
+
+				let currentSample = first.value
+				let nextPromise = iter.next()
+
+				return {
+					offset,
+					gain: item.gain ?? 1,
+					get currentSample() {return currentSample},
+					timelineTime: () => seconds(offset + currentSample.timestamp),
+					output: () => ({
+						sample: currentSample,
+						timestamp: offset + currentSample.timestamp,
+						gain: item.gain ?? 1
+					}),
+					advance: async () => {
+						const result = await nextPromise
+						if (result.done)
+							return false
+
+						currentSample = result.value
+						nextPromise = iter.next()
+
+						return true
+					}
+				}
+			})
+		)
+
+		return streams.filter((stream): stream is ActiveStream => !!stream)
+	}
+
+	#findEarliestStream(streams: ActiveStream[]) {
+		let earliest = {
+			index: 0,
+			stream: streams[0],
+			time: streams[0].timelineTime()
+		}
+
+		for (const [index, stream] of streams.entries()) {
+			const time = stream.timelineTime()
+			if (time < earliest.time) {
+				earliest = {time, stream, index}
+			}
+		}
+
+		return earliest
 	}
 }
 

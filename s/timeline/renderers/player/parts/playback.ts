@@ -77,7 +77,7 @@ export class Playback {
 	}
 
 	get currentTime() {
-		if (!this.#controller.isPlaying() || !this.#audioStartSec)
+		if (!this.#controller.isPlaying() || this.#audioStartSec === null)
 			return this.#playbackStart
 
 		const elapsedMs = (this.audioContext.currentTime - this.#audioStartSec) * 1000
@@ -91,7 +91,7 @@ export class Playback {
 	async #startAudio(signal: AbortSignal, from: Seconds) {
 		const ctx = this.audioContext
 
-		if (!this.#audioStartSec)
+		if (this.#audioStartSec === null)
 			return
 
 		for await (const {sample, timestamp} of this.audioSampler.sampleAudio(

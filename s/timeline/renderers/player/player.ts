@@ -29,7 +29,7 @@ export class VideoPlayer {
 			const frame = await this.driver.composite(layers)
 			frame.close()
 
-			if (this.currentTime() >= this.getDuration())
+			if (this.currentTime >= this.duration)
 				this.pause()
 		}
 	}
@@ -48,14 +48,14 @@ export class VideoPlayer {
 		this.playback.setFps(fps(value))
 	}
 
-	getDuration() {
+	get duration() {
 		return computeItemDuration(
 			this.timeline.rootId,
 			this.timeline
 		)
 	}
 
-	currentTime() {
+	get currentTime() {
 		return this.playback.currentTime
 	}
 

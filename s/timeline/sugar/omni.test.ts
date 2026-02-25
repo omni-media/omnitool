@@ -9,8 +9,9 @@ import {Datafile} from "../utils/datafile.js"
 import {loadVideo} from "../../demo/routines/load-video.js"
 import {computeItemDuration} from "../renderers/parts/handy.js"
 
+const workerUrl = new URL("../driver/driver.worker.bundle.min.js", import.meta.url)
 export async function setupTest() {
-	const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
+	const driver = await Driver.setup({workerUrl})
 	const omni = new Omni(driver)
 
 	const testVideo = await loadVideo("/assets/temp/test.mp4")
@@ -47,7 +48,6 @@ export default Science.suite({
 			o.video(videoA),
 		)))
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
-		console.log(timelineDuration, "dur")
 		expect(timelineDuration).is(videoA.duration * 3)
 	}),
 
@@ -162,5 +162,49 @@ export default Science.suite({
 		const expected = (videoA.duration * 3) - (transitionDuration * 2)
 		expect(timelineDuration).is(expected)
 	}),
+
+	"gap item in a sequence": test(async () => {
+		const {omni, videoA} = await setupTest()
+		const gapDuration = 1000
+		const o = new O(omni.timeline(o => o.sequence(
+			o.video(videoA),
+			o.gap(gapDuration),
+			o.video(videoA)
+		)))
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
+		const expected = videoA.duration * 2 + gapDuration
+		expect(timelineDuration).is(expected)
+	}),
+
+	"gap item in a stack": test(async () => {
+		const {omni, videoA} = await setupTest()
+		const o = new O(omni.timeline(o => o.stack(
+			o.video(videoA),
+			o.gap(1000),
+			o.video(videoA)
+		)))
+		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
+		expect(timelineDuration).is(videoA.duration)
+	}),
+
+	"load media into Omni": test(async () => {
+		const driver = await Driver.setup({workerUrl})
+		const omni = new Omni(driver)
+		const testVideo = await loadVideo("/assets/temp/test.mp4")
+		const {videoA} = await omni.load({videoA: Datafile.make(testVideo, "test.mp4")})
+		expect(omni.resources.require(videoA.datafile.checksum.hash)).happy()
+	}),
+
+	"playback seeks to correct time": test(async () => {
+		const {omni, videoA} = await setupTest()
+		const o = new O(omni.timeline(o => o.sequence(
+			o.video(videoA, {duration: 2000}),
+			o.gap(500),
+			o.video(videoA, {duration: 2500})
+		)))
+		const playback = await omni.playback(o.timeline)
+		await playback.seek(1000)
+		expect(playback.currentTime).is(1000)
+	})
 })
 

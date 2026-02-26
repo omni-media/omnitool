@@ -1,5 +1,5 @@
 
-export const resampleLinear = (
+const resampleLinear = (
 	src: Float32Array,
 	fromRate: number,
 	targetRate: number

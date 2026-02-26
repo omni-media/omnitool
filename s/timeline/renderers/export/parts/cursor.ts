@@ -28,8 +28,14 @@ export class CursorVisualSampler {
 	}
 
 	cursor(timeline: TimelineFile) {
+		let lastTimecode = Number.NEGATIVE_INFINITY
 		return {
-			next: (timecode: Ms) => this.#sampler.sample(timeline, timecode),
+			next: (timecode: Ms) => {
+				if (timecode < lastTimecode)
+					throw new Error(`CursorVisualSampler is forward-only: requested ${timecode}ms after ${lastTimecode}ms`)
+				lastTimecode = timecode
+				return this.#sampler.sample(timeline, timecode)
+			},
 			cancel: () => this.#cancel(),
 		}
 	}

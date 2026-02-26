@@ -12,7 +12,7 @@ import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
  * should be done from mediabunny custom decoder/encoder
  */
 
-export class CursorLayerSampler {
+export class CursorVisualSampler {
 	#sampler
 	#videoCursors = new Map<number, VideoFrameCursor>()
 

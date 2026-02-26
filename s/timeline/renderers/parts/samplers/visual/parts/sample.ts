@@ -48,6 +48,10 @@ export async function sampleVisual(
 			return [{id: item.id, kind: "text", content: item.content, style, matrix}]
 		}
 
+		case Kind.Gap: {
+			return [{id: item.id, kind: "gap"}]
+		}
+
 		default:
 			return []
 	}

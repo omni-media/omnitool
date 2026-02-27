@@ -52,7 +52,7 @@ export class O {
   	return item
   }
 
-	sequence = (...items: Item.Any[]): Item.Any => {
+	sequence = (...items: Item.Any[]): Item.Sequence => {
 		const item =  {
 			id: this.#getId(),
 			kind: Kind.Sequence,
@@ -62,7 +62,7 @@ export class O {
 		return item
 	}
 
-	stack = (...items: Item.Any[]): Item.Any => {
+	stack = (...items: Item.Any[]): Item.Stack => {
 		const item = {
 			kind: Kind.Stack,
 			id: this.#getId(),

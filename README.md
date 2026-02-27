@@ -19,6 +19,8 @@ npm i @omnimedia/omnitool
 
 ## 📦 Quick Start
 
+#### Declaring the timeline
+
 ```ts
 import {Driver, Omni, Datafile} from "@omnimedia/omnitool"
 
@@ -47,6 +49,30 @@ const timeline = omni.timeline(o => {
 		o.audio(clip, {start: 5000, duration: 2500})
 	)
 })
+```
+
+Declarative helper style (no explicit `o` in timeline declarations):
+
+```ts
+import {
+	Driver, Omni, Datafile,
+	timeline, stack, video, audio, text, gap, transition
+} from "@omnimedia/omnitool"
+
+const driver = await Driver.setup()
+const omni = new Omni(driver)
+const {clip} = await omni.load({clip: Datafile.make(file)})
+
+const timeline = timeline(
+	stack(
+		video(clip, {start: 0, duration: 3000}),
+		text("Hello world", {duration: 1500}),
+	),
+	gap(400),
+	transition.crossfade(500),
+	video(clip, {start: 5000, duration: 2500}),
+	audio(clip, {start: 5000, duration: 2500})
+)
 ```
 
 ## 🧭 Spatial Transforms

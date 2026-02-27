@@ -27,7 +27,8 @@ export class Media {
 			formats: ALL_FORMATS,
 			source: await loadDecoderSource(source)
 		})
-		return await input.computeDuration()
+		const duration =  await input.computeDuration()
+		return Number(duration.toFixed(5)) // fix weird floating points
 	}
 
 	static async #has(source: DecoderSource) {

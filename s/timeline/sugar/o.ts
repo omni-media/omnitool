@@ -7,12 +7,12 @@ import {Effect, Item, Kind} from "../parts/item.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
 
 export class O {
-	constructor(public state: {project: TimelineFile}) {}
+	constructor(public timeline: TimelineFile) {}
 
 	require<T extends Item.Any>(id: Id | undefined) {
     if (id === undefined)
     	return undefined
-    const item = this.state.project.items.find(item => item.id === id)
+    const item = this.timeline.items.find(item => item.id === id)
     return item as T | undefined
 	}
 
@@ -21,7 +21,7 @@ export class O {
 	}
 
   #mutate(fn: (project: TimelineFile) => TimelineFile) {
-    this.state.project = fn(this.state.project)
+    this.timeline = fn(this.timeline)
   }
 
 	register(item: Item.Any) {
@@ -52,7 +52,7 @@ export class O {
   	return item
   }
 
-	sequence = (...items: Item.Any[]): Item.Any => {
+	sequence = (...items: Item.Any[]): Item.Sequence => {
 		const item =  {
 			id: this.#getId(),
 			kind: Kind.Sequence,
@@ -62,7 +62,7 @@ export class O {
 		return item
 	}
 
-	stack = (...items: Item.Any[]): Item.Any => {
+	stack = (...items: Item.Any[]): Item.Stack => {
 		const item = {
 			kind: Kind.Stack,
 			id: this.#getId(),
@@ -97,7 +97,8 @@ export class O {
 		media: Media,
 		options?: {
 			start?: number,
-			duration?: number
+			duration?: number,
+			gain?: number
 		}): Item.Audio => {
 
 		if(!media.hasAudio)
@@ -108,7 +109,8 @@ export class O {
 			id: this.#getId(),
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
-			duration: options?.duration ?? media.duration
+			duration: options?.duration ?? media.duration,
+			gain: options?.gain ?? 1
 		}
 		this.register(item)
 		return item

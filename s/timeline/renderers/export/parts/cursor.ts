@@ -1,32 +1,44 @@
 
-import {Item} from "../../item.js"
-import {Sampler} from "./sampler.js"
-import {TimelineFile} from "../../basics.js"
 import {ms, Ms} from "../../../../units/ms.js"
+import {Item} from "../../../parts/item.js"
 import {Driver} from "../../../../driver/driver.js"
+import {TimelineFile} from "../../../parts/basics.js"
+import {DecoderSource} from "../../../../driver/fns/schematic.js"
+import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
 
 /**
- * forward-only frame cursor for a single clip instance.
+ * forward-only frame cursor optimized for export purposes.
  * it uses mediabunny internally so the support for non-clients
  * should be done from mediabunny custom decoder/encoder
  */
 
-export class VideoCursor {
-	#sampler = new Sampler(async (item, localTime, matrix) => {
-		const mediaTime = toUs(ms(item.start + localTime))
-		const cursor = this.#getCursorForVideo(item)
-		const frame = await cursor.next(mediaTime)
-		return frame
-			? [{ kind: "image", frame, matrix, id: item.id }]
-			: []
-	})
-
+export class CursorVisualSampler {
+	#sampler
 	#videoCursors = new Map<number, VideoFrameCursor>()
 
 	constructor(
 		private driver: Driver,
-		private resolveMedia: (hash: string) => any
-	) { }
+		private resolveMedia: (hash: string) => DecoderSource
+	) {
+		this.#sampler = createVisualSampler(resolveMedia, (item, time) => {
+			const mediaTime = toUs(ms(item.start + time))
+			const cursor = this.#getCursorForVideo(item)
+			return cursor.next(mediaTime)
+		})
+	}
+
+	cursor(timeline: TimelineFile) {
+		let lastTimecode = Number.NEGATIVE_INFINITY
+		return {
+			next: (timecode: Ms) => {
+				if (timecode < lastTimecode)
+					throw new Error(`CursorVisualSampler is forward-only: requested ${timecode}ms after ${lastTimecode}ms`)
+				lastTimecode = timecode
+				return this.#sampler.sample(timeline, timecode)
+			},
+			cancel: () => this.#cancel(),
+		}
+	}
 
 	#getCursorForVideo(videoItem: Item.Video) {
 		const existing = this.#videoCursors.get(videoItem.id)
@@ -39,6 +51,13 @@ export class VideoCursor {
 
 		this.#videoCursors.set(videoItem.id, cursor)
 		return cursor
+	}
+
+	async #cancel() {
+		await Promise.all(
+			[...this.#videoCursors.values()].map(cursor => cursor.cancel())
+		)
+		this.#videoCursors.clear()
 	}
 
 	// forward only
@@ -77,12 +96,6 @@ export class VideoCursor {
 			cancel: async () => await reader.cancel()
 		}
 	}
-
-	cursor(timeline: TimelineFile) {
-		return {
-			next: (timecode: Ms) => this.#sampler.sample(timeline, timecode)
-		}
-	}
 }
 
 const toUs = (ms: Ms) => Math.round(ms * 1_000)
@@ -93,5 +106,4 @@ type StreamCursor<T> = {
 }
 
 type VideoFrameCursor = StreamCursor<VideoFrame>
-
 

@@ -1,3 +1,4 @@
+
 import {Driver} from "../../driver/driver.js"
 import {DecoderSource} from "../../driver/fns/schematic.js"
 
@@ -36,7 +37,7 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 		})
 		const audio = driver.decodeAudio({source})
 
-		await driver.encode({
+		const {readable, done} = driver.encode({
 			video,
 			audio,
 			config: {
@@ -44,7 +45,16 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 				video: {codec: "vp9", bitrate: 1000000}
 			}
 		})
+
+		const handle = await window.showSaveFilePicker()
+		const writable = await handle.createWritable()
+
+		await Promise.all([
+			readable.pipeTo(writable),
+			done
+		])
 	}
 
 	return {canvas, run}
 }
+

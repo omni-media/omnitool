@@ -1,7 +1,6 @@
 
-export async function loadVideo(url: string): Promise<ArrayBuffer> {
+export async function loadVideo(url: string) {
 	return fetch(url)
-		.then(response => response.bytes())
-		.then(bytes => bytes.buffer)
+		.then(response => response.blob())
 }
 

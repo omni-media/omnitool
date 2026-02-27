@@ -8,7 +8,7 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 	const playhead = root.querySelector(".playhead") as HTMLDivElement
 	const timecode = root.querySelector(".timecode") as HTMLDivElement
 	const canvasSlot = root.querySelector(".player-canvas") as HTMLDivElement
-	const o = new O({project: timeline})
+	const o = new O(timeline)
 	const player = await omni.playback(timeline)
 	canvasSlot.replaceChildren(player.canvas)
 
@@ -17,11 +17,13 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 
 	playButton.addEventListener("click", () => player.play())
 	stopButton.addEventListener("click", () => player.pause())
-	scrub.max = String(Math.ceil(player.getDuration()))
+	scrub.max = String(Math.ceil(player.duration))
 
 	let isScrubbing = false
 	let pendingSeek: number | null = null
 	let seekInFlight = false
+
+	player.playback.onTick.on(() => setScrubState(player.currentTime, player.duration))
 
 	const queueSeek = async (timeMs: number) => {
 		pendingSeek = timeMs
@@ -42,14 +44,14 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 
 	scrub.addEventListener("input", async () => {
 		isScrubbing = true
-		const next = Math.max(0, Math.min(+scrub.value, player.getDuration()))
-		updateTimecode(next, player.getDuration())
+		const next = Math.max(0, Math.min(+scrub.value, player.duration))
+		updateTimecode(next, player.duration)
 		await queueSeek(next)
 	})
 
 	scrub.addEventListener("change", async () => {
 		isScrubbing = false
-		const next = Math.max(0, Math.min(+scrub.value, player.getDuration()))
+		const next = Math.max(0, Math.min(+scrub.value, player.duration))
 		await queueSeek(next)
 	})
 
@@ -61,13 +63,7 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 		updateTimecode(clamped, durationMs)
 	}
 
-	const tick = () => {
-		setScrubState(player.currentTime(), player.getDuration())
-		requestAnimationFrame(tick)
-	}
-	requestAnimationFrame(tick)
-
-	player.update(o.state.project)
+	player.update(o.timeline)
 }
 
 function formatTime(ms: number) {

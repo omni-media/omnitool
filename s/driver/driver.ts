@@ -1,3 +1,5 @@
+
+import {is} from "@e280/stz"
 import {Comrade, tune, Thread} from "@e280/comrade"
 import {ALL_FORMATS, Input, type StreamTargetChunk} from "mediabunny"
 
@@ -85,19 +87,11 @@ export class Driver {
 		return audioTransform.readable
 	}
 
-	async encode({video, audio, config}: EncoderInput) {
-		const handle = await window.showSaveFilePicker()
-		const writable = await handle.createWritable()
-		// making bridge because file picker writable is not transferable
-		const bridge = new WritableStream<StreamTargetChunk>({
-			async write(chunk) {
-				await writable.write(chunk)
-			},
-			async close() {
-				await writable.close()
-			}
-		})
-		return await this.thread.work.encode[tune]({transfer: [audio ?? [], video ?? [], bridge]})({video, audio, config, bridge})
+	encode({audio, video, config}: EncoderInput) {
+		const {readable, writable} = new TransformStream<StreamTargetChunk, StreamTargetChunk>()
+		const transfer = [audio, video, writable].filter(is.happy)
+		const done = this.thread.work.encode[tune]({transfer})({audio, video, config, writable})
+		return {readable, done}
 	}
 
 	async composite(

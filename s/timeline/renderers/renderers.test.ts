@@ -43,12 +43,12 @@ export default Science.suite({
 
 	"cursor visual sampler cannot get previous samples": test(async () => {
 		const {omni, videoA, resolveMedia, driver} = await setupTest()
-		const {timeline} = new O(omni.timeline(o => o.sequence(
+		const {timeline} = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA, {duration: 2000}),
 			o.gap(500),
 			o.video(videoA, {duration: 2000}),
 			o.audio(videoA, {duration: 500}),
-		)))
+		))})
 		const sampler = new CursorVisualSampler(driver, resolveMedia)
 		const cursor = sampler.cursor(timeline)
 		await cursor.next(ms(1000))
@@ -57,13 +57,13 @@ export default Science.suite({
 
 	"visual sampler gives correct layer at x time": test(async () => {
 		const {omni, videoA, resolveMedia} = await setupTest()
-		const {timeline} = new O(omni.timeline(o => o.sequence(
+		const {timeline} = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA, {duration: 2000}),
 			o.gap(500),
 			o.video(videoA, {duration: 2000}),
 			o.audio(videoA, {duration: 500}),
 			o.text("123", {duration: 1000})
-		)))
+		))})
 		const sampler = createVisualSampler(resolveMedia)
 		const imgLayer = await sampler.sample(timeline, ms(1000))
 		expect(imgLayer[0].kind).is("image")
@@ -349,12 +349,12 @@ export default Science.suite({
 
 	"5s long export at 30fps renders exacly 150 frames": test(async () => {
 		const {omni, videoA, driver, resolveMedia} = await setupTest()
-		const {timeline} = new O(omni.timeline(o => o.sequence(
+		const {timeline} = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA, {duration: 2000}),
 			o.gap(500),
 			o.video(videoA, {duration: 2000}),
 			o.audio(videoA, {duration: 500})
-		)))
+		))})
 		const readable = produceVideo({timeline, fps: fps(30), driver, resolveMedia})
 		let frames = 0
 		for await (const frame of readable) {
@@ -366,12 +366,12 @@ export default Science.suite({
 
 	"5s long audio export at 48000Hz renders exactly 240000 frames": test(async () => {
 		const {omni, videoA, resolveMedia} = await setupTest()
-		const {timeline} = new O(omni.timeline(o => o.sequence(
+		const {timeline} = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA, {duration: 2000}),
 			o.gap(500),
 			o.video(videoA, {duration: 2000}),
 			o.audio(videoA, {duration: 500})
-		)))
+		))})
 
 		const readable = produceAudio({timeline, resolveMedia})
 		let totalFrames = 0

@@ -23,11 +23,13 @@ export class Omni {
 
 	timeline = (fn: (o: O) => Item.Any): TimelineFile => {
 		const o = new O({
-			format: "timeline",
-			info: "https://omniclip.app/",
-			version: 0,
-			items: [],
-			rootId: 0
+			timeline: {
+				format: "timeline",
+				info: "https://omniclip.app/",
+				version: 0,
+				items: [],
+				rootId: 0
+			}
 		})
 		const root = fn(o)
 		o.timeline.rootId = root.id

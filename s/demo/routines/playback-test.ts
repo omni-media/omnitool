@@ -8,7 +8,7 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 	const playhead = root.querySelector(".playhead") as HTMLDivElement
 	const timecode = root.querySelector(".timecode") as HTMLDivElement
 	const canvasSlot = root.querySelector(".player-canvas") as HTMLDivElement
-	const o = new O(timeline)
+	const o = new O({timeline})
 	const player = await omni.playback(timeline)
 	canvasSlot.replaceChildren(player.canvas)
 
@@ -74,4 +74,3 @@ function formatTime(ms: number) {
 	const millis = Math.floor(clamped % 1000)
 	return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`
 }
-

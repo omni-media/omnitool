@@ -20,7 +20,7 @@ function createTimeline(): TimelineFile {
 }
 
 export function timeline(root: Build): TimelineFile {
-	const o = new O(createTimeline())
+	const o = new O({timeline: createTimeline()})
 	const item = root(o)
 	o.timeline.rootId = item.id
 	return o.timeline

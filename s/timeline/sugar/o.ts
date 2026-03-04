@@ -16,6 +16,10 @@ export class O {
     return item as T | undefined
 	}
 
+	get timeline() {
+		return this.state.timeline
+	}
+
 	#getId() {
 		return hex.toInteger(hex.random())
 	}

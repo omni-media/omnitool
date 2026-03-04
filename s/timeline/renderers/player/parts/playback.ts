@@ -1,4 +1,5 @@
 
+import {pub} from '@e280/stz'
 import {Fps} from '../../../../units/fps.js'
 import {ms, Ms} from '../../../../units/ms.js'
 import {realtime} from '../../parts/schedulers.js'
@@ -17,6 +18,7 @@ export class Playback {
 
 	#controller = realtime()
 	onTick = this.#controller.onTick
+	onSeek = pub()
 
 	audioContext = new AudioContext({sampleRate: 48000})
 	audioGain = this.audioContext.createGain()
@@ -42,7 +44,7 @@ export class Playback {
 	async seek(time: Ms) {
 		this.pause()
 		this.#playbackStart = time
-
+		this.onSeek.publish()
 		return await this.visualSampler.sample(this.timeline, time)
 	}
 

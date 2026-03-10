@@ -20,7 +20,7 @@ export class O {
 		return this.state.timeline
 	}
 
-	#getId() {
+	getId() {
 		return hex.toInteger(hex.random())
 	}
 
@@ -37,7 +37,7 @@ export class O {
 
   textStyle = (style: TextStyleOptions): Item.TextStyle => {
 		const item = {
-			id: this.#getId(),
+			id: this.getId(),
 			kind: Kind.TextStyle,
 			style
 		} as Item.TextStyle
@@ -47,7 +47,7 @@ export class O {
 
   spatial = (transform: Transform): Item.Spatial => {
   	const item: Item.Spatial = {
-  		id: this.#getId(),
+  		id: this.getId(),
   		kind: Kind.Spatial,
   		transform,
   		enabled: true
@@ -58,7 +58,7 @@ export class O {
 
 	sequence = (...items: Item.Any[]): Item.Sequence => {
 		const item =  {
-			id: this.#getId(),
+			id: this.getId(),
 			kind: Kind.Sequence,
 			childrenIds: items.map(item => item.id)
 		} as Item.Sequence
@@ -69,7 +69,7 @@ export class O {
 	stack = (...items: Item.Any[]): Item.Stack => {
 		const item = {
 			kind: Kind.Stack,
-			id: this.#getId(),
+			id: this.getId(),
 			childrenIds: items.map(item => item.id)
 		} as Item.Stack
 		this.register(item)
@@ -88,7 +88,7 @@ export class O {
 
 		const item: Item.Video = {
 			kind: Kind.Video,
-			id: this.#getId(),
+			id: this.getId(),
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration
@@ -110,7 +110,7 @@ export class O {
 
 		const item: Item.Audio = {
 			kind: Kind.Audio,
-			id: this.#getId(),
+			id: this.getId(),
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration,
@@ -126,7 +126,7 @@ export class O {
 		}): Item.Text => {
 
 		const item = {
-			id: this.#getId(),
+			id: this.getId(),
 			content,
 			kind: Kind.Text,
 			duration: options?.duration ?? 2000
@@ -141,7 +141,7 @@ export class O {
 
 	gap = (duration: number): Item.Gap => {
 		const item = {
-			id: this.#getId(),
+			id: this.getId(),
 			kind: Kind.Gap,
 			duration
 		} as Item.Gap
@@ -152,7 +152,7 @@ export class O {
 	transition = {
 		crossfade: (duration: number): Item.Transition => {
 			const item = {
-				id: this.#getId(),
+				id: this.getId(),
 				kind: Kind.Transition,
 				effect: Effect.Crossfade,
 				duration,

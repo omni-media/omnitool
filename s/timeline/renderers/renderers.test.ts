@@ -49,8 +49,7 @@ export default Science.suite({
 			o.video(videoA, {duration: 2000}),
 			o.audio(videoA, {duration: 500}),
 		))})
-		const sampler = new CursorVisualSampler(driver, resolveMedia)
-		const cursor = sampler.cursor(timeline)
+		const cursor = new CursorVisualSampler(driver, resolveMedia, timeline)
 		await cursor.next(ms(1000))
 		await expect(async () => await cursor.next(ms(100))).throwsAsync()
 	}),
@@ -384,4 +383,3 @@ export default Science.suite({
 		expect(totalFrames).is(240000)
 	})
 })
-

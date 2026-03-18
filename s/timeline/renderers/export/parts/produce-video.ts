@@ -21,14 +21,13 @@ export function produceVideo({
 
 	const stream = new TransformStream<VideoFrame, VideoFrame>()
 	const writer = stream.writable.getWriter()
-	const sampler = new CursorVisualSampler(driver, resolveMedia)
-	const cursor = sampler.cursor(timeline)
+	const sampler = new CursorVisualSampler(driver, resolveMedia, timeline)
 	const dt = 1 / fps
 	const duration = computeItemDuration(timeline.rootId, timeline)
 
 	async function produce() {
 		await fixedStep({fps, duration}, async (timecode, i) => {
-			const layers = await cursor.next(timecode)
+			const layers = await sampler.next(timecode)
 			const composed = await driver.composite(layers)
 
 			const frame = new VideoFrame(composed, {
@@ -36,7 +35,7 @@ export function produceVideo({
 				duration: Math.round(dt * 1_000_000)
 			})
 
-			await writer.write(frame)
+			writer.write(frame)
 			composed.close()
 		})
 

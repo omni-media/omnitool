@@ -1,6 +1,5 @@
 
-import {ms, Ms} from "../../../../units/ms.js"
-import {Item} from "../../../parts/item.js"
+import {Ms} from "../../../../units/ms.js"
 import {Driver} from "../../../../driver/driver.js"
 import {TimelineFile} from "../../../parts/basics.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
@@ -13,87 +12,106 @@ import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
  */
 
 export class CursorVisualSampler {
-	#sampler
+	#lastTimecode = -Infinity
 	#videoCursors = new Map<number, VideoFrameCursor>()
+	#sampler
 
 	constructor(
 		private driver: Driver,
-		private resolveMedia: (hash: string) => DecoderSource
+		private resolveMedia: (hash: string) => DecoderSource,
+		private timeline: TimelineFile
 	) {
-		this.#sampler = createVisualSampler(resolveMedia, (item, time) => {
-			const mediaTime = toUs(ms(item.start + time))
-			const cursor = this.#getCursorForVideo(item)
-			return cursor.next(mediaTime)
+		this.#sampler = createVisualSampler(this.resolveMedia, (item, time) => {
+			const targetUs = toUs(time)
+			let cursor = this.#videoCursors.get(item.id)
+
+			if (!cursor) {
+				const source = this.resolveMedia(item.mediaHash)
+				cursor = this.#createVideoCursor(source, targetUs)
+				this.#videoCursors.set(item.id, cursor)
+			}
+
+			return cursor.next(targetUs)
 		})
 	}
 
-	cursor(timeline: TimelineFile) {
-		let lastTimecode = Number.NEGATIVE_INFINITY
-		return {
-			next: (timecode: Ms) => {
-				if (timecode < lastTimecode)
-					throw new Error(`CursorVisualSampler is forward-only: requested ${timecode}ms after ${lastTimecode}ms`)
-				lastTimecode = timecode
-				return this.#sampler.sample(timeline, timecode)
-			},
-			cancel: () => this.#cancel(),
-		}
+	next(timecode: Ms) {
+		if (timecode < this.#lastTimecode)
+			throw new Error(`Forward-only cursor regression: ${timecode}ms < ${this.#lastTimecode}ms`)
+
+		this.#lastTimecode = timecode
+		return this.#sampler.sample(this.timeline, timecode)
 	}
 
-	#getCursorForVideo(videoItem: Item.Video) {
-		const existing = this.#videoCursors.get(videoItem.id)
-		if (existing)
-			return existing
-
-		const source = this.resolveMedia(videoItem.mediaHash)
-		const video = this.driver.decodeVideo({ source })
-		const cursor = this.#cursor(video.getReader())
-
-		this.#videoCursors.set(videoItem.id, cursor)
-		return cursor
-	}
-
-	async #cancel() {
-		await Promise.all(
-			[...this.#videoCursors.values()].map(cursor => cursor.cancel())
-		)
+	async cancel() {
+		await Promise.all([...this.#videoCursors.values()].map(c => c.cancel()))
 		this.#videoCursors.clear()
 	}
 
-	// forward only
-	#cursor(reader: ReadableStreamDefaultReader<VideoFrame>) {
+	#createVideoCursor(source: DecoderSource, startUs: number): VideoFrameCursor {
+		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000})
+		const reader = video.getReader()
+
+		let current: VideoFrame | null = null
+		let nextPromise: Promise<VideoFrame | null> | null = null
+		let ended = false
+
+		const readNext = async () => {
+			if (ended) return null
+			const {done, value} = await reader.read()
+			if (done) return (ended = true, null)
+
+			const frame = new VideoFrame(value)
+			value.close()
+			return frame
+		}
+
 		return {
 			async next(targetUs: number): Promise<VideoFrame | undefined> {
-				let prev: VideoFrame | null = null
+				current ??= await readNext()
+				if (!current) return undefined
+
 				while (true) {
-					const { done, value: hit } = await reader.read()
+					nextPromise ??= readNext()
+					const nextFrame = await nextPromise
 
-					if (done) {
-						const out = prev ? new VideoFrame(prev) : undefined
-						prev?.close()
-						return out
+					if (!nextFrame) return new VideoFrame(current)
+
+					const currentUs = current.timestamp ?? -Infinity
+					const nextUs = nextFrame.timestamp ?? currentUs
+
+					if (nextUs < targetUs) {
+						current.close()
+						current = nextFrame
+						nextPromise = null
+						continue
 					}
 
-					const hitUs = hit.timestamp ?? 0
-					if (hitUs >= targetUs) {
-						const prevUs = prev?.timestamp ?? Number.NEGATIVE_INFINITY
-						const usePrev = !!prev && Math.abs(prevUs - targetUs) < Math.abs(hitUs - targetUs)
+					const useNext = Math.abs(nextUs - targetUs) < Math.abs(currentUs - targetUs)
 
-						const chosen = usePrev ? prev! : hit
-						const other = usePrev ? hit : prev
-
-						const copy = new VideoFrame(chosen)
-						chosen.close()
-						other?.close()
-						return copy
+					if (useNext) {
+						current.close()
+						current = nextFrame
+						nextPromise = null
+						continue
 					}
 
-					prev?.close()
-					prev = hit
+					return new VideoFrame(current)
 				}
 			},
 
-			cancel: async () => await reader.cancel()
+			async cancel() {
+				const pending = nextPromise
+				nextPromise = null
+
+				current?.close()
+				current = null
+
+				await reader.cancel()
+
+				const buffered = await pending?.catch(() => null)
+				buffered?.close()
+			}
 		}
 	}
 }

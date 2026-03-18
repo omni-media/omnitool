@@ -1,17 +1,19 @@
 
-import {pub} from '@e280/stz'
 import {Fps} from '../../../../units/fps.js'
 import {ms, Ms} from '../../../../units/ms.js'
+import {Driver} from '../../../../driver/driver.js'
 import {realtime} from '../../parts/schedulers.js'
 import {TimelineFile} from '../../../parts/basics.js'
 import {seconds, Seconds} from '../../../../units/seconds.js'
+import {CursorVisualSampler} from '../../export/parts/cursor.js'
 import {DecoderSource} from '../../../../driver/fns/schematic.js'
 import {createAudioSampler} from '../../parts/samplers/audio/sampler.js'
 import {createVisualSampler} from '../../parts/samplers/visual/sampler.js'
 
 export class Playback {
-	visualSampler
 	audioSampler
+	seekVisualSampler
+	playVisualSampler: CursorVisualSampler | null = null
 
 	#playbackStart = ms(0)
 	#audioStartSec: number | null = null
@@ -25,25 +27,26 @@ export class Playback {
 	#audioAbort: AbortController | null = null
 
 	constructor(
+		private driver: Driver,
 		private timeline: TimelineFile,
 		private resolveMedia: (hash: string) => DecoderSource
 	) {
 		this.audioGain.connect(this.audioContext.destination)
 		this.audioGain.gain.value = 0.7 ** 2
-		this.visualSampler = createVisualSampler(this.resolveMedia)
+		this.seekVisualSampler = createVisualSampler(this.resolveMedia)
 		this.audioSampler = createAudioSampler(this.resolveMedia)
 	}
 
 	async *samples() {
 		for await (const _ of this.#controller.ticks()) {
-			yield this.visualSampler.sample(this.timeline, this.currentTime)
+			yield this.playVisualSampler?.next(this.currentTime) ?? []
 		}
 	}
 
 	async seek(time: Ms) {
 		this.pause()
 		this.#playbackStart = time
-		return await this.visualSampler.sample(this.timeline, time)
+		return await this.seekVisualSampler.sample(this.timeline, time)
 	}
 
 	async start(timeline: TimelineFile) {
@@ -61,6 +64,8 @@ export class Playback {
 
 		this.audioNodes.clear()
 
+		this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
+
 		this.#controller.play()
 		this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
 	}
@@ -74,6 +79,9 @@ export class Playback {
 			node.stop()
 
 		this.audioNodes.clear()
+
+		this.playVisualSampler?.cancel()
+		this.playVisualSampler = null
 	}
 
 	get currentTime() {

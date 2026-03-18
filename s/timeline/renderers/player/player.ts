@@ -18,7 +18,7 @@ export class VideoPlayer {
 		resolveMedia: ResolveMedia,
 		private timeline: TimelineFile,
 	) {
-		this.playback = new Playback(timeline, resolveMedia)
+		this.playback = new Playback(driver, timeline, resolveMedia)
 		this.canvas = driver.compositor.pixi.renderer.canvas
 	}
 

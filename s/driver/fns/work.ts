@@ -78,6 +78,7 @@ export const setupDriverWork = (
 					const sample = new VideoSample(frame)
 					await videoSource.add(sample)
 					sample.close()
+					frame.close()
 				}
 			}
 

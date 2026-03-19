@@ -4,7 +4,6 @@ import {fps} from "../../../units/fps.js"
 import {Playback} from "./parts/playback.js"
 import {Driver} from "../../../driver/driver.js"
 import {TimelineFile} from "../../parts/basics.js"
-import {computeItemDuration} from "../parts/handy.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 
 type ResolveMedia = (hash: string) => DecoderSource
@@ -24,14 +23,6 @@ export class VideoPlayer {
 
 	async play() {
 		await this.playback.start(this.timeline)
-
-		for await (const layers of this.playback.samples()) {
-			const frame = await this.driver.composite(layers)
-			frame.close()
-
-			if (this.currentTime >= this.duration)
-				this.pause()
-		}
 	}
 
 	pause() {
@@ -49,10 +40,7 @@ export class VideoPlayer {
 	}
 
 	get duration() {
-		return computeItemDuration(
-			this.timeline.rootId,
-			this.timeline
-		)
+		return this.playback.duration
 	}
 
 	get currentTime() {

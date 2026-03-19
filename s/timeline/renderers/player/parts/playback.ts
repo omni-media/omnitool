@@ -4,6 +4,7 @@ import {ms, Ms} from '../../../../units/ms.js'
 import {Driver} from '../../../../driver/driver.js'
 import {realtime} from '../../parts/schedulers.js'
 import {TimelineFile} from '../../../parts/basics.js'
+import {computeItemDuration} from '../../parts/handy.js'
 import {seconds, Seconds} from '../../../../units/seconds.js'
 import {CursorVisualSampler} from '../../export/parts/cursor.js'
 import {DecoderSource} from '../../../../driver/fns/schematic.js'
@@ -35,11 +36,18 @@ export class Playback {
 		this.audioGain.gain.value = 0.7 ** 2
 		this.seekVisualSampler = createVisualSampler(this.resolveMedia)
 		this.audioSampler = createAudioSampler(this.resolveMedia)
+		this.#samples()
 	}
 
-	async *samples() {
+	async #samples() {
 		for await (const _ of this.#controller.ticks()) {
-			yield this.playVisualSampler?.next(this.currentTime) ?? []
+			const layers = await this.playVisualSampler?.next(this.currentTime) ?? []
+
+			const frame = await this.driver.composite(layers)
+			frame.close()
+
+			if (this.currentTime >= this.duration)
+				this.pause()
 		}
 	}
 
@@ -50,6 +58,9 @@ export class Playback {
 	}
 
 	async start(timeline: TimelineFile) {
+		if(this.#controller.isPlaying())
+			return
+
 		this.timeline = timeline
 		await this.audioContext.resume()
 
@@ -64,6 +75,7 @@ export class Playback {
 
 		this.audioNodes.clear()
 
+		this.playVisualSampler?.cancel()
 		this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 
 		this.#controller.play()
@@ -82,6 +94,13 @@ export class Playback {
 
 		this.playVisualSampler?.cancel()
 		this.playVisualSampler = null
+	}
+
+	get duration() {
+		return computeItemDuration(
+			this.timeline.rootId,
+			this.timeline
+		)
 	}
 
 	get currentTime() {

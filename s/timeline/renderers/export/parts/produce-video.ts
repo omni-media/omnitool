@@ -35,7 +35,7 @@ export function produceVideo({
 				duration: Math.round(dt * 1_000_000)
 			})
 
-			writer.write(frame)
+			await writer.write(frame)
 			composed.close()
 		})
 

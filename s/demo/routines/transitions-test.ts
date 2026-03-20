@@ -30,8 +30,8 @@ export async function setupTransitionsTest(driver: Driver, source: DecoderSource
 			}
 		})
 
-		await driver.encode({
-			video,
+		driver.encode({
+			video: video.readable,
 			config: {
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}

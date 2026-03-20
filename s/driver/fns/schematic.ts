@@ -21,6 +21,7 @@ export type DriverSchematic = AsSchematic<{
 
 		decodeVideo(input: {
 			source: DecoderSource
+			cancel: MessagePort
 			video: WritableStream<VideoFrame>
 			start?: number
 			end?: number

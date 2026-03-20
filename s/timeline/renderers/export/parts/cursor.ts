@@ -1,5 +1,5 @@
 
-import {Ms} from "../../../../units/ms.js"
+import {ms, Ms} from "../../../../units/ms.js"
 import {Driver} from "../../../../driver/driver.js"
 import {TimelineFile} from "../../../parts/basics.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
@@ -27,7 +27,8 @@ export class CursorVisualSampler {
 
 			if (!cursor) {
 				const source = this.resolveMedia(item.mediaHash)
-				cursor = this.#createVideoCursor(source, targetUs)
+				const endUs = toUs(ms(item.start + item.duration))
+				cursor = this.#createVideoCursor(source, targetUs, endUs)
 				this.#videoCursors.set(item.id, cursor)
 			}
 
@@ -48,9 +49,9 @@ export class CursorVisualSampler {
 		this.#videoCursors.clear()
 	}
 
-	#createVideoCursor(source: DecoderSource, startUs: number): VideoFrameCursor {
-		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000})
-		const reader = video.getReader()
+	#createVideoCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
+		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000, end: endUs / 1_000_000})
+		const reader = video.readable.getReader()
 
 		let current: VideoFrame | null = null
 		let nextPromise: Promise<VideoFrame | null> | null = null
@@ -107,7 +108,7 @@ export class CursorVisualSampler {
 				current?.close()
 				current = null
 
-				await reader.cancel()
+				video.cancel()
 
 				const buffered = await pending?.catch(() => null)
 				buffered?.close()

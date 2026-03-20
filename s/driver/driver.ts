@@ -58,22 +58,32 @@ export class Driver {
 
 	decodeVideo(input: DecoderInput) {
 		let lastFrame: VideoFrame | null = null
+		const {port1, port2} = new MessageChannel()
 		const videoTransform = new TransformStream<VideoFrame, VideoFrame>({
 			async transform(chunk, controller) {
 				const frame = await input.onFrame?.(chunk) ?? chunk
-				// below code is to prevent mem leaks and hardware accelerated decoder stall
 				lastFrame?.close()
 				controller.enqueue(frame)
 				lastFrame = frame
 			}
 		})
-		this.thread.work.decodeVideo[tune]({transfer: [videoTransform.writable]})({
+		this.thread.work.decodeVideo[tune]({transfer: [videoTransform.writable, port2]})({
 			source: input.source,
+			cancel: port2,
 			video: videoTransform.writable,
 			start: input.start,
 			end: input.end
 		})
-		return videoTransform.readable
+		return {
+			readable: videoTransform.readable,
+			/**
+			 * use this to stop decoding (premature interruption)
+			 * */
+			cancel() {
+				port1.postMessage("close")
+				port1.close()
+			}
+		}
 	}
 
 	decodeAudio(input: DecoderInput) {

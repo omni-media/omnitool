@@ -42,7 +42,7 @@ export const setupDriverWork = (
 			}
 		},
 
-		async decodeVideo({source, video, start, end}) {
+		async decodeVideo({source, video, start, end, cancel}) {
 			const input = new Input({
 				source: await loadSource(source),
 				formats: ALL_FORMATS
@@ -52,16 +52,26 @@ export const setupDriverWork = (
 			const videoDecodable = await videoTrack?.canDecode()
 			const videoWriter = video.getWriter()
 
-			if (videoDecodable && videoTrack) {
-				const sink = new VideoSampleSink(videoTrack)
-				for await (const sample of sink.samples(start, end)) {
-					const frame = sample.toVideoFrame()
-					await videoWriter.write(frame)
-					sample.close()
-					frame.close()
-				}
-				await videoWriter.close()
+			if(!videoDecodable || !videoTrack)
+				return
+
+			const sink = new VideoSampleSink(videoTrack)
+			const samples = sink.samples(start, end)
+
+			cancel.onmessage = async () => {
+				samples.return()
+				input.dispose()
+				cancel.close()
 			}
+
+			for await (const sample of samples) {
+				const frame = sample.toVideoFrame()
+				sample.close()
+				await videoWriter.write(frame)
+				frame.close()
+			}
+
+			await videoWriter.close()
 		},
 
 		async encode({video, audio, config, writable}) {

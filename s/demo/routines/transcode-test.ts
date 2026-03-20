@@ -39,7 +39,7 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 
 		const {readable, done} = driver.encode({
 			video: video.readable,
-			audio,
+			audio: audio.readable,
 			config: {
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}

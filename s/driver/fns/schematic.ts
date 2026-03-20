@@ -14,6 +14,7 @@ export type DriverSchematic = AsSchematic<{
 
 		decodeAudio(input: {
 			source: DecoderSource
+			cancel: MessagePort
 			audio: WritableStream<AudioData>
 			start?: number
 			end?: number

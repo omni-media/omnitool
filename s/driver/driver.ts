@@ -88,13 +88,24 @@ export class Driver {
 
 	decodeAudio(input: DecoderInput) {
 		const audioTransform = new TransformStream<AudioData, AudioData>()
-		this.thread.work.decodeAudio[tune]({transfer: [audioTransform.writable]})({
+		const {port1, port2} = new MessageChannel()
+		this.thread.work.decodeAudio[tune]({transfer: [audioTransform.writable, port2]})({
 			source: input.source,
+			cancel: port2,
 			audio: audioTransform.writable,
 			start: input.start,
 			end: input.end
 		})
-		return audioTransform.readable
+		return {
+			readable: audioTransform.readable,
+			/**
+			 * use this to stop decoding (premature interruption)
+			 * */
+			cancel() {
+				port1.postMessage("close")
+				port1.close()
+			}
+		}
 	}
 
 	encode({audio, video, config}: EncoderInput) {

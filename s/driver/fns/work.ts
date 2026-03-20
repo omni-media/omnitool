@@ -20,7 +20,7 @@ export const setupDriverWork = (
 			await shell.host.world()
 		},
 
-		async decodeAudio({source, audio, start, end}) {
+		async decodeAudio({source, audio, start, end, cancel}) {
 			const input = new Input({
 				source: await loadSource(source),
 				formats: ALL_FORMATS
@@ -30,16 +30,26 @@ export const setupDriverWork = (
 			const audioDecodable = await audioTrack?.canDecode()
 			const audioWriter = audio.getWriter()
 
-			if (audioDecodable && audioTrack) {
-				const sink = new AudioSampleSink(audioTrack)
-				for await (const sample of sink.samples(start, end)) {
-					const frame = sample.toAudioData()
-					await audioWriter.write(frame)
-					sample.close()
-					frame.close()
-				}
-				await audioWriter.close()
+			if(!audioDecodable || !audioTrack)
+				return
+
+			const sink = new AudioSampleSink(audioTrack)
+			const samples = sink.samples(start, end)
+
+			cancel.onmessage = async () => {
+				samples.return()
+				input.dispose()
+				cancel.close()
 			}
+
+			for await (const sample of samples) {
+				const frame = sample.toAudioData()
+				sample.close()
+				await audioWriter.write(frame)
+				frame.close()
+			}
+
+			await audioWriter.close()
 		},
 
 		async decodeVideo({source, video, start, end, cancel}) {

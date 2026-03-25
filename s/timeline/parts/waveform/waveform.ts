@@ -72,10 +72,12 @@ export class Waveform {
 		const visibleSize = visibleEnd - visibleStart
 		const [activeStart, activeEnd] = this.#activeRange
 
-		const leftTrigger = activeStart + visibleSize
-		const rightTrigger = activeEnd - visibleSize
+		const leftBuffered = activeStart > 0
+		const rightBuffered = activeEnd < this.duration
+		const leftSettled = !leftBuffered || visibleStart >= activeStart + visibleSize
+		const rightSettled = !rightBuffered || visibleEnd <= activeEnd - visibleSize
 
-		if (visibleStart >= leftTrigger && visibleEnd <= rightTrigger) return
+		if (leftSettled && rightSettled) return
 
 		this.#activeRange = this.#computeActiveRange(visibleRange, this.preloadMargin)
 		this.#queueUpdate()

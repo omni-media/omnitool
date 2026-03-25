@@ -10,6 +10,7 @@ const MAX_TILE_WIDTH = 4096
 export class Waveform {
 	#tiles = new Map<number, WaveformTileData>()
 	#activeRange: WaveformTimeRange = [0, 0]
+	#visibleRange: WaveformTimeRange = [0, 0]
 
 	#zoom
 	#levels
@@ -53,7 +54,7 @@ export class Waveform {
 	}
 
 	get range() {
-		return this.#activeRange
+		return this.#visibleRange
 	}
 
 	#computeActiveRange([start, end]: WaveformTimeRange, margin = 1): WaveformTimeRange {
@@ -65,6 +66,8 @@ export class Waveform {
 	}
 
 	set range(visibleRange: WaveformTimeRange) {
+		this.#visibleRange = visibleRange
+
 		const [visibleStart, visibleEnd] = visibleRange
 		const visibleSize = visibleEnd - visibleStart
 		const [activeStart, activeEnd] = this.#activeRange

@@ -26,8 +26,11 @@ let exportState: {timeline: TimelineFile; omni: Omni} | null = null
 }
 
 const setProgress = (card: HTMLElement, state: "idle" | "running" | "done") => {
-	const progress = card.querySelector(".progress") as HTMLProgressElement
-	const status = card.querySelector(".status") as HTMLSpanElement
+	const progress = card.querySelector(".progress") as HTMLProgressElement | null
+	const status = card.querySelector(".status") as HTMLSpanElement | null
+
+	if (!progress || !status)
+		return
 
 	if (state === "running") {
 		progress.removeAttribute("value")
@@ -124,4 +127,3 @@ exportButton.addEventListener("click", async () => {
 	await exportState.omni.render(exportState.timeline)
 	setProgress(exportCard, "done")
 })
-

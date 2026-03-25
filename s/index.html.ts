@@ -85,7 +85,7 @@ export default ssg.page(import.meta.url, async orb => ({
 					</div>
 					<div class="waveform-controls">
 						<label>width</label>
-						<input class="width" type="range" min="100" max="1000000" value="1000" />
+						<input class="width" type="range" min="100" max="1000000" value="1000" step="100" />
 					</div>
 					<div class="waveform-canvas"></div>
 				</article>
@@ -134,4 +134,3 @@ export default ssg.page(import.meta.url, async orb => ({
 		</section>
 	`,
 }))
-

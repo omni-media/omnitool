@@ -52,6 +52,10 @@ export class Waveform {
 		return this.#zoom
 	}
 
+	get range() {
+		return this.#activeRange
+	}
+
 	#computeActiveRange([start, end]: WaveformTimeRange, margin = 1): WaveformTimeRange {
 		const visibleSize = end - start
 		return [
@@ -149,4 +153,3 @@ export class Waveform {
 		return this.#tiles
 	}
 }
-

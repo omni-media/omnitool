@@ -19,7 +19,7 @@ export class ResourcePool {
 			alreadyExists.filename = filename
 		}
 		else
-			this.#map.set(hash, {kind: "media", filename, bytes, url, blob})
+			this.#map.set(hash, {kind: "media", filename, bytes, url, blob, duration: media.duration})
 
 		return media
 	}

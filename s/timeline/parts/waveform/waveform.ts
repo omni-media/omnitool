@@ -39,8 +39,9 @@ export class Waveform {
 		return new Waveform(levels, duration, options)
 	}
 
-	set zoom(value: number) {
-		const next = Math.max(1, value)
+	/** Waveform render density in pixels per second. */
+	set zoom(pixelsPerSecond: number) {
+		const next = Math.max(1, pixelsPerSecond)
 		if (next === this.#zoom)
 			return
 

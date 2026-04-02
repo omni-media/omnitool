@@ -1,10 +1,9 @@
 import {Comrade} from "@e280/comrade"
-import {DOMAdapter, WebWorkerAdapter} from "pixi.js"
-import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
+
+import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink,
+	AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
 
 import {DecoderSource, DriverSchematic} from "./schematic.js"
-
-DOMAdapter.set(WebWorkerAdapter)
 
 const loadSource = async (source: DecoderSource) => {
 	if(source instanceof Blob) {

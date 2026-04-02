@@ -44,7 +44,7 @@ export class Playback {
 	}
 
 	get isPlaying() {
-		return this.#controller.isPlaying
+		return this.#controller.isPlaying()
 	}
 
 	async #samples() {

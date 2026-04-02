@@ -41,6 +41,10 @@ export class VideoPlayer {
 		this.playback.setFps(fps(value))
 	}
 
+	get isPlaying() {
+		return this.playback.isPlaying
+	}
+
 	get duration() {
 		return this.playback.duration
 	}

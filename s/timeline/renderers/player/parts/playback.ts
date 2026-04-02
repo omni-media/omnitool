@@ -43,6 +43,10 @@ export class Playback {
 		this.timeline = timeline
 	}
 
+	get isPlaying() {
+		return this.#controller.isPlaying
+	}
+
 	async #samples() {
 		for await (const _ of this.#controller.ticks()) {
 			const layers = await this.playVisualSampler?.next(this.currentTime) ?? []

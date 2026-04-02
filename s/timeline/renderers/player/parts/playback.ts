@@ -39,6 +39,10 @@ export class Playback {
 		this.#samples()
 	}
 
+	update(timeline: TimelineFile) {
+		this.timeline = timeline
+	}
+
 	async #samples() {
 		for await (const _ of this.#controller.ticks()) {
 			const layers = await this.playVisualSampler?.next(this.currentTime) ?? []
@@ -57,11 +61,10 @@ export class Playback {
 		return await this.seekVisualSampler.sample(this.timeline, time)
 	}
 
-	async start(timeline: TimelineFile) {
+	async start() {
 		if(this.#controller.isPlaying())
 			return
 
-		this.timeline = timeline
 		await this.audioContext.resume()
 
 		this.#playbackStart = this.currentTime

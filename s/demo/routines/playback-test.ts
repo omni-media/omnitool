@@ -20,23 +20,8 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 	scrub.max = String(Math.ceil(player.duration))
 
 	let isScrubbing = false
-	let pendingSeek: number | null = null
-	let seekInFlight = false
 
 	player.playback.onTick.on(() => setScrubState(player.currentTime, player.duration))
-
-	const queueSeek = async (timeMs: number) => {
-		pendingSeek = timeMs
-		if (seekInFlight)
-			return
-		seekInFlight = true
-		while (pendingSeek) {
-			const next = pendingSeek
-			pendingSeek = null
-			await player.seek(next)
-		}
-		seekInFlight = false
-	}
 
 	const updateTimecode = (currentMs: number, durationMs: number) => {
 		timecode.textContent = `${formatTime(currentMs)} / ${formatTime(durationMs)}`
@@ -46,13 +31,13 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 		isScrubbing = true
 		const next = Math.max(0, Math.min(+scrub.value, player.duration))
 		updateTimecode(next, player.duration)
-		await queueSeek(next)
+		await player.seek(next)
 	})
 
 	scrub.addEventListener("change", async () => {
 		isScrubbing = false
 		const next = Math.max(0, Math.min(+scrub.value, player.duration))
-		await queueSeek(next)
+		await player.seek(next)
 	})
 
 	const setScrubState = (timeMs: number, durationMs: number) => {

@@ -12,27 +12,29 @@ export class VideoPlayer {
 	canvas: HTMLCanvasElement
 	playback: Playback
 
+	#pendingSeek: number | null = null
+	#flushTask: Promise<void> | null = null
+
 	constructor(
 		private driver: Driver,
 		resolveMedia: ResolveMedia,
-		private timeline: TimelineFile,
+		timeline: TimelineFile
 	) {
 		this.playback = new Playback(driver, timeline, resolveMedia)
 		this.canvas = driver.compositor.pixi.renderer.canvas
 	}
 
 	async play() {
-		await this.playback.start(this.timeline)
+		await this.playback.start()
 	}
 
 	pause() {
 		this.playback.pause()
 	}
 
-	async seek(timeMs: number) {
-		const layers = await this.playback.seek(ms(timeMs))
-		const frame = await this.driver.composite(layers)
-		frame.close()
+	seek(timeMs: number) {
+		this.#pendingSeek = timeMs
+		return this.#flushTask ??= this.#flushSeeks().finally(() => this.#flushTask = null)
 	}
 
 	setFPS(value: number) {
@@ -50,10 +52,18 @@ export class VideoPlayer {
 	/**
 	 call this whenever your timeline state changes
 	*/
-	async update(timeline: TimelineFile) {
-		this.timeline = timeline
+	update(timeline: TimelineFile) {
+		this.playback.update(timeline)
 	}
 
+	async #flushSeeks() {
+		while (this.#pendingSeek !== null) {
+			const next = this.#pendingSeek
+			this.#pendingSeek = null
+			const layers = await this.playback.seek(ms(next))
+			const frame = await this.driver.composite(layers)
+			frame.close()
+		}
+	}
 }
 
-const toUrl = (src: DecoderSource) => (src instanceof Blob ? URL.createObjectURL(src) : String(src))

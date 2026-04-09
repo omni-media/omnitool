@@ -104,14 +104,15 @@ export class CursorVisualSampler {
 			async cancel() {
 				const pending = nextPromise
 				nextPromise = null
+				ended = true
+
+				const buffered = await pending?.catch(() => null)
+				buffered?.close()
 
 				current?.close()
 				current = null
 
 				video.cancel()
-
-				const buffered = await pending?.catch(() => null)
-				buffered?.close()
 			}
 		}
 	}

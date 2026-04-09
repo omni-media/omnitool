@@ -68,7 +68,7 @@ export const setupDriverWork = (
 			const samples = sink.samples(start, end)
 
 			cancel.onmessage = async () => {
-				samples.return()
+				await samples.return()
 				input.dispose()
 				cancel.close()
 			}

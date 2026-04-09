@@ -21,6 +21,7 @@ export class Playback {
 
 	#controller = realtime()
 	onTick = this.#controller.onTick
+	#cleanupTask: Promise<void> | null = null
 
 	audioContext = new AudioContext({sampleRate: 48000})
 	audioGain = this.audioContext.createGain()
@@ -69,6 +70,11 @@ export class Playback {
 		if(this.#controller.isPlaying())
 			return
 
+		if (this.#cleanupTask) {
+			await this.#cleanupTask
+			this.#cleanupTask = null
+		}
+
 		await this.audioContext.resume()
 
 		this.#playbackStart = this.currentTime
@@ -82,7 +88,6 @@ export class Playback {
 
 		this.audioNodes.clear()
 
-		this.playVisualSampler?.cancel()
 		this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 
 		this.#controller.play()
@@ -99,8 +104,11 @@ export class Playback {
 
 		this.audioNodes.clear()
 
-		this.playVisualSampler?.cancel()
-		this.playVisualSampler = null
+		if (this.playVisualSampler) {
+			this.#cleanupTask = this.playVisualSampler.cancel()
+			this.playVisualSampler = null
+		}
+
 	}
 
 	get duration() {

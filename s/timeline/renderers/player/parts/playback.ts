@@ -18,7 +18,6 @@ export class Playback {
 
 	#playbackStart = ms(0)
 	#audioStartSec: number | null = null
-	#cleanupTask: Promise<void> | null = null
 
 	#controller = realtime()
 	onTick = this.#controller.onTick
@@ -70,11 +69,6 @@ export class Playback {
 		if(this.#controller.isPlaying())
 			return
 
-		if (this.#cleanupTask) {
-			await this.#cleanupTask
-			this.#cleanupTask = null
-		}
-
 		await this.audioContext.resume()
 
 		this.#playbackStart = this.currentTime
@@ -105,7 +99,7 @@ export class Playback {
 		this.audioNodes.clear()
 
 		if (this.playVisualSampler) {
-			this.#cleanupTask = this.playVisualSampler.cancel()
+			this.playVisualSampler.cancel()
 			this.playVisualSampler = null
 		}
 

@@ -41,6 +41,10 @@ export class VideoPlayer {
 		this.playback.setFps(fps(value))
 	}
 
+	get isSeeking() {
+		return this.#flushTask !== null
+	}
+
 	get isPlaying() {
 		return this.playback.isPlaying
 	}

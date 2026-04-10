@@ -1,3 +1,5 @@
+
+import {pub} from "@e280/stz"
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture} from "pixi.js"
 
 import {Id} from "../../timeline/index.js"
@@ -6,6 +8,8 @@ import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
 
 export class Compositor {
+	onPointerDown = pub<[{id: Id, object: Container}]>()
+	onPointerUp = pub<[{id: Id, object: Container}]>()
 
 	static async setup() {
 		const renderer = await autoDetectRenderer({
@@ -89,11 +93,11 @@ export class Compositor {
 		layer: Extract<Layer, {kind: 'text'}>,
 		parent: Container,
 	) {
-		const text = this.#findOrCreate<Text>(layer)!
-		this.#applyTransform(text, layer.matrix)
-		parent.addChild(text)
+		const {sprite, dispose} = this.#findOrCreate<Text>(layer)!
+		this.#applyTransform(sprite, layer.matrix)
+		parent.addChild(sprite)
 		return {
-			dispose: () => {}
+			dispose: () => dispose()
 		}
 	}
 
@@ -102,7 +106,7 @@ export class Compositor {
 		parent: Container,
 	) {
 		const texture = Texture.from(layer.frame)
-		const sprite = this.#findOrCreate<Sprite>(layer)!
+		const {sprite, dispose} = this.#findOrCreate<Sprite>(layer)!
 		sprite.texture = texture
 		this.#applyTransform(sprite, layer.matrix)
 		parent.addChild(sprite)
@@ -110,6 +114,7 @@ export class Compositor {
 			dispose: () => {
 				texture.destroy(true)
 				layer.frame.close()
+				dispose()
 			}
 		}
 	}
@@ -146,20 +151,47 @@ export class Compositor {
 						text: layer.content,
 						style: layer.style
 					})
-					text.onmouseenter = () => console.log("enter text")
-					return this.#activeObjects
-						.set(layer.id, text)
-						.get(layer.id) as T
+					text.eventMode = "static"
+					const down = () => this.onPointerDown.publish({id: layer.id, object: text})
+					const up = () => this.onPointerUp.publish({id: layer.id, object: text})
+					text.on("pointerdown", down)
+					text.on("pointerup", up)
+
+					return {
+						sprite: this.#activeObjects
+							.set(layer.id, text)
+							.get(layer.id) as T,
+						dispose: () => {
+							text.off("pointerdown", down)
+							text.off("pointerup", up)
+						}
+					}
 				}
 				case 'image': {
 					const sprite = new Sprite()
-					sprite.onmouseenter = () => console.log("enter")
-					return this.#activeObjects
-						.set(layer.id, sprite)
-						.get(layer.id) as T
+					sprite.eventMode = "static"
+					const down = () => this.onPointerDown.publish({id: layer.id, object: sprite})
+					const up = () => this.onPointerUp.publish({id: layer.id, object: sprite})
+					sprite.on("pointerdown", down)
+					sprite.on("pointerup", up)
+
+					return {
+						sprite: this.#activeObjects
+							.set(layer.id, sprite)
+							.get(layer.id) as T,
+						dispose: () => {
+							sprite.off("pointerdown", down)
+							sprite.off("pointerup", up)
+						}
+					}
 				}
 			}
-		} else return object as T
+		} else return {
+			sprite: object,
+			dispose: () => {}} as {
+				sprite: T
+				dispose: () => void
+			}
 	}
 
 	#collectIds(layers: Layer | Composition): Set<number> {

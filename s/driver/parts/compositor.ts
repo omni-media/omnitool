@@ -28,7 +28,7 @@ export class Compositor {
 
 	#transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
 	// objects rendered for current Composition
-	#activeObjects = new Map<number, Container>()
+	#activeObjects = new Map<number, {sprite: Container, dispose: () => void}>()
 
 	async composite(
 		composition: Composition,
@@ -55,7 +55,7 @@ export class Compositor {
 	 * get object for current Composition
 	 * */
 	getActiveObject(id: Id) {
-		return this.#activeObjects.get(id)
+		return this.#activeObjects.get(id)?.sprite
 	}
 
 	async #renderLayer(
@@ -93,11 +93,11 @@ export class Compositor {
 		layer: Extract<Layer, {kind: 'text'}>,
 		parent: Container,
 	) {
-		const {sprite, dispose} = this.#findOrCreate<Text>(layer)!
+		const sprite = this.#findOrCreate<Text>(layer)!
 		this.#applyTransform(sprite, layer.matrix)
 		parent.addChild(sprite)
 		return {
-			dispose: () => dispose()
+			dispose: () => {}
 		}
 	}
 
@@ -106,7 +106,7 @@ export class Compositor {
 		parent: Container,
 	) {
 		const texture = Texture.from(layer.frame)
-		const {sprite, dispose} = this.#findOrCreate<Sprite>(layer)!
+		const sprite = this.#findOrCreate<Sprite>(layer)!
 		sprite.texture = texture
 		this.#applyTransform(sprite, layer.matrix)
 		parent.addChild(sprite)
@@ -114,7 +114,6 @@ export class Compositor {
 			dispose: () => {
 				texture.destroy(true)
 				layer.frame.close()
-				dispose()
 			}
 		}
 	}
@@ -154,44 +153,41 @@ export class Compositor {
 					text.eventMode = "static"
 					const down = () => this.onPointerDown.publish({id: layer.id, object: text})
 					const up = () => this.onPointerUp.publish({id: layer.id, object: text})
+
 					text.on("pointerdown", down)
 					text.on("pointerup", up)
 
-					return {
-						sprite: this.#activeObjects
-							.set(layer.id, text)
-							.get(layer.id) as T,
-						dispose: () => {
-							text.off("pointerdown", down)
-							text.off("pointerup", up)
-						}
-					}
+					return this.#activeObjects
+						.set(layer.id, {
+							sprite: text,
+							dispose() {
+								text.off("pointerdown", down)
+								text.off("pointerup", up)
+							}
+						})
+						.get(layer.id)?.sprite as T
 				}
 				case 'image': {
 					const sprite = new Sprite()
 					sprite.eventMode = "static"
 					const down = () => this.onPointerDown.publish({id: layer.id, object: sprite})
 					const up = () => this.onPointerUp.publish({id: layer.id, object: sprite})
+
 					sprite.on("pointerdown", down)
 					sprite.on("pointerup", up)
 
-					return {
-						sprite: this.#activeObjects
-							.set(layer.id, sprite)
-							.get(layer.id) as T,
-						dispose: () => {
-							sprite.off("pointerdown", down)
-							sprite.off("pointerup", up)
-						}
-					}
+					return this.#activeObjects
+						.set(layer.id, {
+							sprite,
+							dispose() {
+								sprite.off("pointerdown", down)
+								sprite.off("pointerup", up)
+							}
+						})
+						.get(layer.id)?.sprite as T
 				}
 			}
-		} else return {
-			sprite: object,
-			dispose: () => {}} as {
-				sprite: T
-				dispose: () => void
-			}
+		} else return object.sprite as T
 	}
 
 	#collectIds(layers: Layer | Composition): Set<number> {
@@ -210,10 +206,12 @@ export class Compositor {
 	#cleanup(activeIds: Set<number>) {
 		for (const id of this.#activeObjects.keys()) {
 			if (!activeIds.has(id)) {
-				const obj = this.#activeObjects.get(id)!
-				obj.destroy(true)
+				const {sprite, dispose} = this.#activeObjects.get(id)!
+				sprite.destroy(true)
+				dispose()
 				this.#activeObjects.delete(id)
 			}
 		}
 	}
 }
+

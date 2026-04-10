@@ -1,5 +1,6 @@
 import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture} from "pixi.js"
 
+import {Id} from "../../timeline/index.js"
 import {Composition, Layer} from "../fns/schematic.js"
 import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
@@ -22,7 +23,8 @@ export class Compositor {
 	constructor(public pixi: {renderer: Renderer, stage: Container}) {}
 
 	#transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
-	#objects = new Map<number, Container>()
+	// objects rendered for current Composition
+	#activeObjects = new Map<number, Container>()
 
 	async composite(
 		composition: Composition,
@@ -43,6 +45,13 @@ export class Compositor {
 		dispose()
 
 		return frame
+	}
+
+	/**
+	 * get object for current Composition
+	 * */
+	getActiveObject(id: Id) {
+		return this.#activeObjects.get(id)
 	}
 
 	async #renderLayer(
@@ -129,7 +138,7 @@ export class Compositor {
 	}
 
 	#findOrCreate<T = Container>(layer: Layer) {
-		const object = this.#objects.get(layer.id)
+		const object = this.#activeObjects.get(layer.id)
 		if(!object) {
 			switch (layer.kind) {
 				case 'text': {
@@ -138,14 +147,14 @@ export class Compositor {
 						style: layer.style
 					})
 					text.onmouseenter = () => console.log("enter text")
-					return this.#objects
+					return this.#activeObjects
 						.set(layer.id, text)
 						.get(layer.id) as T
 				}
 				case 'image': {
 					const sprite = new Sprite()
 					sprite.onmouseenter = () => console.log("enter")
-					return this.#objects
+					return this.#activeObjects
 						.set(layer.id, sprite)
 						.get(layer.id) as T
 				}
@@ -167,11 +176,11 @@ export class Compositor {
 	}
 
 	#cleanup(activeIds: Set<number>) {
-		for (const id of this.#objects.keys()) {
+		for (const id of this.#activeObjects.keys()) {
 			if (!activeIds.has(id)) {
-				const obj = this.#objects.get(id)!
+				const obj = this.#activeObjects.get(id)!
 				obj.destroy(true)
-				this.#objects.delete(id)
+				this.#activeObjects.delete(id)
 			}
 		}
 	}

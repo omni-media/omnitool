@@ -105,14 +105,19 @@ export class Compositor {
 		layer: Extract<Layer, {kind: 'image'}>,
 		parent: Container,
 	) {
-		const texture = Texture.from(layer.frame)
 		const sprite = this.#findOrCreate<Sprite>(layer)!
+
+		if (sprite.texture && sprite.texture !== Texture.EMPTY) {
+			sprite.texture.destroy(true)
+		}
+
+		const texture = Texture.from(layer.frame)
 		sprite.texture = texture
 		this.#applyTransform(sprite, layer.matrix)
 		parent.addChild(sprite)
+
 		return {
 			dispose: () => {
-				texture.destroy(true)
 				layer.frame.close()
 			}
 		}
@@ -207,8 +212,8 @@ export class Compositor {
 		for (const id of this.#activeObjects.keys()) {
 			if (!activeIds.has(id)) {
 				const {sprite, dispose} = this.#activeObjects.get(id)!
-				sprite.destroy(true)
 				dispose()
+				sprite.destroy(true)
 				this.#activeObjects.delete(id)
 			}
 		}

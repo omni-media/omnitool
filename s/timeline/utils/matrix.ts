@@ -29,5 +29,26 @@ export const mul6 = (local: Mat6, parent: Mat6): Mat6 => {
 	]
 }
 
+export const mat6ToTransform = (mat: Mat6Obj): Transform => {
+	const scaleX = Math.hypot(mat.a, mat.b)
+	const scaleY = Math.hypot(mat.c, mat.d)
+	const rotation = Math.atan2(mat.b, mat.a) * (180 / Math.PI)
+
+	return [
+		[mat.tx, mat.ty],
+		[scaleX, scaleY],
+		rotation,
+	]
+}
+
+export interface Mat6Obj {
+	a: number
+	b: number
+	c: number
+	d: number
+	tx: number
+	ty: number
+}
+
 export const I6: Mat6 = [1, 0, 0, 1, 0, 0]
 export type Mat6 = [a: number, b: number, c: number, d: number, tx: number, ty: number]

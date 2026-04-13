@@ -1,6 +1,6 @@
 
 import {pub} from "@e280/stz"
-import {autoDetectRenderer, Container, Renderer, Sprite, Text, Texture} from "pixi.js"
+import {autoDetectRenderer, Container, FederatedPointerEvent, Renderer, Sprite, Text, Texture} from "pixi.js"
 
 import {Id} from "../../timeline/index.js"
 import {Composition, Layer} from "../fns/schematic.js"
@@ -8,8 +8,8 @@ import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
 
 export class Compositor {
-	onPointerDown = pub<[{id: Id, object: Container}]>()
-	onPointerUp = pub<[{id: Id, object: Container}]>()
+	onPointerDown = pub<[{event: FederatedPointerEvent, id: Id, object: Container}]>()
+	onPointerUp = pub<[{event: FederatedPointerEvent, id: Id, object: Container}]>()
 	onDispose = pub<[{id: Id, object: Container}]>()
 
 	static async setup() {
@@ -157,8 +157,8 @@ export class Compositor {
 						style: layer.style
 					})
 					text.eventMode = "static"
-					const down = () => this.onPointerDown.publish({id: layer.id, object: text})
-					const up = () => this.onPointerUp.publish({id: layer.id, object: text})
+					const down = (event: FederatedPointerEvent) => this.onPointerDown.publish({event, id: layer.id, object: text})
+					const up = (event: FederatedPointerEvent) => this.onPointerUp.publish({event, id: layer.id, object: text})
 
 					text.on("pointerdown", down)
 					text.on("pointerup", up)
@@ -177,8 +177,8 @@ export class Compositor {
 				case 'image': {
 					const sprite = new Sprite()
 					sprite.eventMode = "static"
-					const down = () => this.onPointerDown.publish({id: layer.id, object: sprite})
-					const up = () => this.onPointerUp.publish({id: layer.id, object: sprite})
+					const down = (event: FederatedPointerEvent) => this.onPointerDown.publish({event, id: layer.id, object: sprite})
+					const up = (event: FederatedPointerEvent) => this.onPointerUp.publish({event, id: layer.id, object: sprite})
 
 					sprite.on("pointerdown", down)
 					sprite.on("pointerup", up)

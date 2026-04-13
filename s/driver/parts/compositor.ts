@@ -10,6 +10,7 @@ import {makeTransition} from "../../features/transition/transition.js"
 export class Compositor {
 	onPointerDown = pub<[{id: Id, object: Container}]>()
 	onPointerUp = pub<[{id: Id, object: Container}]>()
+	onDispose = pub<[{id: Id, object: Container}]>()
 
 	static async setup() {
 		const renderer = await autoDetectRenderer({
@@ -165,7 +166,8 @@ export class Compositor {
 					return this.#activeObjects
 						.set(layer.id, {
 							sprite: text,
-							dispose() {
+							dispose: () => {
+								this.onDispose.publish({id: layer.id, object: text})
 								text.off("pointerdown", down)
 								text.off("pointerup", up)
 							}
@@ -184,7 +186,8 @@ export class Compositor {
 					return this.#activeObjects
 						.set(layer.id, {
 							sprite,
-							dispose() {
+							dispose: () => {
+								this.onDispose.publish({id: layer.id, object: sprite})
 								sprite.off("pointerdown", down)
 								sprite.off("pointerup", up)
 							}

@@ -1,14 +1,16 @@
 
 import {pub} from "@e280/stz"
-import {autoDetectRenderer, Container, FederatedPointerEvent, Renderer, Sprite, Text, Texture} from "pixi.js"
+import {autoDetectRenderer, Container, FederatedPointerEvent, Graphics, Renderer, Sprite, Text, Texture} from "pixi.js"
 
 import {Id} from "../../timeline/index.js"
+import {Crop} from "../../timeline/parts/item.js"
 import {Composition, Layer} from "../fns/schematic.js"
 import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
 
 export class Compositor {
 	onPointerDown = pub<[{event: FederatedPointerEvent, id: Id, object: Container}]>()
+	onPointerMove = pub<[{event: FederatedPointerEvent, id: Id, object: Container}]>()
 	onPointerUp = pub<[{event: FederatedPointerEvent, id: Id, object: Container}]>()
 	onDispose = pub<[{id: Id, object: Container}]>()
 
@@ -30,6 +32,7 @@ export class Compositor {
 	#transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
 	// objects rendered for current Composition
 	#activeObjects = new Map<number, {sprite: Container, dispose: () => void}>()
+	#cropMasks = new WeakMap<Container, Graphics>()
 
 	async composite(
 		composition: Composition,
@@ -64,9 +67,8 @@ export class Compositor {
 		parent: Container,
 	) {
 		if (Array.isArray(layer)) {
-			layer.reverse()
 			const disposers: (() => void)[] = []
-			for (const child of layer) {
+			for (const child of [...layer].reverse()) {
 				const result = await this.#renderLayer(child, parent)
 				disposers.push(result.dispose)
 			}
@@ -96,6 +98,7 @@ export class Compositor {
 	) {
 		const sprite = this.#findOrCreate<Text>(layer)!
 		this.#applyTransform(sprite, layer.matrix)
+		this.#applyCrop(sprite, layer.crop)
 		parent.addChild(sprite)
 		return {
 			dispose: () => {}
@@ -115,6 +118,7 @@ export class Compositor {
 		const texture = Texture.from(layer.frame)
 		sprite.texture = texture
 		this.#applyTransform(sprite, layer.matrix)
+		this.#applyCrop(sprite, layer.crop)
 		parent.addChild(sprite)
 
 		return {
@@ -147,6 +151,35 @@ export class Compositor {
   	target.setFromMatrix(mx)
 	}
 
+	#applyCrop(target: Container, crop?: Crop) {
+		const existing = this.#cropMasks.get(target)
+		if (existing) {
+			if (target.mask === existing)
+				target.mask = null
+			existing.removeFromParent()
+			existing.clear()
+		}
+
+		if (!crop || crop.every(value => value === 0))
+			return
+
+		const [top, right, bottom, left] = crop
+		const bounds = target.getLocalBounds()
+		const x = bounds.x + bounds.width * left
+		const y = bounds.y + bounds.height * top
+		const width = bounds.width * Math.max(0, 1 - left - right)
+		const height = bounds.height * Math.max(0, 1 - top - bottom)
+
+		const mask = existing ?? new Graphics()
+		mask.clear()
+		mask.beginFill(0xffffff)
+		mask.drawRect(x, y, width, height)
+		mask.endFill()
+		target.addChild(mask)
+		target.mask = mask
+		this.#cropMasks.set(target, mask)
+	}
+
 	#findOrCreate<T = Container>(layer: Layer) {
 		const object = this.#activeObjects.get(layer.id)
 		if(!object) {
@@ -159,15 +192,18 @@ export class Compositor {
 					text.eventMode = "static"
 					const down = (event: FederatedPointerEvent) => this.onPointerDown.publish({event, id: layer.id, object: text})
 					const up = (event: FederatedPointerEvent) => this.onPointerUp.publish({event, id: layer.id, object: text})
+					const move = (event: FederatedPointerEvent) => this.onPointerUp.publish({event, id: layer.id, object: text})
 
 					text.on("pointerdown", down)
 					text.on("pointerup", up)
+					text.on("pointermove", move)
 
 					return this.#activeObjects
 						.set(layer.id, {
 							sprite: text,
 							dispose: () => {
 								this.onDispose.publish({id: layer.id, object: text})
+								text.off("pointermove", move)
 								text.off("pointerdown", down)
 								text.off("pointerup", up)
 							}
@@ -179,8 +215,10 @@ export class Compositor {
 					sprite.eventMode = "static"
 					const down = (event: FederatedPointerEvent) => this.onPointerDown.publish({event, id: layer.id, object: sprite})
 					const up = (event: FederatedPointerEvent) => this.onPointerUp.publish({event, id: layer.id, object: sprite})
+					const move = (event: FederatedPointerEvent) => this.onPointerUp.publish({event, id: layer.id, object: sprite})
 
 					sprite.on("pointerdown", down)
+					sprite.on("pointermove", move)
 					sprite.on("pointerup", up)
 
 					return this.#activeObjects
@@ -189,6 +227,7 @@ export class Compositor {
 							dispose: () => {
 								this.onDispose.publish({id: layer.id, object: sprite})
 								sprite.off("pointerdown", down)
+								sprite.off("pointermove", move)
 								sprite.off("pointerup", up)
 							}
 						})

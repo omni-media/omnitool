@@ -3,7 +3,7 @@ import {TextStyleOptions} from "pixi.js"
 
 import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
-import {Effect, Item, Kind} from "../parts/item.js"
+import {Crop, Effect, Item, Kind} from "../parts/item.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
 
 export class O {
@@ -45,11 +45,12 @@ export class O {
 		return item
   }
 
-  spatial = (transform: Transform): Item.Spatial => {
+  spatial = (transform?: Transform, crop?: Crop): Item.Spatial => {
   	const item: Item.Spatial = {
   		id: this.getId(),
   		kind: Kind.Spatial,
-  		transform,
+  		transform: transform ?? this.transform(),
+  		crop,
   		enabled: true
   	}
 		this.register(item)

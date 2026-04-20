@@ -5,6 +5,7 @@ import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "
 
 import {Mat6} from "../../timeline/utils/matrix.js"
 import {Id} from "../../timeline/index.js"
+import {Crop} from "../../timeline/parts/item.js"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -79,6 +80,7 @@ export type TextLayer = {
 	content: string
 	style?: TextStyleOptions
 	matrix?: Mat6
+	crop?: Crop
 }
 
 export type ImageLayer = {
@@ -86,6 +88,7 @@ export type ImageLayer = {
 	kind: 'image'
 	frame: VideoFrame
 	matrix?: Mat6
+	crop?: Crop
 }
 
 export type TransitionLayer = {

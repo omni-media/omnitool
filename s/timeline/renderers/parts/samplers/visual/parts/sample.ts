@@ -13,6 +13,9 @@ export async function sampleVisual(
 	ancestors: ContainerItem[]
 ): Promise<Layer[]> {
 	const matrix = computeWorldMatrix(ctx.items, ancestors, item)
+	const crop = "spatialId" in item && item.spatialId
+		? (ctx.items.get(item.spatialId) as Item.Spatial | undefined)?.crop
+		: undefined
 
 	switch (item.kind) {
 		case Kind.Stack: {
@@ -35,7 +38,7 @@ export async function sampleVisual(
 			if (time < 0 || time >= item.duration) return []
 
 			const frame = await ctx.videoSampler(item, time)
-			return frame ? [{kind: "image", frame, matrix, id: item.id}] : []
+			return frame ? [{kind: "image", frame, matrix, crop, id: item.id}] : []
 		}
 
 		case Kind.Text: {
@@ -45,7 +48,7 @@ export async function sampleVisual(
 				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
 				: undefined
 
-			return [{id: item.id, kind: "text", content: item.content, style, matrix}]
+			return [{id: item.id, kind: "text", content: item.content, style, matrix, crop}]
 		}
 
 		case Kind.Gap: {

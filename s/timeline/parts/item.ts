@@ -5,6 +5,8 @@ import {Id, Hash} from "./basics.js"
 import {Transform} from "../types.js"
 import {Ms} from "../../units/ms.js"
 
+export type Crop = [top: number, right: number, bottom: number, left: number]
+
 export enum Kind {
 	Sequence,
 	Stack,
@@ -32,6 +34,7 @@ export namespace Item {
 		id: Id
 		kind: Kind.Spatial
 		transform: Transform
+		crop?: Crop
 		enabled: boolean
 	}
 

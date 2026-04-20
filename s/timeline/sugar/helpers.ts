@@ -2,9 +2,9 @@
 import {TextStyleOptions} from "pixi.js"
 
 import {O} from "./o.js"
-import {Item} from "../parts/item.js"
 import {Transform} from "../types.js"
 import {Media} from "../parts/media.js"
+import {Crop, Item} from "../parts/item.js"
 import {TimelineFile} from "../parts/basics.js"
 
 type Build<T extends Item.Any = Item.Any> = (o: O) => T
@@ -69,8 +69,8 @@ export function gap(duration: number): Build<Item.Gap> {
 	return o => o.gap(duration)
 }
 
-export function spatial(transform: Transform): Build<Item.Spatial> {
-	return o => o.spatial(transform)
+export function spatial(transform?: Transform, crop?: Crop): Build<Item.Spatial> {
+	return o => o.spatial(transform, crop)
 }
 
 export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {

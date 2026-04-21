@@ -164,7 +164,10 @@ export class Compositor {
 			return
 
 		const [top, right, bottom, left] = crop
+		const activeMask = target.mask
+		target.mask = null
 		const bounds = target.getLocalBounds()
+		target.mask = activeMask
 		const x = bounds.x + bounds.width * left
 		const y = bounds.y + bounds.height * top
 		const width = bounds.width * Math.max(0, 1 - left - right)
@@ -261,4 +264,3 @@ export class Compositor {
 		}
 	}
 }
-

@@ -3,7 +3,7 @@ import {SampleContext} from "./types.js"
 import {sampleSequence} from "./sequence.js"
 import {Ms} from "../../../../../../units/ms.js"
 import {computeWorldMatrix} from "../../../handy.js"
-import {Layer} from "../../../../../../driver/fns/schematic.js"
+import {FilterSpec, Layer} from "../../../../../../driver/fns/schematic.js"
 import {ContainerItem, Item, Kind} from "../../../../../parts/item.js"
 
 export async function sampleVisual(
@@ -20,7 +20,7 @@ export async function sampleVisual(
 		? item.filterIds
 			.map(id => ctx.items.get(id) as Item.Filter | undefined)
 			.filter((filter): filter is Item.Filter => !!filter?.enabled)
-			.map(filter => ({type: filter.type, params: filter.params}))
+			.map(filter => ({type: filter.type, params: filter.params}) as FilterSpec)
 		: undefined
 
 	switch (item.kind) {

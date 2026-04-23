@@ -1,17 +1,12 @@
 
 import {TextStyleOptions} from "pixi.js"
-import type {BlurFilterOptions} from "pixi.js"
 
 import {Id, Hash} from "./basics.js"
 import {Transform} from "../types.js"
 import {Ms} from "../../units/ms.js"
+import type {FilterParams, FilterType} from "./filters.js"
 
 export type Crop = [top: number, right: number, bottom: number, left: number]
-export type FilterOptions = {
-	BlurFilter: BlurFilterOptions
-}
-export type FilterType = keyof FilterOptions
-export type FilterParams<T extends FilterType = FilterType> = FilterOptions[T]
 
 export enum Kind {
 	Sequence,

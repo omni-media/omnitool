@@ -1,5 +1,6 @@
 
 export * from "./parts/basics.js"
+export * from "./parts/filters.js"
 export * from "./parts/item.js"
 export * from "./parts/media.js"
 export * from "./parts/resource-pool.js"
@@ -16,4 +17,3 @@ export * from "./sugar/omni.js"
 
 export * from "./utils/checksum.js"
 export * from "./utils/datafile.js"
-

@@ -3,9 +3,10 @@ import {TextStyleOptions} from "pixi.js"
 import {AsSchematic} from "@e280/comrade"
 import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
 
-import {Mat6} from "../../timeline/utils/matrix.js"
 import {Id} from "../../timeline/index.js"
-import {Crop, FilterParams, FilterType} from "../../timeline/parts/item.js"
+import {Crop} from "../../timeline/parts/item.js"
+import {Mat6} from "../../timeline/utils/matrix.js"
+import {FilterParams, FilterType} from "../../timeline/parts/filters.js"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -75,9 +76,11 @@ export interface MuxOpts {
 export type Composition = Layer | (Layer | Composition)[]
 
 export type FilterSpec = {
-	type: FilterType
-	params?: FilterParams
-}
+	[TFilter in FilterType]: {
+		type: TFilter
+		params?: FilterParams<TFilter>
+	}
+}[FilterType]
 
 export type TextLayer = {
 	id: Id

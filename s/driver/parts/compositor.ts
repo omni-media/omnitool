@@ -1,9 +1,22 @@
 
 import {pub} from "@e280/stz"
-import {autoDetectRenderer, BlurFilter, Container, FederatedPointerEvent, Filter, Graphics, Renderer, Sprite, Text, Texture} from "pixi.js"
+import {
+	autoDetectRenderer,
+	ColorMatrixFilter,
+	Container,
+	FederatedPointerEvent,
+	Filter,
+	Graphics,
+	Renderer,
+	Sprite,
+	Text,
+	Texture
+} from "pixi.js"
+import * as PixiFilters from "pixi-filters"
 
 import {Id} from "../../timeline/index.js"
 import {Crop} from "../../timeline/parts/item.js"
+import {findPixiFilter} from "../utils/find-pixi-filter.js"
 import {Composition, FilterSpec, Layer} from "../fns/schematic.js"
 import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
@@ -194,8 +207,21 @@ export class Compositor {
 		target.filters = specs
 			.map((spec): Filter | undefined => {
 				switch (spec.type) {
-					case "BlurFilter":
-						return new BlurFilter(spec.params)
+					case "ColorMatrixFilter": {
+						const {matrix, ...params} = spec.params ?? {}
+						const filter = new ColorMatrixFilter(params)
+						if (matrix)
+							filter.matrix = matrix
+						return filter
+					}
+					case "EmbossFilter":
+						return new PixiFilters.EmbossFilter(spec.params?.strength)
+					case "PixelateFilter":
+						return new PixiFilters.PixelateFilter(spec.params?.size)
+					default: {
+						const PixiFilter = findPixiFilter(spec.type)
+						return PixiFilter ? new PixiFilter(spec.params) : undefined
+					}
 				}
 			})
 			.filter((filter): filter is Filter => !!filter)

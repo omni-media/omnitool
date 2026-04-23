@@ -127,7 +127,7 @@ const defineFilter = <TParams>() =>
 		schema: SchemaFromOptions<TParams> = {},
 	): FilterDefinition<TType, TParams> => ({type, schema})
 
-export const filterTypes = {
+export const filters = {
 	adjustment: defineFilter<PixiFilters.AdjustmentFilterOptions>()("AdjustmentFilter", {
 		gamma: num(0, 5, 1),
 		saturation: num(0, 5, 1),
@@ -430,7 +430,7 @@ export const filterTypes = {
 	}),
 } as const
 
-type FilterDefinitions = typeof filterTypes
+type FilterDefinitions = typeof filters
 type FilterDefinitionParams<T> =
 	T extends FilterDefinition<string, infer TParams>
 		? TParams
@@ -443,42 +443,11 @@ export type FilterOptions = {
 
 export type FilterType = FilterDefinitions[keyof FilterDefinitions]["type"]
 export type FilterParams<T extends FilterType = FilterType> = FilterOptions[T]
-export type FilterSchemas = {
-	[TName in keyof FilterDefinitions as FilterDefinitions[TName]["type"]]:
-		FilterDefinitions[TName]["schema"]
-}
-
-export const filterSchemas = Object.fromEntries(
-	Object.values(filterTypes).map(filter => [filter.type, filter.schema]),
-) as FilterSchemas
-
-const getDefaultValue =(config: FilterPropertyConfig): unknown => {
-	switch(config.type) {
-		case "number":
-		case "boolean":
-		case "color":
-		case "choice":
-			return config.default
-
-		case "object":
-			return Object.fromEntries(
-				Object.entries(config.properties).map(([key, value]) => [key, getDefaultValue(value)]),
-			)
-
-		case "array":
-			return config.items.map(getDefaultValue)
-	}
-}
-
-export const getFilterDefaultParams = <TFilter extends FilterType>(type: TFilter): FilterParams<TFilter> =>
-	Object.fromEntries(
-		Object.entries(filterSchemas[type]).map(([key, value]) => [key, getDefaultValue(value)]),
-	) as FilterParams<TFilter>
 
 export interface FilterAction<TFilter extends FilterType> {
 	<T extends FilterableItem>(item: T, params?: FilterParams<TFilter>): T
 	make(params?: FilterParams<TFilter>): Item.Filter<TFilter>
 }
 export type FilterActions = {
-	[TName in keyof typeof filterTypes]: FilterAction<(typeof filterTypes)[TName]["type"]>
+	[TName in keyof typeof filters]: FilterAction<(typeof filters)[TName]["type"]>
 }

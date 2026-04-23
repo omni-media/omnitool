@@ -115,14 +115,12 @@ Filter metadata for UI:
 
 ```ts
 import {
-	filterTypes,
-	filterSchemas,
-	getFilterDefaultParams
+	filters
 } from "@omnimedia/omnitool"
 
-const available = Object.entries(filterTypes)
-const schema = filterSchemas.BlurFilter
-const defaults = getFilterDefaultParams("BlurFilter")
+const available = Object.entries(filters)
+const blur = filters.blur
+const schema = blur.schema
 ```
 
 ## 🧭 Spatial Transforms

@@ -6,7 +6,7 @@ import {Id, TimelineFile} from "../parts/basics.js"
 import {Transform, TransformOptions, Vec2} from "../types.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {Crop, Effect, FilterableItem, Item, Kind} from "../parts/item.js"
-import {filterTypes, FilterParams, FilterType} from "../parts/filters.js"
+import {filters, FilterParams, FilterType} from "../parts/filters.js"
 
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
@@ -87,7 +87,7 @@ export class O {
 	}
 
 	#makeFilters = (): FilterActions => {
-		const entries = Object.entries(filterTypes)
+		const entries = Object.entries(filters)
 			.map(([name, filter]) => [name, this.#makeFilter(filter.type)])
 		return Object.fromEntries(entries) as FilterActions
 	}

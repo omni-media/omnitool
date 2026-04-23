@@ -7,7 +7,7 @@ import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
 import {Crop, FilterableItem, Item} from "../parts/item.js"
-import {filterTypes, FilterParams, FilterType} from "../parts/filters.js"
+import {filters, FilterParams, FilterType} from "../parts/filters.js"
 
 export type Build<T extends Item.Any = Item.Any> = (o: O) => T
 
@@ -81,7 +81,7 @@ interface BuildFilterAction<TFilter extends FilterType> {
 }
 
 type BuildFilterActions = {
-	[TName in keyof typeof filterTypes]: BuildFilterAction<(typeof filterTypes)[TName]["type"]>
+	[TName in keyof typeof filters]: BuildFilterAction<(typeof filters)[TName]["type"]>
 }
 
 function makeFilter<TFilter extends FilterType>(
@@ -96,7 +96,7 @@ function makeFilter<TFilter extends FilterType>(
 }
 
 function makeFilters(): BuildFilterActions {
-	const names = Object.keys(filterTypes) as (keyof typeof filterTypes)[]
+	const names = Object.keys(filters) as (keyof typeof filters)[]
 	const entries = names.map(name => [
 		name,
 		makeFilter(o => o.filter[name] as FilterAction<any>)

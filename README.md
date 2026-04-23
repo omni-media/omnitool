@@ -37,10 +37,11 @@ const timeline = omni.timeline(o => {
 		styles: {fill: "white", fontSize: 48}
 	})
 	const xfade = o.transition.crossfade(500)
+	const softened = o.filter.blur.make({strength: 8, quality: 4})
 
 	return o.sequence(
 		o.stack(
-			o.video(clip, {start: 0, duration: 3000}),
+			o.video(clip, {start: 0, duration: 3000, filterIds: [softened.id]}),
 			caption
 		),
 		o.gap(400),
@@ -56,7 +57,7 @@ Declarative helper style (no explicit `o` in timeline declarations):
 ```ts
 import {
 	Driver, Omni, Datafile,
-	timeline, stack, video, audio, text, gap, transition
+	timeline, stack, video, audio, text, gap, transition, filter
 } from "@omnimedia/omnitool"
 
 const driver = await Driver.setup()
@@ -65,7 +66,10 @@ const {clip} = await omni.load({clip: Datafile.make(file)})
 
 const timeline = timeline(
 	stack(
-		video(clip, {start: 0, duration: 3000}),
+		filter.blur(
+			video(clip, {start: 0, duration: 3000}),
+			{strength: 8, quality: 4}
+		),
 		text("Hello world", {duration: 1500}),
 	),
 	gap(400),
@@ -73,6 +77,52 @@ const timeline = timeline(
 	video(clip, {start: 5000, duration: 2500}),
 	audio(clip, {start: 5000, duration: 2500})
 )
+```
+
+## 🎛 Filters
+
+Inline filter application:
+
+```ts
+const timeline = omni.timeline(o =>
+	o.stack(
+		o.filter.blur(
+			o.video(clip, {duration: 3000}),
+			{strength: 8, quality: 4}
+		),
+		o.filter.glow(
+			o.text("Hello world", {duration: 3000}),
+			{distance: 12, outerStrength: 2, color: "#ffffff"}
+		)
+	)
+)
+```
+
+Reusable filter items:
+
+```ts
+const timeline = omni.timeline(o => {
+	const blur = o.filter.blur.make({strength: 8, quality: 4})
+
+	return o.stack(
+		o.video(clip, {duration: 3000, filterIds: [blur.id]}),
+		o.text("Caption", {duration: 3000, styles: {fill: "white"}})
+	)
+})
+```
+
+Filter metadata for UI:
+
+```ts
+import {
+	filterTypes,
+	filterSchemas,
+	getFilterDefaultParams
+} from "@omnimedia/omnitool"
+
+const available = Object.entries(filterTypes)
+const schema = filterSchemas.BlurFilter
+const defaults = getFilterDefaultParams("BlurFilter")
 ```
 
 ## 🧭 Spatial Transforms
@@ -156,6 +206,7 @@ Timeline items:
 - 6 `Spatial`
 - 7 `Transition`
 - 8 `TextStyle`
+- 9 `Filter`
 
 ## 🗺️ Roadmap
 - CLI commands:
@@ -180,4 +231,3 @@ omnitool ai "make a 15s promo for tea"
 - smooth seeking
 - keyframes
 - server-side, not just browsers
-

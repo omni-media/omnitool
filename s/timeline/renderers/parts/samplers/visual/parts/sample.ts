@@ -16,6 +16,12 @@ export async function sampleVisual(
 	const crop = "spatialId" in item && item.spatialId
 		? (ctx.items.get(item.spatialId) as Item.Spatial | undefined)?.crop
 		: undefined
+	const filters = "filterIds" in item && item.filterIds
+		? item.filterIds
+			.map(id => ctx.items.get(id) as Item.Filter | undefined)
+			.filter((filter): filter is Item.Filter => !!filter?.enabled)
+			.map(filter => ({type: filter.type, params: filter.params}))
+		: undefined
 
 	switch (item.kind) {
 		case Kind.Stack: {
@@ -38,7 +44,7 @@ export async function sampleVisual(
 			if (time < 0 || time >= item.duration) return []
 
 			const frame = await ctx.videoSampler(item, time)
-			return frame ? [{kind: "image", frame, matrix, crop, id: item.id}] : []
+			return frame ? [{kind: "image", frame, matrix, crop, filters, id: item.id}] : []
 		}
 
 		case Kind.Text: {
@@ -48,7 +54,7 @@ export async function sampleVisual(
 				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
 				: undefined
 
-			return [{id: item.id, kind: "text", content: item.content, style, matrix, crop}]
+			return [{id: item.id, kind: "text", content: item.content, style, matrix, crop, filters}]
 		}
 
 		case Kind.Gap: {

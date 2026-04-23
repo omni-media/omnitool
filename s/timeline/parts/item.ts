@@ -1,11 +1,17 @@
 
 import {TextStyleOptions} from "pixi.js"
+import type {BlurFilterOptions} from "pixi.js"
 
 import {Id, Hash} from "./basics.js"
 import {Transform} from "../types.js"
 import {Ms} from "../../units/ms.js"
 
 export type Crop = [top: number, right: number, bottom: number, left: number]
+export type FilterOptions = {
+	BlurFilter: BlurFilterOptions
+}
+export type FilterType = keyof FilterOptions
+export type FilterParams<T extends FilterType = FilterType> = FilterOptions[T]
 
 export enum Kind {
 	Sequence,
@@ -16,7 +22,8 @@ export enum Kind {
 	Gap,
 	Spatial,
 	Transition,
-	TextStyle
+	TextStyle,
+	Filter
 }
 
 export enum Effect {
@@ -38,6 +45,14 @@ export namespace Item {
 		enabled: boolean
 	}
 
+	export type Filter<T extends FilterType = FilterType> = {
+		id: Id
+		kind: Kind.Filter
+		type: T
+		params?: FilterParams<T>
+		enabled: boolean
+	}
+
 	export type Gap = {
 		id: Id
 		kind: Kind.Gap
@@ -49,6 +64,7 @@ export namespace Item {
 		kind: Kind.Sequence
 		childrenIds: Id[]
 		spatialId?: Id
+		filterIds?: Id[]
 	}
 
 	export type Stack = {
@@ -56,6 +72,7 @@ export namespace Item {
 		kind: Kind.Stack
 		childrenIds: Id[]
 		spatialId?: Id
+		filterIds?: Id[]
 	}
 
 	export type Video = {
@@ -65,6 +82,7 @@ export namespace Item {
 		start: number
 		duration: number
 		spatialId?: Id
+		filterIds?: Id[]
 	}
 
 	export type Audio = {
@@ -83,6 +101,7 @@ export namespace Item {
 		duration: number
 		spatialId?: Id
 		styleId?: Id
+		filterIds?: Id[]
 	}
 
 	export type Transition = {
@@ -102,11 +121,13 @@ export namespace Item {
 		| Transition
 		| Spatial
 		| TextStyle
+		| Filter
 	)
 }
 
 export type ContainerItem = Item.Sequence | Item.Stack
 export type NonContainerItem = Exclude<Item.Any, ContainerItem>
+export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Text
 
 export type PlayableItem = Item.Any & {
 	start: Ms

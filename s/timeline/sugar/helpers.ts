@@ -4,10 +4,10 @@ import {TextStyleOptions} from "pixi.js"
 import {O} from "./o.js"
 import {Transform} from "../types.js"
 import {Media} from "../parts/media.js"
-import {Crop, Item} from "../parts/item.js"
 import {TimelineFile} from "../parts/basics.js"
+import {Crop, FilterableItem, FilterParams, Item} from "../parts/item.js"
 
-type Build<T extends Item.Any = Item.Any> = (o: O) => T
+export type Build<T extends Item.Any = Item.Any> = (o: O) => T
 
 function createTimeline(): TimelineFile {
 	return {
@@ -71,6 +71,19 @@ export function gap(duration: number): Build<Item.Gap> {
 
 export function spatial(transform?: Transform, crop?: Crop): Build<Item.Spatial> {
 	return o => o.spatial(transform, crop)
+}
+
+function blur<T extends FilterableItem>(
+	item: Build<T>,
+	params?: FilterParams
+): Build<T> {
+	return o => o.filter.blur(item(o), params)
+}
+blur.make = (params?: FilterParams): Build<Item.Filter> =>
+	o => o.filter.blur.make(params)
+
+export const filter = {
+	blur
 }
 
 export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {

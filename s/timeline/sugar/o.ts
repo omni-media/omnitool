@@ -3,8 +3,8 @@ import {TextStyleOptions} from "pixi.js"
 
 import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
-import {Crop, Effect, Item, Kind} from "../parts/item.js"
-import {Transform, TransformOptions, Vec2} from "../types.js"
+import {FilterAction, Transform, TransformOptions, Vec2} from "../types.js"
+import {Crop, Effect, FilterableItem, FilterParams, FilterType, Item, Kind} from "../parts/item.js"
 
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
@@ -56,6 +56,37 @@ export class O {
 		this.register(item)
   	return item
   }
+
+	#makeFilter = <TFilter extends FilterType>(type: TFilter) => {
+		const make = (params?: FilterParams<TFilter>) => {
+			const item: Item.Filter<TFilter> = {
+				id: this.getId(),
+				kind: Kind.Filter,
+				type,
+				params,
+				enabled: true
+			}
+			this.register(item)
+			return item
+		}
+
+		const action = (<T extends FilterableItem>(item: T, params?: FilterParams<TFilter>): T => {
+			const filter = make(params)
+			const next = {
+				...item,
+				filterIds: [...(item.filterIds ?? []), filter.id]
+			}
+			this.set<T>(item.id, next as Partial<T>)
+			return next
+		}) as FilterAction<TFilter>
+
+		action.make = make
+		return action
+	}
+
+	filter = {
+		blur: this.#makeFilter("BlurFilter")
+	}
 
 	sequence = (...items: Item.Any[]): Item.Sequence => {
 		const item =  {

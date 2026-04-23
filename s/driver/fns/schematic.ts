@@ -5,7 +5,7 @@ import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "
 
 import {Mat6} from "../../timeline/utils/matrix.js"
 import {Id} from "../../timeline/index.js"
-import {Crop} from "../../timeline/parts/item.js"
+import {Crop, FilterParams, FilterType} from "../../timeline/parts/item.js"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -74,6 +74,11 @@ export interface MuxOpts {
 
 export type Composition = Layer | (Layer | Composition)[]
 
+export type FilterSpec = {
+	type: FilterType
+	params?: FilterParams
+}
+
 export type TextLayer = {
 	id: Id
 	kind: 'text'
@@ -81,6 +86,7 @@ export type TextLayer = {
 	style?: TextStyleOptions
 	matrix?: Mat6
 	crop?: Crop
+	filters?: FilterSpec[]
 }
 
 export type ImageLayer = {
@@ -89,6 +95,7 @@ export type ImageLayer = {
 	frame: VideoFrame
 	matrix?: Mat6
 	crop?: Crop
+	filters?: FilterSpec[]
 }
 
 export type TransitionLayer = {
@@ -112,4 +119,3 @@ export type Audio = {
 }
 
 export type Layer = TextLayer | ImageLayer | TransitionLayer | GapLayer
-

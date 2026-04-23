@@ -1,3 +1,5 @@
+import {FilterableItem, FilterParams, FilterType, Item} from "./parts/item.js"
+
 export type Interpolation = "linear" | "catmullRom"
 export type Keyframe<Value = number> = [time: number, value: Value]
 export type Keyframes<Value = number> = Keyframe<Value>[]
@@ -26,4 +28,9 @@ export type TransformOptions = {
   position?: Vec2
   scale?: Vec2
   rotation?: number
+}
+
+export interface FilterAction<TFilter extends FilterType> {
+	<T extends FilterableItem>(item: T, params?: FilterParams<TFilter>): T
+	make(params?: FilterParams<TFilter>): Item.Filter<TFilter>
 }

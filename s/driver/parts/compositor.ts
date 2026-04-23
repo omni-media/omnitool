@@ -1,10 +1,10 @@
 
 import {pub} from "@e280/stz"
-import {autoDetectRenderer, Container, FederatedPointerEvent, Graphics, Renderer, Sprite, Text, Texture} from "pixi.js"
+import {autoDetectRenderer, BlurFilter, Container, FederatedPointerEvent, Filter, Graphics, Renderer, Sprite, Text, Texture} from "pixi.js"
 
 import {Id} from "../../timeline/index.js"
 import {Crop} from "../../timeline/parts/item.js"
-import {Composition, Layer} from "../fns/schematic.js"
+import {Composition, FilterSpec, Layer} from "../fns/schematic.js"
 import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
 
@@ -99,6 +99,7 @@ export class Compositor {
 		const sprite = this.#findOrCreate<Text>(layer)!
 		this.#applyTransform(sprite, layer.matrix)
 		this.#applyCrop(sprite, layer.crop)
+		this.#applyFilters(sprite, layer.filters)
 		parent.addChild(sprite)
 		return {
 			dispose: () => {}
@@ -119,6 +120,7 @@ export class Compositor {
 		sprite.texture = texture
 		this.#applyTransform(sprite, layer.matrix)
 		this.#applyCrop(sprite, layer.crop)
+		this.#applyFilters(sprite, layer.filters)
 		parent.addChild(sprite)
 
 		return {
@@ -181,6 +183,22 @@ export class Compositor {
 		target.addChild(mask)
 		target.mask = mask
 		this.#cropMasks.set(target, mask)
+	}
+
+	#applyFilters(target: Container, specs: FilterSpec[] | undefined) {
+		if (!specs?.length) {
+			target.filters = null
+			return
+		}
+
+		target.filters = specs
+			.map((spec): Filter | undefined => {
+				switch (spec.type) {
+					case "BlurFilter":
+						return new BlurFilter(spec.params)
+				}
+			})
+			.filter((filter): filter is Filter => !!filter)
 	}
 
 	#findOrCreate<T = Container>(layer: Layer) {

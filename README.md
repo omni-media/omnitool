@@ -228,4 +228,27 @@ omnitool ai "make a 15s promo for tea"
 
 - smooth seeking
 - keyframes
+- custom filters, likely via driver-side registration with timeline sugar such as:
+
+```ts
+// Register custom filter
+driver.registerFilter({
+	type: "vhs",
+	make: params => new Filter(/* ... */),
+	schema: {
+		intensity: {type: "number", min: 0, max: 1, default: 0.5},
+		scanlines: {type: "boolean", default: true},
+	},
+})
+
+// Use custom filter
+const timeline = omni.timeline(o =>
+	o.filter.custom(
+		"vhs",
+		o.video(clip, {duration: 3000}),
+		{intensity: 0.8}
+	)
+)
+```
+
 - server-side, not just browsers

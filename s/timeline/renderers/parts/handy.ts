@@ -1,26 +1,28 @@
 
 import {ms, Ms} from '../../../units/ms.js'
 import {Id, TimelineFile} from '../../parts/basics.js'
+import { SampleContext } from './samplers/visual/parts/types.js'
 import {I6, Mat6, mul6, transformToMat6} from '../../utils/matrix.js'
-import {ContainerItem, Item, Kind, PlayableItem} from '../../parts/item.js'
+import {resolveScalarAnimation, resolveSpatialTransform} from '../../utils/anim.js'
+import {ContainerItem, Item, Kind, PlayableItem, SpatialItem} from '../../parts/item.js'
 
 function isPlayableItem(item: Item.Any): item is PlayableItem {
 	return 'duration' in item
 }
 
 type WalkAtCallbacks = {
-	sequence: (x: Item.Sequence, localTime: Ms, ancestors: ContainerItem[]) => void
-	stack: (x: Item.Stack, localTime: Ms, ancestors: ContainerItem[]) => void
-	video: (x: Item.Video, localTime: Ms, ancestors: ContainerItem[]) => void
-	text: (x: Item.Text, localTime: Ms, ancestors: ContainerItem[]) => void
-	audio: (x: Item.Audio, localTime: Ms, ancestors: ContainerItem[]) => void
+	sequence: (x: Item.Sequence, localTime: Ms, ancestors: AncestorAt[]) => void
+	stack: (x: Item.Stack, localTime: Ms, ancestors: AncestorAt[]) => void
+	video: (x: Item.Video, localTime: Ms, ancestors: AncestorAt[]) => void
+	text: (x: Item.Text, localTime: Ms, ancestors: AncestorAt[]) => void
+	audio: (x: Item.Audio, localTime: Ms, ancestors: AncestorAt[]) => void
 }
 
 type WalkCallbacks = {
-	sequence?: (x: Item.Sequence, matrix: Mat6, ancestors: ContainerItem[]) => void
-	stack?: (x: Item.Stack, matrix: Mat6, ancestors: ContainerItem[]) => void
-	video?: (x: Item.Video, matrix: Mat6, ancestors: ContainerItem[]) => void
-	text?: (x: Item.Text, matrix: Mat6, ancestors: ContainerItem[]) => void
+	sequence?: (x: Item.Sequence, matrix: Mat6, ancestors: AncestorAt[]) => void
+	stack?: (x: Item.Stack, matrix: Mat6, ancestors: AncestorAt[]) => void
+	video?: (x: Item.Video, matrix: Mat6, ancestors: AncestorAt[]) => void
+	text?: (x: Item.Text, matrix: Mat6, ancestors: AncestorAt[]) => void
 	audio?: (x: Item.Audio) => void
 }
 
@@ -29,10 +31,15 @@ interface Props {
 	timecode: Ms
 }
 
+export interface AncestorAt {
+	item: ContainerItem
+	localTime: Ms
+}
+
 interface At {
 	item: Item.Any
 	localTime: Ms
-	ancestors: ContainerItem[]
+	ancestors: AncestorAt[]
 }
 
 export function itemsAt(p: Props): At[] {
@@ -72,27 +79,29 @@ export function itemsFrom(p: FromProps): At[] {
 
 export function computeWorldMatrix(
 	items: Map<Id, Item.Any>,
-	ancestors: ContainerItem[],
-	item: Item.Any
+	ancestors: AncestorAt[],
+	item: Item.Any,
+	localTime: Ms,
 ): Mat6 {
 	let world = I6
 
 	for (const ancestor of ancestors) {
-		world = applySpatialIfAny(items, ancestor, world)
+		world = applySpatialIfAny(items, ancestor.item, world, ancestor.localTime)
 	}
 
-	return applySpatialIfAny(items, item, world)
+	return applySpatialIfAny(items, item, world, localTime)
 }
 
 function applySpatialIfAny(
 	items: Map<Id, Item.Any>,
 	item: Item.Any,
-	parentMatrix: Mat6
+	parentMatrix: Mat6,
+	time: Ms,
 ) {
 	if ("spatialId" in item && item.spatialId) {
-		const spatial = items.get(item.spatialId) as Item.Spatial | undefined
+		const spatial = items.get(item.spatialId) as SpatialItem | undefined
 		if (spatial?.enabled) {
-			const local = transformToMat6(spatial.transform)
+			const local = transformToMat6(resolveSpatialTransform(spatial, time))
 			return mul6(local, parentMatrix)
 		}
 	}
@@ -103,27 +112,20 @@ export function walk(
 	id: Id,
 	items: Map<Id, Item.Any>,
 	parentMatrix: Mat6,
+	localTime: Ms,
 	callbacks: WalkCallbacks,
-	ancestors: ContainerItem[] = []
+	ancestors: AncestorAt[] = []
 ) {
 	const item = items.get(id)
 	if (!item) return
 
-	let currentMatrix = parentMatrix
-
-	if ("spatialId" in item && item.spatialId) {
-		const spatial = items.get(item.spatialId) as Item.Spatial
-		if (spatial.enabled) {
-			const local = transformToMat6(spatial.transform)
-			currentMatrix = mul6(local, currentMatrix)
-		}
-	}
+	const currentMatrix = applySpatialIfAny(items, item, parentMatrix, localTime)
 
 	switch (item.kind) {
 		case Kind.Stack:
 			callbacks.stack?.(item, currentMatrix, ancestors)
 			for (const childId of item.childrenIds) {
-				walk(childId, items, currentMatrix, callbacks, [...ancestors, item])
+				walk(childId, items, currentMatrix, localTime, callbacks, [...ancestors, {item, localTime}])
 			}
 			break
 
@@ -143,8 +145,9 @@ export function walk(
 					childId,
 					items,
 					currentMatrix,
+					localTime,
 					callbacks,
-					[...ancestors, item]
+					[...ancestors, {item, localTime}]
 				)
 			}
 
@@ -171,7 +174,7 @@ function walkAt(
 	items: Map<Id, Item.Any>,
 	time: Ms,
 	callbacks: WalkAtCallbacks,
-	ancestors: ContainerItem[] = []
+	ancestors: AncestorAt[] = []
 ) {
 	const item = items.get(id)
 	if (!item) return
@@ -180,7 +183,7 @@ function walkAt(
 		case Kind.Stack:
 			callbacks.stack(item, time, ancestors)
 			for (const childId of item.childrenIds) {
-				walkAt(childId, items, time, callbacks, [...ancestors, item])
+				walkAt(childId, items, time, callbacks, [...ancestors, {item, localTime: time}])
 			}
 			break
 
@@ -205,7 +208,7 @@ function walkAt(
 						items,
 						localTime,
 						callbacks,
-						[...ancestors, item]
+						[...ancestors, {item, localTime: time}]
 					)
 					break
 				}
@@ -235,7 +238,7 @@ function walkFrom(
 	items: Map<Id, Item.Any>,
 	from: Ms,
 	callbacks: WalkAtCallbacks,
-	ancestors: ContainerItem[] = []
+	ancestors: AncestorAt[] = []
 ) {
 	const item = items.get(id)
 	if (!item) return
@@ -244,7 +247,7 @@ function walkFrom(
 		case Kind.Stack:
 			callbacks.stack(item, from, ancestors)
 			for (const childId of item.childrenIds) {
-				walkFrom(childId, items, from, callbacks, [...ancestors, item])
+				walkFrom(childId, items, from, callbacks, [...ancestors, {item, localTime: from}])
 			}
 			break
 
@@ -274,7 +277,7 @@ function walkFrom(
 					items,
 					localTime,
 					callbacks,
-					[...ancestors, item]
+					[...ancestors, {item, localTime: from}]
 				)
 
 				offset = end
@@ -356,5 +359,19 @@ export function computeItemDuration(
 			return item.duration
 		}
 	}
+}
+
+export function computeOpacity(
+	ctx: SampleContext,
+	item: Item.Any,
+	time: Ms,
+) {
+	if (!("animationId" in item) || item.animationId === undefined)
+		return 1
+
+	const animation = ctx.items.get(item.animationId) as Item.Animation | undefined
+	return animation?.enabled && animation.anims.opacity
+		? resolveScalarAnimation(time, animation.anims.opacity)
+		: 1
 }
 

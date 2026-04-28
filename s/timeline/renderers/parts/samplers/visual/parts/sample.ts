@@ -2,19 +2,20 @@
 import {SampleContext} from "./types.js"
 import {sampleSequence} from "./sequence.js"
 import {Ms} from "../../../../../../units/ms.js"
-import {computeWorldMatrix} from "../../../handy.js"
+import {Item, Kind, SpatialItem} from "../../../../../parts/item.js"
 import {FilterSpec, Layer} from "../../../../../../driver/fns/schematic.js"
-import {ContainerItem, Item, Kind} from "../../../../../parts/item.js"
+import {AncestorAt, computeOpacity, computeWorldMatrix} from "../../../handy.js"
 
 export async function sampleVisual(
 	ctx: SampleContext,
 	item: Item.Any,
 	time: Ms,
-	ancestors: ContainerItem[]
+	ancestors: AncestorAt[]
 ): Promise<Layer[]> {
-	const matrix = computeWorldMatrix(ctx.items, ancestors, item)
+	const matrix = computeWorldMatrix(ctx.items, ancestors, item, time)
+	const alpha = computeOpacity(ctx, item, time)
 	const crop = "spatialId" in item && item.spatialId
-		? (ctx.items.get(item.spatialId) as Item.Spatial | undefined)?.crop
+		? (ctx.items.get(item.spatialId) as SpatialItem | undefined)?.crop
 		: undefined
 	const filters = "filterIds" in item && item.filterIds
 		? item.filterIds
@@ -25,7 +26,7 @@ export async function sampleVisual(
 
 	switch (item.kind) {
 		case Kind.Stack: {
-			const nextAnc = [...ancestors, item]
+			const nextAnc = [...ancestors, {item, localTime: time}]
 
 			const layers = await Promise.all(
 				item.childrenIds
@@ -44,7 +45,7 @@ export async function sampleVisual(
 			if (time < 0 || time >= item.duration) return []
 
 			const frame = await ctx.videoSampler(item, time)
-			return frame ? [{kind: "image", frame, matrix, crop, filters, id: item.id}] : []
+			return frame ? [{kind: "image", frame, matrix, alpha, crop, filters, id: item.id}] : []
 		}
 
 		case Kind.Text: {
@@ -54,7 +55,7 @@ export async function sampleVisual(
 				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
 				: undefined
 
-			return [{id: item.id, kind: "text", content: item.content, style, matrix, crop, filters}]
+			return [{id: item.id, kind: "text", content: item.content, style, matrix, alpha, crop, filters}]
 		}
 
 		case Kind.Gap: {

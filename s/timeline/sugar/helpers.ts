@@ -2,12 +2,12 @@
 import {TextStyleOptions} from "pixi.js"
 
 import {O} from "./o.js"
-import {Transform} from "../types.js"
 import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
-import {Crop, FilterableItem, Item} from "../parts/item.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
+import {Crop, FilterableItem, Item, VisualAnimatableItem} from "../parts/item.js"
+import {Anim, Interpolation, Keyframes, TrackTransform, Transform, Vec2} from "../types.js"
 
 export type Build<T extends Item.Any = Item.Any> = (o: O) => T
 
@@ -75,9 +75,66 @@ export function spatial(transform?: Transform, crop?: Crop): Build<Item.Spatial>
 	return o => o.spatial(transform, crop)
 }
 
+export function animatedSpatial(anim: Anim<TrackTransform>, crop?: Crop): Build<Item.AnimatedSpatial> {
+	return o => o.animatedSpatial(anim, crop)
+}
+
+export const anim = {
+	scalar(terp: Interpolation, track: Keyframes): Anim<Keyframes> {
+		return {terp, track}
+	},
+
+	vec2(terp: Interpolation, source: Keyframes<Vec2>): Anim<{x: Keyframes, y: Keyframes}> {
+		const track = {x: [] as Keyframes, y: [] as Keyframes}
+
+		for (const [time, [x, y]] of source) {
+			track.x.push([time, x])
+			track.y.push([time, y])
+		}
+
+		return {terp, track}
+	},
+
+	transform(terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> {
+		const track: TrackTransform = {
+			position: {x: [], y: []},
+			scale: {x: [], y: []},
+			rotation: [],
+		}
+
+		for (const [time, [position, scale, rotation]] of source) {
+			track.position.x.push([time, position[0]])
+			track.position.y.push([time, position[1]])
+			track.scale.x.push([time, scale[0]])
+			track.scale.y.push([time, scale[1]])
+			track.rotation.push([time, rotation])
+		}
+
+		return {terp, track}
+	},
+}
+
 interface BuildFilterAction<TFilter extends FilterType> {
 	<T extends FilterableItem>(item: Build<T>, params?: FilterParams<TFilter>): Build<T>
 	make(params?: FilterParams<TFilter>): Build<Item.Filter<TFilter>>
+}
+
+interface BuildAnimateAction {
+	<T extends VisualAnimatableItem>(
+		item: Build<T>,
+		terp: Interpolation,
+		track: Keyframes
+	): Build<T>
+	make(terp: Interpolation, track: Keyframes): Build<Item.Animation>
+}
+
+interface RuntimeAnimateAction {
+	<T extends VisualAnimatableItem>(
+		item: T,
+		terp: Interpolation,
+		track: Keyframes
+	): T
+	make(terp: Interpolation, track: Keyframes): Item.Animation
 }
 
 type BuildFilterActions = {
@@ -105,6 +162,22 @@ function makeFilters(): BuildFilterActions {
 }
 
 export const filter = makeFilters()
+
+function makeAnimate(
+	get: (o: O) => RuntimeAnimateAction
+): BuildAnimateAction {
+	const action = (<T extends VisualAnimatableItem>(
+		item: Build<T>,
+		terp: Interpolation,
+		track: Keyframes
+	): Build<T> => o => get(o)(item(o), terp, track)) as BuildAnimateAction
+	action.make = (terp: Interpolation, track: Keyframes) => o => get(o).make(terp, track)
+	return action
+}
+
+export const animate = {
+	opacity: makeAnimate(o => o.animate.opacity as RuntimeAnimateAction),
+}
 
 export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {
 	return o => o.textStyle(style)

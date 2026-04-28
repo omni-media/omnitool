@@ -88,6 +88,7 @@ export type TextLayer = {
 	content: string
 	style?: TextStyleOptions
 	matrix?: Mat6
+	alpha?: number
 	crop?: Crop
 	filters?: FilterSpec[]
 }
@@ -97,6 +98,7 @@ export type ImageLayer = {
 	kind: 'image'
 	frame: VideoFrame
 	matrix?: Mat6
+	alpha?: number
 	crop?: Crop
 	filters?: FilterSpec[]
 }

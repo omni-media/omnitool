@@ -111,6 +111,7 @@ export class Compositor {
 	) {
 		const sprite = this.#findOrCreate<Text>(layer)!
 		this.#applyTransform(sprite, layer.matrix)
+		this.#applyAlpha(sprite, layer.alpha)
 		this.#applyCrop(sprite, layer.crop)
 		this.#applyFilters(sprite, layer.filters)
 		parent.addChild(sprite)
@@ -132,6 +133,7 @@ export class Compositor {
 		const texture = Texture.from(layer.frame)
 		sprite.texture = texture
 		this.#applyTransform(sprite, layer.matrix)
+		this.#applyAlpha(sprite, layer.alpha)
 		this.#applyCrop(sprite, layer.crop)
 		this.#applyFilters(sprite, layer.filters)
 		parent.addChild(sprite)
@@ -164,6 +166,10 @@ export class Compositor {
   	if (!worldMatrix) return
 		const mx = mat6ToMatrix(worldMatrix)
   	target.setFromMatrix(mx)
+	}
+
+	#applyAlpha(target: Container, alpha?: number) {
+		target.alpha = alpha ?? 1
 	}
 
 	#applyCrop(target: Container, crop?: Crop) {

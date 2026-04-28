@@ -3,21 +3,21 @@ import {sampleVisual} from "./sample.js"
 import {SampleContext} from "./types.js"
 import {sampleTransition} from "./transition.js"
 import {ms, Ms} from "../../../../../../units/ms.js"
-import {computeItemDuration} from "../../../handy.js"
+import {Item, Kind} from "../../../../../parts/item.js"
 import {Layer} from "../../../../../../driver/fns/schematic.js"
-import {ContainerItem, Item, Kind} from "../../../../../parts/item.js"
+import {AncestorAt, computeItemDuration} from "../../../handy.js"
 
 export async function sampleSequence(
 	ctx: SampleContext,
 	seq: Item.Sequence,
 	time: Ms,
-	ancestors: ContainerItem[]
+	ancestors: AncestorAt[]
 ): Promise<Layer[]> {
 	const state = sampleSequenceAt(ctx, seq, time)
 
 	if (!state) return []
 
-	const nextAnc = [...ancestors, seq]
+	const nextAnc = [...ancestors, {item: seq, localTime: time}]
 
 	if (!state.isTransitioning) {
 		return sampleVisual(ctx, state.item, state.localTime, nextAnc)

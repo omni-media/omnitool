@@ -3,10 +3,10 @@ import {TextStyleOptions} from "pixi.js"
 
 import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
-import {Transform, TransformOptions, Vec2} from "../types.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
-import {Crop, Effect, FilterableItem, Item, Kind} from "../parts/item.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
+import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
+import {Anim, AnimateAction, AnimateActions, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
 
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
@@ -59,6 +59,62 @@ export class O {
   	return item
   }
 
+	animatedSpatial = (anim: Anim<TrackTransform>, crop?: Crop): Item.AnimatedSpatial => {
+		const item: Item.AnimatedSpatial = {
+			id: this.getId(),
+			kind: Kind.AnimatedSpatial,
+			anim,
+			crop,
+			enabled: true
+		}
+		this.register(item)
+		return item
+	}
+
+	#registerAnimation = (anims: VisualAnimations): Item.Animation => {
+		const item: Item.Animation = {
+			id: this.getId(),
+			kind: Kind.Animation,
+			anims,
+			enabled: true
+		}
+		this.register(item)
+		return item
+	}
+
+	anim = {
+		scalar: (terp: Interpolation, track: Keyframes): Anim<Keyframes> => ({terp, track}),
+
+		vec2: (terp: Interpolation, source: Keyframes<Vec2>) => {
+			const track = {x: [] as Keyframes, y: [] as Keyframes}
+
+			for (const [time, [x, y]] of source) {
+				track.x.push([time, x])
+				track.y.push([time, y])
+			}
+
+			return {terp, track}
+		},
+
+		transform: (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
+			const track: TrackTransform = {
+				position: {x: [], y: []},
+				scale: {x: [], y: []},
+				rotation: [],
+			}
+
+			for (const [time, [position, scale, rotation]] of source) {
+				track.position.x.push([time, position[0]])
+				track.position.y.push([time, position[1]])
+				track.scale.x.push([time, scale[0]])
+				track.scale.y.push([time, scale[1]])
+				track.rotation.push([time, rotation])
+			}
+
+			return {terp, track}
+		},
+	}
+
 	#makeFilter = <TFilter extends FilterType>(type: TFilter) => {
 		const make = (params?: FilterParams<TFilter>) => {
 			const item: Item.Filter<TFilter> = {
@@ -93,6 +149,36 @@ export class O {
 	}
 
 	filter = this.#makeFilters()
+
+	#makeAnimate = <TKey extends keyof VisualAnimations>(key: TKey): AnimateAction<VisualAnimatableItem, Item.Animation> => {
+		const make = (terp: Interpolation, track: Keyframes) =>
+			this.#registerAnimation({
+				[key]: this.anim.scalar(terp, track)
+			} as Pick<VisualAnimations, TKey>)
+
+		const action = (<T extends VisualAnimatableItem>(
+			item: T,
+			terp: Interpolation,
+			track: Keyframes
+		): T => {
+			const animation = make(terp, track)
+			const next = {
+				...item,
+				animationId: animation.id
+			}
+			this.set<T>(item.id, next as Partial<T>)
+			return next
+		}) as AnimateAction<VisualAnimatableItem, Item.Animation>
+
+		action.make = make
+		return action
+	}
+
+	#makeAnimateActions = (): AnimateActions<VisualAnimatableItem, Item.Animation, VisualAnimations> => ({
+		opacity: this.#makeAnimate("opacity")
+	})
+
+	animate = this.#makeAnimateActions()
 
 	sequence = (...items: Item.Any[]): Item.Sequence => {
 		const item =  {

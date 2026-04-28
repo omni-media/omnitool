@@ -81,7 +81,7 @@ const timeline = timeline(
 
 ## 🎛 Filters
 
-Inline filter application:
+Filter application:
 
 ```ts
 const timeline = omni.timeline(o =>
@@ -138,6 +138,75 @@ const timeline = omni.timeline(o => {
 		styles: {fill: "white", fontSize: 36}
 	})
 	o.set(title.id, {spatialId: move.id})
+
+	return o.stack(
+		o.video(clip, {duration: 4000}),
+		title
+	)
+})
+```
+
+Animated spatial transforms:
+
+```ts
+const timeline = omni.timeline(o => {
+	const slideIn = o.animatedSpatial(
+		o.anim.transform("linear", [
+			[0, o.transform({position: [-400, 0]})],
+			[1000, o.transform({position: [0, 0]})],
+		])
+	)
+
+	const title = o.text("Lower third", {
+		duration: 2000,
+		styles: {fill: "white", fontSize: 36}
+	})
+	o.set(title.id, {spatialId: slideIn.id})
+
+	return o.stack(
+		o.video(clip, {duration: 4000}),
+		title
+	)
+})
+```
+
+Animation application:
+
+```ts
+const timeline = omni.timeline(o => {
+	const title = o.animate.opacity(
+		o.text("Lower third", {
+			duration: 2000,
+			styles: {fill: "white", fontSize: 36},
+		}),
+		"easeIn",
+		[
+			[0, 0],
+			[700, 1],
+		]
+	)
+
+	return o.stack(
+		o.video(clip, {duration: 4000}),
+		title
+	)
+})
+```
+
+Reusable animation:
+
+```ts
+const timeline = omni.timeline(o => {
+	const fadeIn = o.animate.opacity.make("easeIn", [
+		[0, 0],
+		[700, 1],
+	])
+
+	const title = o.text("Lower third", {
+		duration: 2000,
+		styles: {fill: "white", fontSize: 36},
+	})
+	o.set(title.id, {animationId: fadeIn.id})
 
 	return o.stack(
 		o.video(clip, {duration: 4000}),

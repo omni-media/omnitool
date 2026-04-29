@@ -5,11 +5,15 @@ import {O} from "./o.js"
 import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
+import {visualAnimations} from "../parts/animations.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {Crop, FilterableItem, Item, VisualAnimatableItem} from "../parts/item.js"
-import {Anim, Interpolation, Keyframes, TrackTransform, Transform, Vec2} from "../types.js"
+import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, Vec2, VisualAnimations} from "../types.js"
 
 export type Build<T extends Item.Any = Item.Any> = (o: O) => T
+type BuildVisualAnimateActions = {
+	[TKey in keyof VisualAnimations]-?: BuildAnimateAction
+}
 
 function createTimeline(): TimelineFile {
 	return {
@@ -128,15 +132,6 @@ interface BuildAnimateAction {
 	make(terp: Interpolation, track: Keyframes): Build<Item.Animation>
 }
 
-interface RuntimeAnimateAction {
-	<T extends VisualAnimatableItem>(
-		item: T,
-		terp: Interpolation,
-		track: Keyframes
-	): T
-	make(terp: Interpolation, track: Keyframes): Item.Animation
-}
-
 type BuildFilterActions = {
 	[TName in keyof typeof filters]: BuildFilterAction<(typeof filters)[TName]["type"]>
 }
@@ -164,7 +159,7 @@ function makeFilters(): BuildFilterActions {
 export const filter = makeFilters()
 
 function makeAnimate(
-	get: (o: O) => RuntimeAnimateAction
+	get: (o: O) => AnimateAction
 ): BuildAnimateAction {
 	const action = (<T extends VisualAnimatableItem>(
 		item: Build<T>,
@@ -175,9 +170,13 @@ function makeAnimate(
 	return action
 }
 
-export const animate = {
-	opacity: makeAnimate(o => o.animate.opacity as RuntimeAnimateAction),
+function makeAnimateActions(): BuildVisualAnimateActions {
+	const entries = Object.keys(visualAnimations)
+		.map(key => [key, makeAnimate(o => o.animate[key as keyof VisualAnimations] as AnimateAction)])
+	return Object.fromEntries(entries) as BuildVisualAnimateActions
 }
+
+export const animate = makeAnimateActions()
 
 export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {
 	return o => o.textStyle(style)

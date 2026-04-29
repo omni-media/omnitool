@@ -1,5 +1,6 @@
 
 export * from "./parts/basics.js"
+export * from "./parts/animations.js"
 export * from "./parts/filters.js"
 export * from "./parts/item.js"
 export * from "./parts/media.js"

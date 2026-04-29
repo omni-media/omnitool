@@ -5,8 +5,13 @@ import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
+import {visualAnimations} from "../parts/animations.js"
 import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
-import {Anim, AnimateAction, AnimateActions, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
+import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
+
+type VisualAnimateActions = {
+	[TKey in keyof VisualAnimations]-?: AnimateAction
+}
 
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
@@ -150,7 +155,7 @@ export class O {
 
 	filter = this.#makeFilters()
 
-	#makeAnimate = <TKey extends keyof VisualAnimations>(key: TKey): AnimateAction<VisualAnimatableItem, Item.Animation> => {
+	#makeAnimate = <TKey extends keyof VisualAnimations>(key: TKey): AnimateAction => {
 		const make = (terp: Interpolation, track: Keyframes) =>
 			this.#registerAnimation({
 				[key]: this.anim.scalar(terp, track)
@@ -168,15 +173,17 @@ export class O {
 			}
 			this.set<T>(item.id, next as Partial<T>)
 			return next
-		}) as AnimateAction<VisualAnimatableItem, Item.Animation>
+		}) as AnimateAction
 
 		action.make = make
 		return action
 	}
 
-	#makeAnimateActions = (): AnimateActions<VisualAnimatableItem, Item.Animation, VisualAnimations> => ({
-		opacity: this.#makeAnimate("opacity")
-	})
+	#makeAnimateActions = (): VisualAnimateActions => {
+		const entries = Object.keys(visualAnimations)
+			.map(key => [key, this.#makeAnimate(key as keyof VisualAnimations)])
+		return Object.fromEntries(entries) as VisualAnimateActions
+	}
 
 	animate = this.#makeAnimateActions()
 

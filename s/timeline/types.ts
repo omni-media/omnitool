@@ -1,3 +1,4 @@
+import {Item, VisualAnimatableItem} from "./parts/item.js"
 
 export type Interpolation =
 	| "linear"
@@ -34,16 +35,13 @@ export type TransformAnimation = Anim<TrackTransform>
 export type VisualAnimations = {
 	opacity?: ScalarAnimation
 }
-export interface AnimateAction<TItem, TAnimation> {
-	(
-		item: TItem,
+export interface AnimateAction {
+	<T extends VisualAnimatableItem>(
+		item: T,
 		terp: Interpolation,
 		track: Keyframes
-	): TItem
-	make(terp: Interpolation, track: Keyframes): TAnimation
-}
-export type AnimateActions<TItem, TAnimation, TAnimations> = {
-	[TKey in keyof TAnimations]-?: AnimateAction<TItem, TAnimation>
+	): T
+	make(terp: Interpolation, track: Keyframes): Item.Animation
 }
 
 // export type Animations = Anim<TrackTransform>

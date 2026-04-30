@@ -215,6 +215,20 @@ const timeline = omni.timeline(o => {
 })
 ```
 
+Animation registry:
+
+```ts
+import {animations} from "@omnimedia/omnitool"
+
+Object.entries(animations).forEach(([property, meta]) => {
+	console.log(property, meta.value)
+	// transform transform
+	// opacity scalar
+})
+```
+
+This is useful for UI code that needs to list keyframeable properties and choose the right editor shape for each one.
+
 Worker URL notes:
 - `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.
 - If you serve the worker from a different location, pass `workerUrl`:

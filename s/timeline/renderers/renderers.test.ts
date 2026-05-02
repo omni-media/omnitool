@@ -8,6 +8,7 @@ import {fps} from "../../units/fps.js"
 import {Datafile} from "../utils/datafile.js"
 import {Driver} from "../../driver/driver.js"
 import {AudioMix} from "./export/parts/audio-mix.js"
+import {resolveTransformAnimation} from "../utils/anim.js"
 import {produceAudio} from "./export/parts/produce-audio.js"
 import {resampleToPlanar} from "./export/parts/resamplers.js"
 import {loadVideo} from "../../demo/routines/load-video.js"
@@ -40,6 +41,23 @@ const near = (actual: number, expected: number, eps = 1e-6) =>
 	Math.abs(actual - expected) < eps
 
 export default Science.suite({
+
+	"empty transform animation tracks resolve to identity transform defaults": test(async () => {
+		const transform = resolveTransformAnimation(ms(100), {
+			terp: "linear",
+			track: {
+				position: {x: [], y: []},
+				scale: {x: [], y: []},
+				rotation: [],
+			},
+		})
+
+		expect(transform[0][0]).is(0)
+		expect(transform[0][1]).is(0)
+		expect(transform[1][0]).is(1)
+		expect(transform[1][1]).is(1)
+		expect(transform[2]).is(0)
+	}),
 
 	"cursor visual sampler cannot get previous samples": test(async () => {
 		const {omni, videoA, resolveMedia, driver} = await setupTest()

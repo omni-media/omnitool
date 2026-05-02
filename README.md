@@ -221,13 +221,13 @@ Animation registry:
 import {animations} from "@omnimedia/omnitool"
 
 Object.entries(animations).forEach(([property, meta]) => {
-	console.log(property, meta.value)
-	// transform transform
-	// opacity scalar
+	console.log(property, meta.type, meta.defaultTerp, meta.channels)
+	// transform transform linear [...]
+	// opacity scalar linear [...]
 })
 ```
 
-This is useful for UI code that needs to list keyframeable properties and choose the right editor shape for each one.
+Each animation definition describes the semantic shape of the animation: its value kind, default interpolation, and numeric channels with defaults and units. This is useful for tools that need to create valid keyframes without hardcoding Omnitool's track layout.
 
 Worker URL notes:
 - `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.

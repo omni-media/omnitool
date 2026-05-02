@@ -7,9 +7,10 @@ const resolveScalar =(
 	time: number,
 	keys: Keyframes,
 	terp: Anim<Keyframes>["terp"],
+	fallback = 0,
 ): number => {
 	if (keys.length === 0)
-		return 0
+		return fallback
 
 	if (keys.length === 1)
 		return keys[0][1]
@@ -50,8 +51,8 @@ export const resolveTransformAnimation =(
 		resolveScalar(time, anim.track.position.y, anim.terp),
 	],
 	[
-		resolveScalar(time, anim.track.scale.x, anim.terp),
-		resolveScalar(time, anim.track.scale.y, anim.terp),
+		resolveScalar(time, anim.track.scale.x, anim.terp, 1),
+		resolveScalar(time, anim.track.scale.y, anim.terp, 1),
 	],
 	resolveScalar(time, anim.track.rotation, anim.terp),
 ])

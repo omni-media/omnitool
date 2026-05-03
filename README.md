@@ -229,6 +229,16 @@ Object.entries(animations).forEach(([property, meta]) => {
 
 Each animation definition describes the semantic shape of the animation: its value kind, default interpolation, and numeric channels with defaults and units. This is useful for tools that need to create valid keyframes without hardcoding Omnitool's track layout.
 
+Utils:
+
+```ts
+import {resolveTransform} from "@omnimedia/omnitool"
+
+const transform = resolveTransform(spatial, localTime)
+```
+
+`resolveTransform` gets a spatial item's current transform. It returns the static transform for `Item.Spatial`, or resolves the animated transform for `Item.AnimatedSpatial` at the given local time.
+
 Worker URL notes:
 - `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.
 - If you serve the worker from a different location, pass `workerUrl`:

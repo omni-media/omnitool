@@ -3,7 +3,7 @@ import {ms, Ms} from '../../../units/ms.js'
 import {Id, TimelineFile} from '../../parts/basics.js'
 import { SampleContext } from './samplers/visual/parts/types.js'
 import {I6, Mat6, mul6, transformToMat6} from '../../utils/matrix.js'
-import {resolveScalarAnimation, resolveSpatialTransform} from '../../utils/anim.js'
+import {resolveScalarAnimation, resolveTransform} from '../../utils/anim.js'
 import {ContainerItem, Item, Kind, PlayableItem, SpatialItem} from '../../parts/item.js'
 
 function isPlayableItem(item: Item.Any): item is PlayableItem {
@@ -101,7 +101,7 @@ function applySpatialIfAny(
 	if ("spatialId" in item && item.spatialId) {
 		const spatial = items.get(item.spatialId) as SpatialItem | undefined
 		if (spatial?.enabled) {
-			const local = transformToMat6(resolveSpatialTransform(spatial, time))
+			const local = transformToMat6(resolveTransform(spatial, time))
 			return mul6(local, parentMatrix)
 		}
 	}

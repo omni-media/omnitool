@@ -19,3 +19,4 @@ export * from "./sugar/omni.js"
 
 export * from "./utils/checksum.js"
 export * from "./utils/datafile.js"
+export * from "./utils/anim.js"

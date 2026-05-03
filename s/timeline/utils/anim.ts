@@ -62,7 +62,7 @@ export const resolveScalarAnimation =(
 	anim: ScalarAnimation,
 ): number => resolveScalar(time, anim.track, anim.terp)
 
-export const resolveSpatialTransform =(
+export const resolveTransform =(
 	spatial: Item.Spatial | Item.AnimatedSpatial,
 	time: number,
 ): Transform =>

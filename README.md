@@ -240,7 +240,8 @@ const opacity = resolveScalarAnimation(localTime, opacityAnimation)
 
 `resolveTransformAnimation` resolves an animated transform at the given local time.
 `resolveScalarAnimation` resolves an animated scalar value at the given local time.
-`localTime` is relative to the item or animation being resolved.
+`localTime` is time relative to the item being resolved.
+`clamp` is the default and currently only extrapolation mode, holding the first or last keyframe value outside the authored range.
 
 Worker URL notes:
 - `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.

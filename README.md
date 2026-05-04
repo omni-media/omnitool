@@ -232,12 +232,15 @@ Each animation definition describes the semantic shape of the animation: its val
 Utils:
 
 ```ts
-import {resolveTransform} from "@omnimedia/omnitool"
+import {resolveScalarAnimation, resolveTransformAnimation} from "@omnimedia/omnitool"
 
-const transform = resolveTransform(spatial, localTime)
+const transform = resolveTransformAnimation(localTime, spatial.anim)
+const opacity = resolveScalarAnimation(localTime, opacityAnimation)
 ```
 
-`resolveTransform` gets a spatial item's current transform. It returns the static transform for `Item.Spatial`, or resolves the animated transform for `Item.AnimatedSpatial` at the given local time.
+`resolveTransformAnimation` resolves an animated transform at the given local time.
+`resolveScalarAnimation` resolves an animated scalar value at the given local time.
+`localTime` is relative to the item or animation being resolved.
 
 Worker URL notes:
 - `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.

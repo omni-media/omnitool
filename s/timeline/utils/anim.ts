@@ -1,7 +1,7 @@
 
 import {resolveTerp} from "./terps.js"
 import {Item, Kind} from "../parts/item.js"
-import {Anim, Keyframes, ScalarAnimation, TrackTransform, Transform} from "../types.js"
+import {Anim, Keyframes, ScalarAnimation, Transform, TransformAnimation} from "../types.js"
 
 const resolveScalar =(
 	time: number,
@@ -44,7 +44,7 @@ const resolveScalar =(
 
 export const resolveTransformAnimation =(
 	time: number,
-	anim: Anim<TrackTransform>,
+	anim: TransformAnimation,
 ): Transform => ([
 	[
 		resolveScalar(time, anim.track.position.x, anim.terp),

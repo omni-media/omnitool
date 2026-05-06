@@ -150,7 +150,7 @@ Animated spatial transforms:
 
 ```ts
 const timeline = omni.timeline(o => {
-	const slideIn = o.animatedSpatial(
+	const customMotion = o.animatedSpatial(
 		o.anim.transform("linear", [
 			[0, o.transform({position: [-400, 0]})],
 			[1000, o.transform({position: [0, 0]})],
@@ -161,13 +161,36 @@ const timeline = omni.timeline(o => {
 		duration: 2000,
 		styles: {fill: "white", fontSize: 36}
 	})
-	o.set(title.id, {spatialId: slideIn.id})
+	o.set(title.id, {spatialId: customMotion.id})
 
 	return o.stack(
 		o.video(clip, {duration: 4000}),
 		title
 	)
 })
+```
+
+Built-in spatial animations:
+
+```ts
+const slideIn = o.animatedSpatial(o.anim.presets.slideIn())
+const slideOut = o.animatedSpatial(o.anim.presets.slideOut({duration: 500}))
+const spinIn = o.animatedSpatial(o.anim.presets.spinIn())
+const spinOut = o.animatedSpatial(o.anim.presets.spinOut())
+const zoomIn = o.animatedSpatial(o.anim.presets.zoomIn())
+const zoomOut = o.animatedSpatial(o.anim.presets.zoomOut())
+const bounceIn = o.animatedSpatial(o.anim.presets.bounceIn())
+const bounceOut = o.animatedSpatial(o.anim.presets.bounceOut())
+```
+
+Built-in scalar animations:
+
+```ts
+const fadeInPreset = o.anim.presets.fadeIn()
+const fadeIn = o.animate.opacity.make(fadeInPreset.terp, fadeInPreset.track)
+
+const fadeOutPreset = o.anim.presets.fadeOut({duration: 500})
+const fadeOut = o.animate.opacity.make(fadeOutPreset.terp, fadeOutPreset.track)
 ```
 
 Animation application:
@@ -215,19 +238,35 @@ const timeline = omni.timeline(o => {
 })
 ```
 
-Animation registry:
+Animation metadata:
 
 ```ts
-import {animations} from "@omnimedia/omnitool"
+import {animatableProperties, animationPresets} from "@omnimedia/omnitool"
 
-Object.entries(animations).forEach(([property, meta]) => {
+Object.entries(animatableProperties).forEach(([property, meta]) => {
 	console.log(property, meta.type, meta.defaultTerp, meta.channels)
 	// transform transform linear [...]
 	// opacity scalar linear [...]
 })
+
+Object.entries(animationPresets).forEach(([preset, meta]) => {
+	console.log(preset, meta.type, meta.label, meta.defaults)
+	// slideIn motion Slide in {...}
+	// slideOut motion Slide out {...}
+	// spinIn motion Spin in {...}
+	// spinOut motion Spin out {...}
+	// zoomIn motion Zoom in {...}
+	// zoomOut motion Zoom out {...}
+	// bounceIn motion Bounce in {...}
+	// bounceOut motion Bounce out {...}
+	// fadeIn scalar Fade in {...}
+	// fadeOut scalar Fade out {...}
+})
 ```
 
-Each animation definition describes the semantic shape of the animation: its value kind, default interpolation, and numeric channels with defaults and units. This is useful for tools that need to create valid keyframes without hardcoding Omnitool's track layout.
+Animatable properties describe what can be keyframed, such as `transform` and `opacity`.
+Animation presets describe built-in recipes, such as `slideIn` and `fadeIn`, that create animation data.
+Use `animationPresets` to list available recipes, and `o.anim.presets` to create animation data from them.
 
 Utils:
 

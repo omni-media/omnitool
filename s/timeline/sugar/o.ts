@@ -5,7 +5,7 @@ import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
-import {visualAnimations} from "../parts/animations.js"
+import {makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
 import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
 
@@ -87,6 +87,24 @@ export class O {
 		return item
 	}
 
+	#transformAnimation = (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
+		const track: TrackTransform = {
+			position: {x: [], y: []},
+			scale: {x: [], y: []},
+			rotation: [],
+		}
+
+		for (const [time, [position, scale, rotation]] of source) {
+			track.position.x.push([time, position[0]])
+			track.position.y.push([time, position[1]])
+			track.scale.x.push([time, scale[0]])
+			track.scale.y.push([time, scale[1]])
+			track.rotation.push([time, rotation])
+		}
+
+		return {terp, track}
+	}
+
 	anim = {
 		scalar: (terp: Interpolation, track: Keyframes): Anim<Keyframes> => ({terp, track}),
 
@@ -101,23 +119,13 @@ export class O {
 			return {terp, track}
 		},
 
-		transform: (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
-			const track: TrackTransform = {
-				position: {x: [], y: []},
-				scale: {x: [], y: []},
-				rotation: [],
-			}
+		transform: this.#transformAnimation,
 
-			for (const [time, [position, scale, rotation]] of source) {
-				track.position.x.push([time, position[0]])
-				track.position.y.push([time, position[1]])
-				track.scale.x.push([time, scale[0]])
-				track.scale.y.push([time, scale[1]])
-				track.rotation.push([time, rotation])
-			}
-
-			return {terp, track}
-		},
+		presets: makeAnimationPresets(
+			(terp, track) => ({terp, track}),
+			this.#transformAnimation,
+			options => this.transform(options),
+		),
 	}
 
 	#makeFilter = <TFilter extends FilterType>(type: TFilter) => {

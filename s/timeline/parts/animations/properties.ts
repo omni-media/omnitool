@@ -1,23 +1,5 @@
 
-import type {Interpolation} from "../types.js"
-
-export type AnimationType = "scalar" | "transform"
-export type AnimationChannelType = "number"
-export type AnimationUnit = "pixel" | "scale" | "radian" | "ratio"
-
-export type AnimationChannel = {
-	path?: string
-	type: AnimationChannelType
-	default: number
-	unit?: AnimationUnit
-	range?: readonly [min: number, max: number]
-}
-
-export type AnimationDefinition = {
-	type: AnimationType
-	defaultTerp: Interpolation
-	channels: readonly AnimationChannel[]
-}
+import type {AnimationDefinition} from "./types.js"
 
 export const spatialAnimations = {
 	transform: {
@@ -45,12 +27,8 @@ export const visualAnimations = {
 
 // const audioAnimations = {}
 
-export const animations = {
+export const animatableProperties = {
 	...spatialAnimations,
 	...visualAnimations,
 } as const
-
-export type SpatialAnimationProperty = keyof typeof spatialAnimations
-export type VisualAnimationProperty = keyof typeof visualAnimations
-export type AnimationProperty = keyof typeof animations
 

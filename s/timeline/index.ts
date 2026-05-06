@@ -1,13 +1,13 @@
 
+export * from "./types.js"
 export * from "./parts/basics.js"
-export * from "./parts/animations.js"
 export * from "./parts/filters.js"
 export * from "./parts/item.js"
 export * from "./parts/media.js"
 export * from "./parts/resource-pool.js"
 export * from "./parts/resource.js"
 export * from "./parts/filmstrip.js"
-export * from "./types.js"
+export * from "./parts/animations/registry.js"
 
 export * from "./parts/waveform/waveform.js"
 export * from "./parts/waveform/parts/types.js"

@@ -5,10 +5,34 @@ import {O} from "./o.js"
 import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
-import {visualAnimations} from "../parts/animations.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {Crop, FilterableItem, Item, VisualAnimatableItem} from "../parts/item.js"
-import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, Vec2, VisualAnimations} from "../types.js"
+import {makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
+import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
+
+const transformFrom = (options: TransformOptions): Transform => [
+	options.position ?? [0, 0],
+	options.scale ?? [1, 1],
+	options.rotation ?? 0,
+]
+
+const transformAnimation = (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
+	const track: TrackTransform = {
+		position: {x: [], y: []},
+		scale: {x: [], y: []},
+		rotation: [],
+	}
+
+	for (const [time, [position, scale, rotation]] of source) {
+		track.position.x.push([time, position[0]])
+		track.position.y.push([time, position[1]])
+		track.scale.x.push([time, scale[0]])
+		track.scale.y.push([time, scale[1]])
+		track.rotation.push([time, rotation])
+	}
+
+	return {terp, track}
+}
 
 export type Build<T extends Item.Any = Item.Any> = (o: O) => T
 type BuildVisualAnimateActions = {
@@ -99,23 +123,13 @@ export const anim = {
 		return {terp, track}
 	},
 
-	transform(terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> {
-		const track: TrackTransform = {
-			position: {x: [], y: []},
-			scale: {x: [], y: []},
-			rotation: [],
-		}
+	transform: transformAnimation,
 
-		for (const [time, [position, scale, rotation]] of source) {
-			track.position.x.push([time, position[0]])
-			track.position.y.push([time, position[1]])
-			track.scale.x.push([time, scale[0]])
-			track.scale.y.push([time, scale[1]])
-			track.rotation.push([time, rotation])
-		}
-
-		return {terp, track}
-	},
+	presets: makeAnimationPresets(
+		(terp, track) => ({terp, track}),
+		transformAnimation,
+		transformFrom,
+	),
 }
 
 interface BuildFilterAction<TFilter extends FilterType> {

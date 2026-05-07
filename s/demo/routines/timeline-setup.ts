@@ -32,7 +32,7 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 		)
 
 		const video = o.video(videoA, {duration: 3000, start: 1000})
-		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationId: fade.id})
+		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationIds: [fade.id]})
 		o.set<Item.Video>(video.id, {spatialId: videoSpatial.id})
 
 		return o.sequence(

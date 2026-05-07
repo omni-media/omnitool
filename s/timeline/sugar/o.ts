@@ -177,7 +177,7 @@ export class O {
 			const animation = make(terp, track)
 			const next = {
 				...item,
-				animationId: animation.id
+				animationIds: [...(item.animationIds ?? []), animation.id]
 			}
 			this.set<T>(item.id, next as Partial<T>)
 			return next

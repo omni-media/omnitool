@@ -233,7 +233,7 @@ const timeline = omni.timeline(o => {
 		duration: 2000,
 		styles: {fill: "white", fontSize: 36},
 	})
-	o.set(title.id, {animationId: fadeIn.id})
+	o.set(title.id, {animationIds: [fadeIn.id]})
 
 	return o.stack(
 		o.video(clip, {duration: 4000}),

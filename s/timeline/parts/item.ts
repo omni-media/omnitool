@@ -94,7 +94,7 @@ export namespace Item {
 		start: number
 		duration: number
 		spatialId?: Id
-		animationId?: Id
+		animationIds?: Id[]
 		filterIds?: Id[]
 	}
 
@@ -113,7 +113,7 @@ export namespace Item {
 		content: string
 		duration: number
 		spatialId?: Id
-		animationId?: Id
+		animationIds?: Id[]
 		styleId?: Id
 		filterIds?: Id[]
 	}

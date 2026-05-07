@@ -1,4 +1,5 @@
 
+import {Keyframes} from '../../types.js'
 import {ms, Ms} from '../../../units/ms.js'
 import {Id, TimelineFile} from '../../parts/basics.js'
 import { SampleContext } from './samplers/visual/parts/types.js'
@@ -366,12 +367,30 @@ export function computeOpacity(
 	item: Item.Any,
 	time: Ms,
 ) {
-	if (!("animationId" in item) || item.animationId === undefined)
+	if (!("animationIds" in item) || item.animationIds === undefined)
 		return 1
 
-	const animation = ctx.items.get(item.animationId) as Item.Animation | undefined
-	return animation?.enabled && animation.anims.opacity
-		? resolveScalarAnimation(time, animation.anims.opacity)
-		: 1
+	let opacity = 1
+	for (const id of item.animationIds) {
+		const animation = ctx.items.get(id) as Item.Animation | undefined
+		const anim = animation?.anims.opacity
+		if (animation?.enabled && anim && keyframesActiveAt(anim.track, time))
+			opacity = resolveScalarAnimation(time, anim)
+	}
+	return opacity
+}
+
+function keyframesActiveAt(keys: Keyframes, time: Ms) {
+	if (keys.length === 0)
+		return false
+
+	let start = keys[0][0]
+	let end = keys[0][0]
+	for (const [keyTime] of keys) {
+		start = Math.min(start, keyTime)
+		end = Math.max(end, keyTime)
+	}
+
+	return time >= start && time <= end
 }
 

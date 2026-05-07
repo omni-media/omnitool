@@ -24,7 +24,7 @@ export type AnimationDefinition = {
 export type MotionAnimationPresetDefinition = {
 	type: "motion"
 	label: string
-	defaults: Required<MotionAnimationOptions>
+	defaults: Required<Omit<MotionAnimationOptions, "offset">>
 	transform: {
 		from: TransformOptions
 		to: TransformOptions
@@ -34,7 +34,7 @@ export type MotionAnimationPresetDefinition = {
 export type ScalarAnimationPresetDefinition = {
 	type: "scalar"
 	label: string
-	defaults: Required<ScalarAnimationOptions>
+	defaults: Required<Omit<ScalarAnimationOptions, "offset">>
 }
 
 export type AnimationPresetDefinition =
@@ -59,6 +59,7 @@ export type AnimationPresetActions = {
 
 export type AnimationPresetOptions<Value> = {
 	duration?: number
+	offset?: number
 	from?: Value
 	to?: Value
 	terp?: Interpolation

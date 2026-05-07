@@ -10,22 +10,26 @@ export function makeAnimationPresets(
 ): AnimationPresetActions {
 	const entries = Object.entries(animationPresets).map(([name, preset]) => {
 		const action = preset.type === "motion"
-			? (options?: MotionAnimationOptions): Anim<TrackTransform> =>
-				transform(options?.terp ?? preset.defaults.terp, [
-					[0, transformFrom({
+			? (options?: MotionAnimationOptions): Anim<TrackTransform> => {
+				const offset = options?.offset ?? 0
+				return transform(options?.terp ?? preset.defaults.terp, [
+					[offset, transformFrom({
 						...preset.transform.from,
 						...(options?.from === undefined ? {} : {position: options.from}),
 					})],
-					[options?.duration ?? preset.defaults.duration, transformFrom({
+					[offset + (options?.duration ?? preset.defaults.duration), transformFrom({
 						...preset.transform.to,
 						...(options?.to === undefined ? {} : {position: options.to}),
 					})],
 				])
-			: (options?: ScalarAnimationOptions): Anim<Keyframes> =>
-				scalar(options?.terp ?? preset.defaults.terp, [
-					[0, options?.from ?? preset.defaults.from],
-					[options?.duration ?? preset.defaults.duration, options?.to ?? preset.defaults.to],
+			}
+			: (options?: ScalarAnimationOptions): Anim<Keyframes> => {
+				const offset = options?.offset ?? 0
+				return scalar(options?.terp ?? preset.defaults.terp, [
+					[offset, options?.from ?? preset.defaults.from],
+					[offset + (options?.duration ?? preset.defaults.duration), options?.to ?? preset.defaults.to],
 				])
+			}
 
 		return [name, action]
 	})

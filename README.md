@@ -173,14 +173,18 @@ const timeline = omni.timeline(o => {
 Built-in spatial animations:
 
 ```ts
+const animOut = {
+	duration: 500,
+	offset: item.duration - 500,
+}
 const slideIn = o.animatedSpatial(o.anim.presets.slideIn())
-const slideOut = o.animatedSpatial(o.anim.presets.slideOut({duration: 500}))
+const slideOut = o.animatedSpatial(o.anim.presets.slideOut(animOut))
 const spinIn = o.animatedSpatial(o.anim.presets.spinIn())
-const spinOut = o.animatedSpatial(o.anim.presets.spinOut())
+const spinOut = o.animatedSpatial(o.anim.presets.spinOut(animOut))
 const zoomIn = o.animatedSpatial(o.anim.presets.zoomIn())
-const zoomOut = o.animatedSpatial(o.anim.presets.zoomOut())
+const zoomOut = o.animatedSpatial(o.anim.presets.zoomOut(animOut))
 const bounceIn = o.animatedSpatial(o.anim.presets.bounceIn())
-const bounceOut = o.animatedSpatial(o.anim.presets.bounceOut())
+const bounceOut = o.animatedSpatial(o.anim.presets.bounceOut(animOut))
 ```
 
 Built-in scalar animations:
@@ -267,6 +271,14 @@ Object.entries(animationPresets).forEach(([preset, meta]) => {
 Animatable properties describe what can be keyframed, such as `transform` and `opacity`.
 Animation presets describe built-in recipes, such as `slideIn` and `fadeIn`, that create animation data.
 Use `animationPresets` to list available recipes, and `o.anim.presets` to create animation data from them.
+
+Preset options:
+- `duration` sets the animation duration, defaulting to `700`.
+- `offset` shifts generated keyframes in item-local time.
+  Useful for out animations: `item.duration - 500` starts `slideOut` 500ms before the item ends.
+- `from` sets the start value, like opacity `0` or position `[-400, 0]`.
+- `to` sets the end value, like opacity `1` or position `[0, 0]`.
+- `terp` sets interpolation, defaulting to the preset's `terp`.
 
 Utils:
 

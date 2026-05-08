@@ -1,6 +1,5 @@
 
 import {resolveTerp} from "./terps.js"
-import {Item, Kind} from "../parts/item.js"
 import {Anim, Keyframes, ScalarAnimation, Transform, TransformAnimation} from "../types.js"
 
 const resolveScalar =(
@@ -61,12 +60,4 @@ export const resolveScalarAnimation =(
 	time: number,
 	anim: ScalarAnimation,
 ): number => resolveScalar(time, anim.track, anim.terp)
-
-export const resolveTransform =(
-	spatial: Item.Spatial | Item.AnimatedSpatial,
-	time: number,
-): Transform =>
-	spatial.kind === Kind.AnimatedSpatial
-		? resolveTransformAnimation(time, spatial.anim)
-		: spatial.transform
 

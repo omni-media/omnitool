@@ -6,37 +6,17 @@ import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
+import {AnimationPreset, PresetOptions} from "../parts/animations/types.js"
 import {Crop, FilterableItem, Item, VisualAnimatableItem} from "../parts/item.js"
-import {makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
-import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
-
-const transformFrom = (options: TransformOptions): Transform => [
-	options.position ?? [0, 0],
-	options.scale ?? [1, 1],
-	options.rotation ?? 0,
-]
-
-const transformAnimation = (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
-	const track: TrackTransform = {
-		position: {x: [], y: []},
-		scale: {x: [], y: []},
-		rotation: [],
-	}
-
-	for (const [time, [position, scale, rotation]] of source) {
-		track.position.x.push([time, position[0]])
-		track.position.y.push([time, position[1]])
-		track.scale.x.push([time, scale[0]])
-		track.scale.y.push([time, scale[1]])
-		track.rotation.push([time, rotation])
-	}
-
-	return {terp, track}
-}
+import {animationPresets, visualAnimations} from "../parts/animations/registry.js"
+import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, Vec2, VisualAnimationInput, VisualAnimations} from "../types.js"
 
 export type Build<T extends Item.Any = Item.Any> = (o: O) => T
 type BuildVisualAnimateActions = {
-	[TKey in keyof VisualAnimations]-?: BuildAnimateAction
+	[TKey in keyof VisualAnimations]-?: BuildAnimateAction<TKey>
+}
+type BuildPresetAnimateActions = {
+	[TKey in AnimationPreset]: BuildPresetAnimateAction
 }
 
 function createTimeline(): TimelineFile {
@@ -103,10 +83,6 @@ export function spatial(transform?: Transform, crop?: Crop): Build<Item.Spatial>
 	return o => o.spatial(transform, crop)
 }
 
-export function animatedSpatial(anim: Anim<TrackTransform>, crop?: Crop): Build<Item.AnimatedSpatial> {
-	return o => o.animatedSpatial(anim, crop)
-}
-
 export const anim = {
 	scalar(terp: Interpolation, track: Keyframes): Anim<Keyframes> {
 		return {terp, track}
@@ -123,13 +99,23 @@ export const anim = {
 		return {terp, track}
 	},
 
-	transform: transformAnimation,
+	transform: (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
+		const track: TrackTransform = {
+			position: {x: [], y: []},
+			scale: {x: [], y: []},
+			rotation: [],
+		}
 
-	presets: makeAnimationPresets(
-		(terp, track) => ({terp, track}),
-		transformAnimation,
-		transformFrom,
-	),
+		for (const [time, [position, scale, rotation]] of source) {
+			track.position.x.push([time, position[0]])
+			track.position.y.push([time, position[1]])
+			track.scale.x.push([time, scale[0]])
+			track.scale.y.push([time, scale[1]])
+			track.rotation.push([time, rotation])
+		}
+
+		return {terp, track}
+	}
 }
 
 interface BuildFilterAction<TFilter extends FilterType> {
@@ -137,13 +123,18 @@ interface BuildFilterAction<TFilter extends FilterType> {
 	make(params?: FilterParams<TFilter>): Build<Item.Filter<TFilter>>
 }
 
-interface BuildAnimateAction {
+interface BuildAnimateAction<TKey extends keyof VisualAnimations = keyof VisualAnimations> {
 	<T extends VisualAnimatableItem>(
 		item: Build<T>,
 		terp: Interpolation,
-		track: Keyframes
+		track: VisualAnimationInput<TKey>
 	): Build<T>
-	make(terp: Interpolation, track: Keyframes): Build<Item.Animation>
+	make(terp: Interpolation, track: VisualAnimationInput<TKey>): Build<Item.Animation>
+}
+
+interface BuildPresetAnimateAction {
+	<T extends VisualAnimatableItem>(item: Build<T>, options?: PresetOptions): Build<T>
+	make(options?: PresetOptions): Build<Item.Animation>
 }
 
 type BuildFilterActions = {
@@ -172,25 +163,45 @@ function makeFilters(): BuildFilterActions {
 
 export const filter = makeFilters()
 
-function makeAnimate(
-	get: (o: O) => AnimateAction
-): BuildAnimateAction {
+function makeAnimate<TKey extends keyof VisualAnimations>(
+	get: (o: O) => AnimateAction<TKey>
+): BuildAnimateAction<TKey> {
 	const action = (<T extends VisualAnimatableItem>(
 		item: Build<T>,
 		terp: Interpolation,
-		track: Keyframes
-	): Build<T> => o => get(o)(item(o), terp, track)) as BuildAnimateAction
-	action.make = (terp: Interpolation, track: Keyframes) => o => get(o).make(terp, track)
+		track: VisualAnimationInput<TKey>
+	): Build<T> => o => get(o)(item(o), terp, track)) as BuildAnimateAction<TKey>
+	action.make = (terp: Interpolation, track: VisualAnimationInput<TKey>) => o => get(o).make(terp, track)
 	return action
 }
 
 function makeAnimateActions(): BuildVisualAnimateActions {
 	const entries = Object.keys(visualAnimations)
-		.map(key => [key, makeAnimate(o => o.animate[key as keyof VisualAnimations] as AnimateAction)])
+		.map(key => [key, makeAnimate(o => o.animate[key as keyof VisualAnimations] as AnimateAction<any>)])
 	return Object.fromEntries(entries) as BuildVisualAnimateActions
 }
 
-export const animate = makeAnimateActions()
+function makePresetAnimate(
+	key: AnimationPreset
+): BuildPresetAnimateAction {
+	const action = (<T extends VisualAnimatableItem>(
+		item: Build<T>,
+		options?: PresetOptions
+	): Build<T> => o => o.animate.presets[key](item(o), options)) as BuildPresetAnimateAction
+	action.make = (options?: PresetOptions) => o => o.animate.presets[key].make(options)
+	return action
+}
+
+function makePresetAnimateActions(): BuildPresetAnimateActions {
+	const entries = Object.keys(animationPresets)
+		.map(key => [key, makePresetAnimate(key as AnimationPreset)])
+	return Object.fromEntries(entries) as BuildPresetAnimateActions
+}
+
+export const animate = {
+	...makeAnimateActions(),
+	presets: makePresetAnimateActions(),
+}
 
 export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {
 	return o => o.textStyle(style)

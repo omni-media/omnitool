@@ -34,14 +34,22 @@ export type Vec2Animation = Anim<TrackVec2>
 export type TransformAnimation = Anim<TrackTransform>
 export type VisualAnimations = {
 	opacity?: ScalarAnimation
+	transform?: TransformAnimation
 }
-export interface AnimateAction {
+
+export type VisualAnimationInput<TKey extends keyof VisualAnimations> =
+	TKey extends "transform" ? Keyframes<Transform> : Keyframes
+
+export type VisualAnimationValue<TKey extends keyof VisualAnimations> =
+	TKey extends "transform" ? TransformAnimation : ScalarAnimation
+
+export interface AnimateAction<TKey extends keyof VisualAnimations = keyof VisualAnimations> {
 	<T extends VisualAnimatableItem>(
 		item: T,
 		terp: Interpolation,
-		track: Keyframes
+		track: VisualAnimationInput<TKey>
 	): T
-	make(terp: Interpolation, track: Keyframes): Item.Animation
+	make(terp: Interpolation, track: VisualAnimationInput<TKey>): Item.Animation
 }
 
 // export type Animations = Anim<TrackTransform>

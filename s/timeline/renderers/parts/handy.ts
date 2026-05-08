@@ -1,11 +1,11 @@
 
-import {Keyframes} from '../../types.js'
 import {ms, Ms} from '../../../units/ms.js'
 import {Id, TimelineFile} from '../../parts/basics.js'
+import {Keyframes, TransformAnimation} from '../../types.js'
 import { SampleContext } from './samplers/visual/parts/types.js'
 import {I6, Mat6, mul6, transformToMat6} from '../../utils/matrix.js'
-import {resolveScalarAnimation, resolveTransform} from '../../utils/anim.js'
-import {ContainerItem, Item, Kind, PlayableItem, SpatialItem} from '../../parts/item.js'
+import {ContainerItem, Item, Kind, PlayableItem} from '../../parts/item.js'
+import {resolveScalarAnimation, resolveTransformAnimation} from '../../utils/anim.js'
 
 function isPlayableItem(item: Item.Any): item is PlayableItem {
 	return 'duration' in item
@@ -99,14 +99,27 @@ function applySpatialIfAny(
 	parentMatrix: Mat6,
 	time: Ms,
 ) {
+	let matrix = parentMatrix
 	if ("spatialId" in item && item.spatialId) {
-		const spatial = items.get(item.spatialId) as SpatialItem | undefined
+		const spatial = items.get(item.spatialId) as Item.Spatial | undefined
 		if (spatial?.enabled) {
-			const local = transformToMat6(resolveTransform(spatial, time))
-			return mul6(local, parentMatrix)
+			const local = transformToMat6(spatial.transform)
+			matrix = mul6(local, matrix)
 		}
 	}
-	return parentMatrix
+
+	if ("animationIds" in item && item.animationIds) {
+		for (const id of item.animationIds) {
+			const animation = items.get(id) as Item.Animation | undefined
+			const anim = animation?.anims.transform
+			if (animation?.enabled && anim && transformActiveAt(anim, time)) {
+				const local = transformToMat6(resolveTransformAnimation(time, anim))
+				matrix = mul6(local, matrix)
+			}
+		}
+	}
+
+	return matrix
 }
 
 export function walk(
@@ -394,3 +407,12 @@ function keyframesActiveAt(keys: Keyframes, time: Ms) {
 	return time >= start && time <= end
 }
 
+function transformActiveAt(anim: TransformAnimation, time: Ms) {
+	return (
+		keyframesActiveAt(anim.track.position.x, time) ||
+		keyframesActiveAt(anim.track.position.y, time) ||
+		keyframesActiveAt(anim.track.scale.x, time) ||
+		keyframesActiveAt(anim.track.scale.y, time) ||
+		keyframesActiveAt(anim.track.rotation, time)
+	)
+}

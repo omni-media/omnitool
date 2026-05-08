@@ -2,7 +2,7 @@
 import {SampleContext} from "./types.js"
 import {sampleSequence} from "./sequence.js"
 import {Ms} from "../../../../../../units/ms.js"
-import {Item, Kind, SpatialItem} from "../../../../../parts/item.js"
+import {Item, Kind} from "../../../../../parts/item.js"
 import {FilterSpec, Layer} from "../../../../../../driver/fns/schematic.js"
 import {AncestorAt, computeOpacity, computeWorldMatrix} from "../../../handy.js"
 
@@ -15,7 +15,7 @@ export async function sampleVisual(
 	const matrix = computeWorldMatrix(ctx.items, ancestors, item, time)
 	const alpha = computeOpacity(ctx, item, time)
 	const crop = "spatialId" in item && item.spatialId
-		? (ctx.items.get(item.spatialId) as SpatialItem | undefined)?.crop
+		? (ctx.items.get(item.spatialId) as Item.Spatial | undefined)?.crop
 		: undefined
 	const filters = "filterIds" in item && item.filterIds
 		? item.filterIds

@@ -4,7 +4,7 @@ import {TextStyleOptions} from "pixi.js"
 import {Id, Hash} from "./basics.js"
 import {Ms} from "../../units/ms.js"
 import type {FilterParams, FilterType} from "./filters.js"
-import {Anim, TrackTransform, Transform, VisualAnimations} from "../types.js"
+import {Transform, VisualAnimations} from "../types.js"
 
 export type Crop = [top: number, right: number, bottom: number, left: number]
 
@@ -16,7 +16,6 @@ export enum Kind {
 	Text,
 	Gap,
 	Spatial,
-	AnimatedSpatial,
 	Animation,
 	Transition,
 	TextStyle,
@@ -38,14 +37,6 @@ export namespace Item {
 		id: Id
 		kind: Kind.Spatial
 		transform: Transform
-		crop?: Crop
-		enabled: boolean
-	}
-
-	export type AnimatedSpatial = {
-		id: Id
-		kind: Kind.AnimatedSpatial
-		anim: Anim<TrackTransform>
 		crop?: Crop
 		enabled: boolean
 	}
@@ -134,7 +125,6 @@ export namespace Item {
 		| Gap
 		| Transition
 		| Spatial
-		| AnimatedSpatial
 		| Animation
 		| TextStyle
 		| Filter
@@ -144,7 +134,6 @@ export namespace Item {
 export type ContainerItem = Item.Sequence | Item.Stack
 export type NonContainerItem = Exclude<Item.Any, ContainerItem>
 export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Text
-export type SpatialItem = Item.Spatial | Item.AnimatedSpatial
 export type VisualAnimatableItem = Item.Video | Item.Text
 
 export type PlayableItem = Item.Any & {

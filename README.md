@@ -146,22 +146,24 @@ const timeline = omni.timeline(o => {
 })
 ```
 
-Animated spatial transforms:
+Animations:
 
 ```ts
 const timeline = omni.timeline(o => {
-	const customMotion = o.animatedSpatial(
-		o.anim.transform("linear", [
-			[0, o.transform({position: [-400, 0]})],
-			[1000, o.transform({position: [0, 0]})],
-		])
-	)
+	const fadeIn = o.animate.opacity.make("easeIn", [
+		[0, 0],
+		[700, 1],
+	])
+	const slideOut = o.animate.transform.make("linear", [
+		[0, o.transform({position: [0, 0]})],
+		[1000, o.transform({position: [400, 0]})],
+	])
 
 	const title = o.text("Lower third", {
 		duration: 2000,
 		styles: {fill: "white", fontSize: 36}
 	})
-	o.set(title.id, {spatialId: customMotion.id})
+	o.set(title.id, {animationIds: [fadeIn.id, slideOut.id]})
 
 	return o.stack(
 		o.video(clip, {duration: 4000}),
@@ -170,31 +172,28 @@ const timeline = omni.timeline(o => {
 })
 ```
 
-Built-in spatial animations:
+Built-in transform animations:
 
 ```ts
 const animOut = {
 	duration: 500,
 	offset: item.duration - 500,
 }
-const slideIn = o.animatedSpatial(o.anim.presets.slideIn())
-const slideOut = o.animatedSpatial(o.anim.presets.slideOut(animOut))
-const spinIn = o.animatedSpatial(o.anim.presets.spinIn())
-const spinOut = o.animatedSpatial(o.anim.presets.spinOut(animOut))
-const zoomIn = o.animatedSpatial(o.anim.presets.zoomIn())
-const zoomOut = o.animatedSpatial(o.anim.presets.zoomOut(animOut))
-const bounceIn = o.animatedSpatial(o.anim.presets.bounceIn())
-const bounceOut = o.animatedSpatial(o.anim.presets.bounceOut(animOut))
+const slideIn = o.animate.presets.slideIn.make()
+const slideOut = o.animate.presets.slideOut.make(animOut)
+const spinIn = o.animate.presets.spinIn.make()
+const spinOut = o.animate.presets.spinOut.make(animOut)
+const zoomIn = o.animate.presets.zoomIn.make()
+const zoomOut = o.animate.presets.zoomOut.make(animOut)
+const bounceIn = o.animate.presets.bounceIn.make()
+const bounceOut = o.animate.presets.bounceOut.make(animOut)
 ```
 
 Built-in scalar animations:
 
 ```ts
-const fadeInPreset = o.anim.presets.fadeIn()
-const fadeIn = o.animate.opacity.make(fadeInPreset.terp, fadeInPreset.track)
-
-const fadeOutPreset = o.anim.presets.fadeOut({duration: 500})
-const fadeOut = o.animate.opacity.make(fadeOutPreset.terp, fadeOutPreset.track)
+const fadeIn = o.animate.presets.fadeIn.make()
+const fadeOut = o.animate.presets.fadeOut.make(animOut)
 ```
 
 Animation application:
@@ -269,8 +268,9 @@ Object.entries(animationPresets).forEach(([preset, meta]) => {
 ```
 
 Animatable properties describe what can be keyframed, such as `transform` and `opacity`.
-Animation presets describe built-in recipes, such as `slideIn` and `fadeIn`, that create animation data.
-Use `animationPresets` to list available recipes, and `o.anim.presets` to create animation data from them.
+Animation presets describe built-in recipes, such as `slideIn` and `fadeIn`.
+Use `animationPresets` to list available recipes, and `o.animate.presets` to create animation items.
+Use `o.animate` to create or apply animation items.
 
 Preset options:
 - `duration` sets the animation duration, defaulting to `700`.
@@ -285,7 +285,7 @@ Utils:
 ```ts
 import {resolveScalarAnimation, resolveTransformAnimation} from "@omnimedia/omnitool"
 
-const transform = resolveTransformAnimation(localTime, spatial.anim)
+const transform = resolveTransformAnimation(localTime, transformAnimation)
 const opacity = resolveScalarAnimation(localTime, opacityAnimation)
 ```
 

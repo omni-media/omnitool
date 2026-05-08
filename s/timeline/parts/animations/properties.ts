@@ -1,7 +1,7 @@
 
 import type {AnimationDefinition} from "./types.js"
 
-export const spatialAnimations = {
+export const visualAnimations = {
 	transform: {
 		type: "transform",
 		defaultTerp: "linear",
@@ -13,9 +13,6 @@ export const spatialAnimations = {
 			{path: "rotation", type: "number", default: 0, unit: "radian"},
 		],
 	},
-} as const satisfies Record<string, AnimationDefinition>
-
-export const visualAnimations = {
 	opacity: {
 		type: "scalar",
 		defaultTerp: "linear",
@@ -28,7 +25,6 @@ export const visualAnimations = {
 // const audioAnimations = {}
 
 export const animatableProperties = {
-	...spatialAnimations,
 	...visualAnimations,
 } as const
 

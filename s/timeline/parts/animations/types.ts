@@ -1,7 +1,8 @@
 
 import {animationPresets} from "./presets.js"
-import {spatialAnimations, visualAnimations, animatableProperties} from "./properties.js"
-import {Anim, Interpolation, Keyframes, TrackTransform, TransformOptions, Vec2} from "../../types.js"
+import type {Item, VisualAnimatableItem} from "../item.js"
+import {visualAnimations, animatableProperties} from "./properties.js"
+import type {Anim, Interpolation, Keyframes, ScalarAnimation, TrackTransform, TransformAnimation, TransformOptions, Vec2} from "../../types.js"
 
 export type AnimationType = "scalar" | "transform"
 export type AnimationChannelType = "number"
@@ -41,7 +42,6 @@ export type AnimationPresetDefinition =
 	| MotionAnimationPresetDefinition
 	| ScalarAnimationPresetDefinition
 
-export type SpatialAnimationProperty = keyof typeof spatialAnimations
 export type VisualAnimationProperty = keyof typeof visualAnimations
 export type AnimationProperty = keyof typeof animatableProperties
 export type AnimationPreset = keyof typeof animationPresets
@@ -67,3 +67,14 @@ export type AnimationPresetOptions<Value> = {
 
 export type MotionAnimationOptions = AnimationPresetOptions<Vec2>
 export type ScalarAnimationOptions = AnimationPresetOptions<number>
+export type PresetAnimation = ScalarAnimation | TransformAnimation
+export type PresetOptions = MotionAnimationOptions | ScalarAnimationOptions
+
+export interface PresetAnimateAction {
+	<T extends VisualAnimatableItem>(item: T, options?: PresetOptions): T
+	make(options?: PresetOptions): Item.Animation
+}
+
+export type PresetAnimateActions = {
+	[TKey in AnimationPreset]: PresetAnimateAction
+}

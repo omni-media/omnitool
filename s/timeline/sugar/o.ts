@@ -5,12 +5,13 @@ import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
-import {makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
-import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, TransformOptions, Vec2, VisualAnimations} from "../types.js"
+import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
+import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
+import {Anim, AnimateAction, Interpolation, Keyframes, ScalarAnimation, TrackTransform, Transform, TransformAnimation, TransformOptions, Vec2, VisualAnimationInput, VisualAnimationValue, VisualAnimations} from "../types.js"
 
 type VisualAnimateActions = {
-	[TKey in keyof VisualAnimations]-?: AnimateAction
+	[TKey in keyof VisualAnimations]-?: AnimateAction<TKey>
 }
 
 export class O {
@@ -64,18 +65,6 @@ export class O {
   	return item
   }
 
-	animatedSpatial = (anim: Anim<TrackTransform>, crop?: Crop): Item.AnimatedSpatial => {
-		const item: Item.AnimatedSpatial = {
-			id: this.getId(),
-			kind: Kind.AnimatedSpatial,
-			anim,
-			crop,
-			enabled: true
-		}
-		this.register(item)
-		return item
-	}
-
 	#registerAnimation = (anims: VisualAnimations): Item.Animation => {
 		const item: Item.Animation = {
 			id: this.getId(),
@@ -87,22 +76,13 @@ export class O {
 		return item
 	}
 
-	#transformAnimation = (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
-		const track: TrackTransform = {
-			position: {x: [], y: []},
-			scale: {x: [], y: []},
-			rotation: [],
+	#attachAnimation = <T extends VisualAnimatableItem>(item: T, animation: Item.Animation): T => {
+		const next = {
+			...item,
+			animationIds: [...(item.animationIds ?? []), animation.id]
 		}
-
-		for (const [time, [position, scale, rotation]] of source) {
-			track.position.x.push([time, position[0]])
-			track.position.y.push([time, position[1]])
-			track.scale.x.push([time, scale[0]])
-			track.scale.y.push([time, scale[1]])
-			track.rotation.push([time, rotation])
-		}
-
-		return {terp, track}
+		this.set<T>(item.id, next as Partial<T>)
+		return next
 	}
 
 	anim = {
@@ -119,14 +99,30 @@ export class O {
 			return {terp, track}
 		},
 
-		transform: this.#transformAnimation,
+		transform: (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
+			const track: TrackTransform = {
+				position: {x: [], y: []},
+				scale: {x: [], y: []},
+				rotation: [],
+			}
 
-		presets: makeAnimationPresets(
-			(terp, track) => ({terp, track}),
-			this.#transformAnimation,
-			options => this.transform(options),
-		),
+			for (const [time, [position, scale, rotation]] of source) {
+				track.position.x.push([time, position[0]])
+				track.position.y.push([time, position[1]])
+				track.scale.x.push([time, scale[0]])
+				track.scale.y.push([time, scale[1]])
+				track.rotation.push([time, rotation])
+			}
+
+			return {terp, track}
+		},
 	}
+
+	#animationPresets = makeAnimationPresets(
+		(terp, track) => ({terp, track}),
+		(terp, source) => this.anim.transform(terp, source),
+		options => this.transform(options),
+	)
 
 	#makeFilter = <TFilter extends FilterType>(type: TFilter) => {
 		const make = (params?: FilterParams<TFilter>) => {
@@ -163,25 +159,51 @@ export class O {
 
 	filter = this.#makeFilters()
 
-	#makeAnimate = <TKey extends keyof VisualAnimations>(key: TKey): AnimateAction => {
-		const make = (terp: Interpolation, track: Keyframes) =>
+	#makeAnimationValue = <TKey extends keyof VisualAnimations>(
+		key: TKey,
+		terp: Interpolation,
+		track: VisualAnimationInput<TKey>
+	): VisualAnimationValue<TKey> =>
+		(
+			key === "transform"
+				? this.anim.transform(terp, track as Keyframes<Transform>)
+				: this.anim.scalar(terp, track as Keyframes)
+		) as VisualAnimationValue<TKey>
+
+	#makeAnimate = <TKey extends keyof VisualAnimations>(key: TKey): AnimateAction<TKey> => {
+		const make = (terp: Interpolation, track: VisualAnimationInput<TKey>) =>
 			this.#registerAnimation({
-				[key]: this.anim.scalar(terp, track)
+				[key]: this.#makeAnimationValue(key, terp, track)
 			} as Pick<VisualAnimations, TKey>)
 
 		const action = (<T extends VisualAnimatableItem>(
 			item: T,
 			terp: Interpolation,
-			track: Keyframes
+			track: VisualAnimationInput<TKey>
 		): T => {
 			const animation = make(terp, track)
-			const next = {
-				...item,
-				animationIds: [...(item.animationIds ?? []), animation.id]
-			}
-			this.set<T>(item.id, next as Partial<T>)
-			return next
-		}) as AnimateAction
+			return this.#attachAnimation(item, animation)
+		}) as AnimateAction<TKey>
+
+		action.make = make
+		return action
+	}
+
+	#makePresetAnimate = <TKey extends AnimationPreset>(key: TKey): PresetAnimateAction => {
+		const make = (options?: PresetOptions) => {
+			const preset = animationPresets[key]
+			const anim = this.#animationPresets[key](options as never) as PresetAnimation
+			return this.#registerAnimation(
+				preset.type === "motion"
+					? {transform: anim as TransformAnimation}
+					: {opacity: anim as ScalarAnimation}
+			)
+		}
+
+		const action = (<T extends VisualAnimatableItem>(item: T, options?: PresetOptions): T => {
+			const animation = make(options)
+			return this.#attachAnimation(item, animation)
+		}) as PresetAnimateAction
 
 		action.make = make
 		return action
@@ -193,7 +215,16 @@ export class O {
 		return Object.fromEntries(entries) as VisualAnimateActions
 	}
 
-	animate = this.#makeAnimateActions()
+	#makePresetAnimateActions = (): PresetAnimateActions => {
+		const entries = Object.keys(animationPresets)
+			.map(key => [key, this.#makePresetAnimate(key as AnimationPreset)])
+		return Object.fromEntries(entries) as PresetAnimateActions
+	}
+
+	animate = {
+		...this.#makeAnimateActions(),
+		presets: this.#makePresetAnimateActions(),
+	}
 
 	sequence = (...items: Item.Any[]): Item.Sequence => {
 		const item =  {

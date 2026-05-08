@@ -22,17 +22,16 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 			}),
 			[0.15, 0.1, 0.05, 0.2],
 		)
-		const textSpatial = o.animatedSpatial(
-			o.anim.transform("linear", [
+		const textSpatial = o.spatial()
+		const textMotion = o.animate.transform.make("linear", [
 				[0, o.transform({position: [-320, 80], scale: [0.7, 0.7]})],
 				[1000, o.transform({position: [120, 80], scale: [1, 1]})],
 				[2000, o.transform({position: [200, 40], scale: [1.35, 1.35], rotation: 8})],
 				[3000, o.transform({position: [320, 0], scale: [1.15, 1.15], rotation: 0})],
-			]),
-		)
+		])
 
 		const video = o.video(videoA, {duration: 3000, start: 1000})
-		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationIds: [fade.id]})
+		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationIds: [fade.id, textMotion.id]})
 		o.set<Item.Video>(video.id, {spatialId: videoSpatial.id})
 
 		return o.sequence(

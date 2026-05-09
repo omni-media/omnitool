@@ -6,7 +6,7 @@ import type {Anim, Interpolation, Keyframes, ScalarAnimation, TrackTransform, Tr
 
 export type AnimationType = "scalar" | "transform"
 export type AnimationChannelType = "number"
-export type AnimationUnit = "pixel" | "scale" | "radian" | "ratio"
+export type AnimationUnit = "pixel" | "scale" | "degree" | "ratio"
 
 export type AnimationChannel = {
 	path?: string

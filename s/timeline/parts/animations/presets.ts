@@ -40,7 +40,7 @@ export const animationPresets = {
 			terp: "easeOut",
 		},
 		transform: {
-			from: {scale: [0, 0], rotation: -Math.PI},
+			from: {scale: [0, 0], rotation: -180},
 			to: {scale: [1, 1], rotation: 0},
 		},
 	},
@@ -55,7 +55,7 @@ export const animationPresets = {
 		},
 		transform: {
 			from: {scale: [1, 1], rotation: 0},
-			to: {scale: [0, 0], rotation: Math.PI},
+			to: {scale: [0, 0], rotation: 180},
 		},
 	},
 	zoomIn: {

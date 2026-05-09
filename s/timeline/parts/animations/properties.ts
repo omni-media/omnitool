@@ -10,7 +10,7 @@ export const visualAnimations = {
 			{path: "position.y", type: "number", default: 0, unit: "pixel"},
 			{path: "scale.x", type: "number", default: 1, unit: "scale"},
 			{path: "scale.y", type: "number", default: 1, unit: "scale"},
-			{path: "rotation", type: "number", default: 0, unit: "radian"},
+			{path: "rotation", type: "number", default: 0, unit: "degree"},
 		],
 	},
 	opacity: {

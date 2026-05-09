@@ -130,7 +130,7 @@ const timeline = omni.timeline(o => {
 	const move = o.spatial(o.transform({
 		position: [120, 40],
 		scale: [0.6, 0.6],
-		rotation: 0.2
+		rotation: 12
 	}))
 
 	const title = o.text("Lower third", {

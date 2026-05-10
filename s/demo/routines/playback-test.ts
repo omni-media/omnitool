@@ -48,7 +48,7 @@ export async function playbackTest(timeline: TimelineFile, omni: Omni, root: HTM
 		updateTimecode(clamped, durationMs)
 	}
 
-	player.update(o.timeline)
+	await player.update(o.timeline)
 }
 
 function formatTime(ms: number) {

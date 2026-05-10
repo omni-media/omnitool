@@ -60,8 +60,10 @@ export class VideoPlayer {
 	/**
 	 call this whenever your timeline state changes
 	*/
-	update(timeline: TimelineFile) {
+	async update(timeline: TimelineFile) {
 		this.playback.update(timeline)
+		if (!this.isPlaying)
+			await this.seek(this.currentTime)
 	}
 
 	async #flushSeeks() {
@@ -74,4 +76,3 @@ export class VideoPlayer {
 		}
 	}
 }
-

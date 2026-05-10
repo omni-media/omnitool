@@ -316,7 +316,7 @@ player.play()
 ```
 
 Notes:
-- Call `player.update(timeline)` if you update the timeline.
+- Call `await player.update(timeline)` if you update the timeline.
 
 ## 📤 Export
 

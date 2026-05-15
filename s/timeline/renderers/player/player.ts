@@ -57,6 +57,14 @@ export class VideoPlayer {
 		return this.playback.currentTime
 	}
 
+	get playbackRate() {
+		return this.playback.playbackRate
+	}
+
+	set playbackRate(rate: number) {
+		this.playback.playbackRate = rate
+	}
+
 	/**
 	 call this whenever your timeline state changes
 	*/

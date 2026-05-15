@@ -18,6 +18,7 @@ export class Playback {
 
 	#playbackStart = ms(0)
 	#audioStartSec: number | null = null
+	#playbackRate = 1
 
 	#controller = realtime()
 	onTick = this.#controller.onTick
@@ -49,12 +50,19 @@ export class Playback {
 
 	async #samples() {
 		for await (const _ of this.#controller.ticks()) {
-			const layers = await this.playVisualSampler?.next(this.currentTime) ?? []
+			const time = this.currentTime
+			const layers = this.#playbackRate >= 0
+				? await this.playVisualSampler?.next(time) ?? []
+				: await this.seekVisualSampler.sample(this.timeline, time)
 
 			const frame = await this.driver.composite(layers)
 			frame.close()
 
-			if (this.currentTime >= this.duration)
+			const hasEnded = this.#playbackRate >= 0
+				? time >= this.duration
+				: time <= 0
+
+			if (hasEnded)
 				this.pause()
 		}
 	}
@@ -85,7 +93,9 @@ export class Playback {
 		this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 
 		this.#controller.play()
-		this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
+
+		if (this.#playbackRate === 1)
+			this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
 	}
 
 	pause() {
@@ -117,7 +127,41 @@ export class Playback {
 			return this.#playbackStart
 
 		const elapsedMs = (this.audioContext.currentTime - this.#audioStartSec) * 1000
-		return ms(this.#playbackStart + elapsedMs)
+		const current = this.#playbackStart + elapsedMs * this.#playbackRate
+		return ms(Math.max(0, Math.min(this.duration, current)))
+	}
+
+	get playbackRate() {
+		return this.#playbackRate
+	}
+
+	set playbackRate(rate: number) {
+		if (!Number.isFinite(rate) || rate === 0)
+			throw new Error(`Invalid playback rate "${rate}".`)
+
+		this.#playbackStart = this.currentTime
+		this.#audioStartSec = this.#controller.isPlaying()
+			? this.audioContext.currentTime
+			: null
+		const wasReversed = this.#playbackRate < 0
+		this.#playbackRate = rate
+
+		if (this.#controller.isPlaying()) {
+			if (wasReversed && rate > 0) {
+				this.playVisualSampler?.cancel()
+				this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
+			}
+
+			this.#audioAbort?.abort()
+			for (const node of this.audioNodes)
+				node.stop()
+			this.audioNodes.clear()
+
+			if (rate === 1) {
+				this.#audioAbort = new AbortController()
+				this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
+			}
+		}
 	}
 
 	setFps(fps: Fps) {

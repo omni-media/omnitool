@@ -3,10 +3,10 @@ import {Fps} from '../../../../units/fps.js'
 import {ms, Ms} from '../../../../units/ms.js'
 import {Driver} from '../../../../driver/driver.js'
 import {realtime} from '../../parts/schedulers.js'
+import {seconds} from '../../../../units/seconds.js'
 import {TimelineFile} from '../../../parts/basics.js'
 import {computeItemDuration} from '../../parts/handy.js'
-import {seconds, Seconds} from '../../../../units/seconds.js'
-import {CursorVisualSampler} from '../../export/parts/cursor.js'
+import {CursorVisualSampler, ReverseCursorVisualSampler} from '../../export/parts/cursor.js'
 import {DecoderSource} from '../../../../driver/fns/schematic.js'
 import {createAudioSampler} from '../../parts/samplers/audio/sampler.js'
 import {createVisualSampler} from '../../parts/samplers/visual/sampler.js'
@@ -15,6 +15,7 @@ export class Playback {
 	audioSampler
 	seekVisualSampler
 	playVisualSampler: CursorVisualSampler | null = null
+	reversePlayVisualSampler: ReverseCursorVisualSampler | null = null
 
 	#playbackStart = ms(0)
 	#audioStartSec: number | null = null
@@ -53,7 +54,7 @@ export class Playback {
 			const time = this.currentTime
 			const layers = this.#playbackRate >= 0
 				? await this.playVisualSampler?.next(time) ?? []
-				: await this.seekVisualSampler.sample(this.timeline, time)
+				: await this.reversePlayVisualSampler?.next(time) ?? []
 
 			const frame = await this.driver.composite(layers)
 			frame.close()
@@ -82,35 +83,26 @@ export class Playback {
 		this.#playbackStart = this.currentTime
 		this.#audioStartSec = this.audioContext.currentTime
 
-		this.#audioAbort?.abort()
-		this.#audioAbort = new AbortController()
-
-		for (const node of this.audioNodes)
-			node.stop()
-
-		this.audioNodes.clear()
-
+		this.#stopAudio()
 		this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
+		this.reversePlayVisualSampler = new ReverseCursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 
 		this.#controller.play()
-
-		if (this.#playbackRate === 1)
-			this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
+		this.#startAudio()
 	}
 
 	pause() {
 		this.#playbackStart = this.currentTime
 		this.#controller.pause()
-		this.#audioAbort?.abort()
-
-		for (const node of this.audioNodes)
-			node.stop()
-
-		this.audioNodes.clear()
+		this.#stopAudio()
 
 		if (this.playVisualSampler) {
 			this.playVisualSampler.cancel()
 			this.playVisualSampler = null
+		}
+		if (this.reversePlayVisualSampler) {
+			this.reversePlayVisualSampler.cancel()
+			this.reversePlayVisualSampler = null
 		}
 
 	}
@@ -151,16 +143,12 @@ export class Playback {
 				this.playVisualSampler?.cancel()
 				this.playVisualSampler = new CursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 			}
-
-			this.#audioAbort?.abort()
-			for (const node of this.audioNodes)
-				node.stop()
-			this.audioNodes.clear()
-
-			if (rate === 1) {
-				this.#audioAbort = new AbortController()
-				this.#startAudio(this.#audioAbort.signal, seconds(this.#playbackStart / 1000))
+			else if (!wasReversed && rate < 0) {
+				this.reversePlayVisualSampler?.cancel()
+				this.reversePlayVisualSampler = new ReverseCursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 			}
+
+			this.#syncAudio()
 		}
 	}
 
@@ -168,7 +156,29 @@ export class Playback {
 		this.#controller.setFPS(fps)
 	}
 
-	async #startAudio(signal: AbortSignal, from: Seconds) {
+	#syncAudio() {
+		this.#stopAudio()
+		this.#startAudio()
+	}
+
+	#stopAudio() {
+		this.#audioAbort?.abort()
+		this.#audioAbort = null
+
+		for (const node of this.audioNodes)
+			node.stop()
+
+		this.audioNodes.clear()
+	}
+
+	async #startAudio() {
+		if (this.#playbackRate !== 1)
+			return
+
+		const from = seconds(this.#playbackStart / 1000)
+		this.#audioAbort = new AbortController()
+		const signal = this.#audioAbort.signal
+
 		const ctx = this.audioContext
 
 		if (this.#audioStartSec === null)

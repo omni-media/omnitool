@@ -1,25 +1,28 @@
 
+import {ALL_FORMATS, Input, VideoSampleSink} from "mediabunny"
+
 import {ms, Ms} from "../../../../units/ms.js"
 import {Driver} from "../../../../driver/driver.js"
 import {TimelineFile} from "../../../parts/basics.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
+import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
 
-/**
- * forward-only frame cursor optimized for export purposes.
- * it uses mediabunny internally so the support for non-clients
- * should be done from mediabunny custom decoder/encoder
- */
+type StreamCursor<T> = {
+	next(target: number): Promise<T | undefined>
+	cancel(): Promise<void>
+}
 
-export class CursorVisualSampler {
-	#lastTimecode = -Infinity
-	#videoCursors = new Map<number, VideoFrameCursor>()
-	#sampler
+type VideoFrameCursor = StreamCursor<VideoFrame>
+
+abstract class BaseVisualSampler {
+	readonly #videoCursors = new Map<number, VideoFrameCursor>()
+	readonly #sampler
 
 	constructor(
-		private driver: Driver,
-		private resolveMedia: (hash: string) => DecoderSource,
-		private timeline: TimelineFile
+		protected driver: Driver,
+		protected resolveMedia: (hash: string) => DecoderSource,
+		protected timeline: TimelineFile
 	) {
 		this.#sampler = createVisualSampler(this.resolveMedia, (item, time) => {
 			const targetUs = toUs(time)
@@ -28,7 +31,7 @@ export class CursorVisualSampler {
 			if (!cursor) {
 				const source = this.resolveMedia(item.mediaHash)
 				const endUs = toUs(ms(item.start + item.duration))
-				cursor = this.#createVideoCursor(source, targetUs, endUs)
+				cursor = this.createCursor(source, targetUs, endUs)
 				this.#videoCursors.set(item.id, cursor)
 			}
 
@@ -36,11 +39,9 @@ export class CursorVisualSampler {
 		})
 	}
 
-	next(timecode: Ms) {
-		if (timecode < this.#lastTimecode)
-			throw new Error(`Forward-only cursor regression: ${timecode}ms < ${this.#lastTimecode}ms`)
+	protected abstract createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor
 
-		this.#lastTimecode = timecode
+	protected sample(timecode: Ms) {
 		return this.#sampler.sample(this.timeline, timecode)
 	}
 
@@ -48,8 +49,26 @@ export class CursorVisualSampler {
 		await Promise.all([...this.#videoCursors.values()].map(c => c.cancel()))
 		this.#videoCursors.clear()
 	}
+}
 
-	#createVideoCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
+/**
+ * forward-only frame cursor optimized for export purposes.
+ * it uses mediabunny internally so the support for non-clients
+ * should be done from mediabunny custom decoder/encoder
+ */
+
+export class CursorVisualSampler extends BaseVisualSampler {
+	#lastTimecode = -Infinity
+
+	next(timecode: Ms) {
+		if (timecode < this.#lastTimecode)
+			throw new Error(`Forward-only cursor regression: ${timecode}ms < ${this.#lastTimecode}ms`)
+
+		this.#lastTimecode = timecode
+		return this.sample(timecode)
+	}
+
+	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
 		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000, end: endUs / 1_000_000})
 		const reader = video.readable.getReader()
 
@@ -118,12 +137,138 @@ export class CursorVisualSampler {
 	}
 }
 
-const toUs = (ms: Ms) => Math.round(ms * 1_000)
+export class ReverseCursorVisualSampler extends BaseVisualSampler {
+	#lastTimecode = Infinity
 
-type StreamCursor<T> = {
-	next(target: number): Promise<T | undefined>
-	cancel(): Promise<void>
+	next(timecode: Ms) {
+		if (timecode > this.#lastTimecode)
+			throw new Error(`Reverse-only cursor regression: ${timecode}ms > ${this.#lastTimecode}ms`)
+
+		this.#lastTimecode = timecode
+		return this.sample(timecode)
+	}
+
+	protected createCursor(source: DecoderSource, _initialTargetUs: number, endUs: number): VideoFrameCursor {
+		const startUs = 0
+		const windowUs = 1_000_000
+		const prefetchThreshold = windowUs * 0.5
+
+		let frames: VideoFrame[] = []
+		let windowStart = Infinity
+		let windowEnd = -Infinity
+		let input: Input | null = null
+		let sink: VideoSampleSink | null = null
+		let prefetchPromise: Promise<{frames: VideoFrame[], windowStart: number, windowEnd: number}> | null = null
+		let canceled = false
+
+		const clear = () => {
+			for (const frame of frames)
+				frame.close()
+			frames = []
+		}
+
+		const getSink = async () => {
+			if (sink) return sink
+
+			input = new Input({
+				source: await loadDecoderSource(source),
+				formats: ALL_FORMATS,
+			})
+
+			const track = await input.getPrimaryVideoTrack()
+			sink = track && await track.canDecode()
+				? new VideoSampleSink(track)
+				: null
+
+			return sink
+		}
+
+		const fetchFrames = async (targetUs: number) => {
+			const wEnd = Math.min(endUs, targetUs + 1)
+			const wStart = Math.max(startUs, wEnd - windowUs)
+			const newFrames: VideoFrame[] = []
+
+			const videoSink = await getSink()
+			if (videoSink) {
+				for await (const sample of videoSink.samples(wStart / 1_000_000, wEnd / 1_000_000)) {
+					newFrames.push(sample.toVideoFrame())
+					sample.close()
+				}
+			}
+
+			return {frames: newFrames, windowStart: wStart, windowEnd: wEnd}
+		}
+
+		const loadWindow = async (targetUs: number) => {
+			clear()
+			const result = await fetchFrames(targetUs)
+			frames = result.frames
+			windowStart = result.windowStart
+			windowEnd = result.windowEnd
+		}
+
+		return {
+			async next(targetUs: number): Promise<VideoFrame | undefined> {
+				if (canceled)
+					return undefined
+
+				if (targetUs < windowStart || targetUs > windowEnd) {
+					if (prefetchPromise) {
+						const prefetched = await prefetchPromise
+						prefetchPromise = null
+
+						if (canceled) {
+							for (const f of prefetched.frames) f.close()
+							return undefined
+						}
+
+						if (targetUs >= prefetched.windowStart && targetUs <= prefetched.windowEnd) {
+							clear()
+							frames = prefetched.frames
+							windowStart = prefetched.windowStart
+							windowEnd = prefetched.windowEnd
+						} else {
+							for (const f of prefetched.frames) f.close()
+							await loadWindow(targetUs)
+						}
+					} else {
+						await loadWindow(targetUs)
+					}
+				}
+
+				if (!prefetchPromise && targetUs < windowStart + prefetchThreshold && windowStart > startUs)
+					prefetchPromise = fetchFrames(windowStart - 1)
+
+				let best: VideoFrame | undefined
+				let bestDistance = Infinity
+
+				for (const frame of frames) {
+					const distance = Math.abs((frame.timestamp ?? targetUs) - targetUs)
+					if (distance < bestDistance) {
+						best = frame
+						bestDistance = distance
+					}
+				}
+
+				return best ? new VideoFrame(best) : undefined
+			},
+
+			async cancel() {
+				canceled = true
+				const pending = prefetchPromise
+				prefetchPromise = null
+
+				const prefetched = await pending?.catch(() => null)
+				if (prefetched)
+					for (const f of prefetched.frames) f.close()
+
+				clear()
+				input?.dispose()
+				input = null
+				sink = null
+			}
+		}
+	}
 }
 
-type VideoFrameCursor = StreamCursor<VideoFrame>
-
+const toUs = (ms: Ms) => Math.round(ms * 1_000)

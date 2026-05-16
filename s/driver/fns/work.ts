@@ -69,7 +69,6 @@ export const setupDriverWork = (
 
 			cancel.onmessage = async () => {
 				await samples.return()
-				input.dispose()
 				cancel.close()
 			}
 
@@ -81,6 +80,7 @@ export const setupDriverWork = (
 			}
 
 			await videoWriter.close()
+			input.dispose()
 		},
 
 		async encode({video, audio, config, writable}) {

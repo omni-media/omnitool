@@ -159,12 +159,27 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 		let input: Input | null = null
 		let sink: VideoSampleSink | null = null
 		let prefetchPromise: Promise<{frames: VideoFrame[], windowStart: number, windowEnd: number}> | null = null
+		let activeFetches = 0
+		let idle: Promise<void> = Promise.resolve()
+		let resolveIdle: (() => void) | null = null
 		let canceled = false
 
 		const clear = () => {
 			for (const frame of frames)
 				frame.close()
 			frames = []
+		}
+
+		const startFetch = () => {
+			if (activeFetches++ === 0)
+				idle = new Promise<void>(resolve => resolveIdle = resolve)
+		}
+
+		const endFetch = () => {
+			if (--activeFetches === 0) {
+				resolveIdle?.()
+				resolveIdle = null
+			}
 		}
 
 		const getSink = async () => {
@@ -184,6 +199,7 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 		}
 
 		const fetchFrames = async (targetUs: number) => {
+			startFetch()
 			const wEnd = Math.min(endUs, targetUs + 1)
 			const wStart = Math.max(startUs, wEnd - windowUs)
 			const newFrames: VideoFrame[] = []
@@ -196,6 +212,7 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 				}
 			}
 
+			endFetch()
 			return {frames: newFrames, windowStart: wStart, windowEnd: wEnd}
 		}
 
@@ -262,6 +279,7 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 				if (prefetched)
 					for (const f of prefetched.frames) f.close()
 
+				await idle
 				clear()
 				input?.dispose()
 				input = null

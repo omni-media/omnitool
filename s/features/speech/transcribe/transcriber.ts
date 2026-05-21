@@ -40,7 +40,7 @@ export async function makeTranscriber({driver, spec, workerUrl, onLoading}: Tran
 			detachCallbacks()
 			return result
 		}),
-		dispose: thread.terminate()
+		dispose: () => thread.terminate()
 	}
 }
 

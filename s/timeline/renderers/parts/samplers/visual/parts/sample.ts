@@ -58,6 +58,24 @@ export async function sampleVisual(
 			return [{id: item.id, kind: "text", content: item.content, style, matrix, alpha, crop, filters}]
 		}
 
+		case Kind.Caption: {
+			if (time < 0 || time >= item.duration) return []
+
+			const transcriptTime = item.start + time
+			const segment = item.segments.find(segment => {
+				const [start, end] = segment.timestamp
+				return transcriptTime >= start && transcriptTime < end
+			})
+			if (!segment)
+				return []
+
+			const style = item.styleId
+				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
+				: undefined
+
+			return [{id: item.id, kind: "text", content: segment.text, style, matrix, alpha, crop, filters}]
+		}
+
 		case Kind.Gap: {
 			return [{id: item.id, kind: "gap"}]
 		}

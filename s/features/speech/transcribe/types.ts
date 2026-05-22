@@ -36,12 +36,16 @@ export type TranscriberPipeOptions = {
 
 export type SpeechTime = [start: number, end: number]
 
+export type TranscriptWord = {
+	text: string
+	timestamp: SpeechTime
+}
+
+export type TranscriptSegment = TranscriptWord
+
 export type Transcription = {
 	text: string
-	chunks: {
-		text: string
-		timestamp: SpeechTime
-	}[]
+	chunks: TranscriptWord[]
 }
 
 export type TranscriberSpec = {

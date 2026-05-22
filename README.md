@@ -79,6 +79,122 @@ const timeline = timeline(
 )
 ```
 
+## 💬 Captions
+
+Captions render transcript data as timed, styled text.
+The transcript can come from anywhere, as long as it follows the structure.
+
+```ts
+const transcript = {
+	text: "Hello world. This is a caption.",
+	chunks: [
+		{text: "Hello", timestamp: [0, 0.4]},
+		{text: "world.", timestamp: [0.4, 1.2]},
+		{text: "This", timestamp: [1.3, 1.6]},
+		{text: "is", timestamp: [1.6, 1.8]},
+		{text: "a", timestamp: [1.8, 1.9]},
+		{text: "caption.", timestamp: [1.9, 2.6]},
+	],
+}
+
+const timeline = omni.timeline(o => {
+	const video = o.video(clip, {duration: 3000})
+	return o.captions(video, transcript)
+})
+```
+
+Use a caption preset to pick a built-in caption style:
+
+```ts
+const timeline = omni.timeline(o => {
+	const video = o.video(clip, {duration: 3000})
+	return o.captions.presets.default(video, transcript)
+})
+```
+
+or do your own styled captions:
+
+```ts
+const timeline = omni.timeline(o => {
+	const video = o.video(clip, {duration: 3000})
+	return o.captions(video, transcript, {
+		styles: {
+			fontFamily: "Inter",
+			fontSize: 64,
+			fill: "#fff7d6",
+			stroke: {color: "#111111", width: 8},
+			align: "center",
+		},
+	})
+})
+```
+
+Use omnitool's built in speech-to-text with default model:
+
+```ts
+import {makeTranscriber, defaultTranscriberSpec} from "@omnimedia/omnitool"
+
+// uses onnx-community/whisper-tiny_timestamped
+const transcriber = await makeTranscriber({
+	driver,
+	spec: defaultTranscriberSpec(),
+	workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+	onLoading: loading => console.log("loading", loading),
+})
+
+const transcript = await transcriber.transcribe({
+	source: file,
+	language: "english",
+	onReport: report => console.log("report", report),
+	onTranscription: text => console.log("transcribing", text),
+})
+
+const timeline = omni.timeline(o => {
+	const video = o.video(clip)
+	return o.captions(video, transcript)
+})
+```
+
+Load a custom speech-to-text model:
+
+```ts
+const transcriber = await makeTranscriber({
+	driver,
+	spec: {
+	  model: "onnx-community/whisper-tiny_timestamped",
+	  dtype: "q4",
+	  device: "wasm",
+	  chunkLength: 20,
+	  strideLength: 3
+	},
+	workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+	onLoading: loading => console.log("loading", loading),
+})
+```
+
+> [!IMPORTANT]
+> Use a Transformers.js-compatible speech-to-text model, for example `onnx-community/*_timestamped`.
+> The model must support word-level timestamps because captions use `return_timestamps: "word"`.
+> `device` and `dtype` are passed to Transformers.js and depend on your runtime/model.
+> Browser usage commonly uses `"wasm"` or `"webgpu"`. `"webgpu"` for speed, `"wasm"` for more device support
+> `workerUrl` depends on where you host the worker bundle.
+
+`o.captions(video, transcript, options)` creates captions for a video or audio.
+`o.captions` uses `captionPresets.default` preset.
+use `o.captions.presets` to choose from available pre-styled captions.
+pass `styles` in options to override preset styles.
+transcript chunk timestamps are in seconds.
+
+Caption options:
+`styles` - sets styles, it overrides the preset's styles.
+`start` - transcript time where captions begin, in milliseconds.
+`duration` - caption layer duration, in milliseconds.
+`maxChars` - maximum characters in one generated caption line.
+`maxDuration` - maximum duration of one generated caption line, in milliseconds.
+`maxSilence` - maximum silence allowed inside one caption; longer pauses start a new caption, in milliseconds.
+
+import `captionPresets` to list available caption looks.
+
 ## 🎛 Filters
 
 Filter application:
@@ -353,9 +469,11 @@ Timeline items:
 - 4 `Text`
 - 5 `Gap`
 - 6 `Spatial`
-- 7 `Transition`
-- 8 `TextStyle`
-- 9 `Filter`
+- 7 `Animation`
+- 8 `Transition`
+- 9 `TextStyle`
+- 10 `Filter`
+- 11 `Caption`
 
 ## 🗺️ Roadmap
 - CLI commands:

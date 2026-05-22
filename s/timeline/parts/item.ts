@@ -3,8 +3,9 @@ import {TextStyleOptions} from "pixi.js"
 
 import {Id, Hash} from "./basics.js"
 import {Ms} from "../../units/ms.js"
-import type {FilterParams, FilterType} from "./filters.js"
 import {Transform, VisualAnimations} from "../types.js"
+import type {FilterParams, FilterType} from "./filters.js"
+import {TranscriptSegment} from "../../features/speech/transcribe/types.js"
 
 export type Crop = [top: number, right: number, bottom: number, left: number]
 
@@ -19,7 +20,8 @@ export enum Kind {
 	Animation,
 	Transition,
 	TextStyle,
-	Filter
+	Filter,
+	Caption
 }
 
 export enum Effect {
@@ -109,6 +111,19 @@ export namespace Item {
 		filterIds?: Id[]
 	}
 
+
+	export type Caption = {
+		id: Id
+		kind: Kind.Caption
+		segments: TranscriptSegment[]
+		start: number
+		duration: number
+		spatialId?: Id
+		animationIds?: Id[]
+		styleId?: Id
+		filterIds?: Id[]
+	}
+
 	export type Transition = {
 		id: Id
 		kind: Kind.Transition
@@ -122,6 +137,7 @@ export namespace Item {
 		| Video
 		| Audio
 		| Text
+		| Caption
 		| Gap
 		| Transition
 		| Spatial
@@ -133,8 +149,8 @@ export namespace Item {
 
 export type ContainerItem = Item.Sequence | Item.Stack
 export type NonContainerItem = Exclude<Item.Any, ContainerItem>
-export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Text
-export type VisualAnimatableItem = Item.Video | Item.Text
+export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Text | Item.Caption
+export type VisualAnimatableItem = Item.Video | Item.Text | Item.Caption
 
 export type PlayableItem = Item.Any & {
 	start: Ms

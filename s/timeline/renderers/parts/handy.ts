@@ -16,6 +16,7 @@ type WalkAtCallbacks = {
 	stack: (x: Item.Stack, localTime: Ms, ancestors: AncestorAt[]) => void
 	video: (x: Item.Video, localTime: Ms, ancestors: AncestorAt[]) => void
 	text: (x: Item.Text, localTime: Ms, ancestors: AncestorAt[]) => void
+	caption: (x: Item.Caption, localTime: Ms, ancestors: AncestorAt[]) => void
 	audio: (x: Item.Audio, localTime: Ms, ancestors: AncestorAt[]) => void
 }
 
@@ -24,6 +25,7 @@ type WalkCallbacks = {
 	stack?: (x: Item.Stack, matrix: Mat6, ancestors: AncestorAt[]) => void
 	video?: (x: Item.Video, matrix: Mat6, ancestors: AncestorAt[]) => void
 	text?: (x: Item.Text, matrix: Mat6, ancestors: AncestorAt[]) => void
+	caption?: (x: Item.Caption, matrix: Mat6, ancestors: AncestorAt[]) => void
 	audio?: (x: Item.Audio) => void
 }
 
@@ -52,6 +54,7 @@ export function itemsAt(p: Props): At[] {
 		stack: () => { },
 		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		caption: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		audio: (item, localTime, ancestors) => results.push({ item, localTime, ancestors })
 	})
 
@@ -72,6 +75,7 @@ export function itemsFrom(p: FromProps): At[] {
 		stack: () => { },
 		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		caption: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		audio: (item, localTime, ancestors) => results.push({ item, localTime, ancestors })
 	})
 
@@ -176,6 +180,10 @@ export function walk(
 			callbacks.text?.(item, currentMatrix, ancestors)
 			break
 
+		case Kind.Caption:
+			callbacks.caption?.(item, currentMatrix, ancestors)
+			break
+
 		case Kind.Audio:
 			callbacks.audio?.(item)
 			break
@@ -211,11 +219,12 @@ function walkAt(
 
 				if (!child)
 					continue
-				if (!isPlayableItem(child)) {
-					continue
-				}
 
-				if (time >= offset && time < offset + child.duration) {
+				const duration = computeItemDurationFromMap(child.id, items)
+				if (duration <= 0)
+					continue
+
+				if (time >= offset && time < offset + duration) {
 					const localTime = ms(time - offset)
 					walkAt(
 						childId,
@@ -227,7 +236,7 @@ function walkAt(
 					break
 				}
 
-				offset = ms(offset + child.duration)
+				offset = ms(offset + duration)
 			}
 
 			break
@@ -239,6 +248,10 @@ function walkAt(
 
 		case Kind.Text:
 			callbacks.text(item, time, ancestors)
+			break
+
+		case Kind.Caption:
+			callbacks.caption(item, time, ancestors)
 			break
 
 		case Kind.Audio:
@@ -275,11 +288,12 @@ function walkFrom(
 
 				if (!child)
 					continue
-				if (!isPlayableItem(child)) {
-					continue
-				}
 
-				const end = ms(offset + child.duration)
+				const duration = computeItemDurationFromMap(child.id, items)
+				if (duration <= 0)
+					continue
+
+				const end = ms(offset + duration)
 				if (from >= end) {
 					offset = end
 					continue
@@ -308,6 +322,10 @@ function walkFrom(
 			callbacks.text(item, from, ancestors)
 			break
 
+		case Kind.Caption:
+			callbacks.caption(item, from, ancestors)
+			break
+
 		case Kind.Audio:
 			callbacks.audio(item, from, ancestors)
 			break
@@ -318,14 +336,24 @@ export function computeItemDuration(
 	id: number,
 	timeline: TimelineFile
 ): Ms {
-	const item = timeline.items.find(item => item.id === id)
+	return computeItemDurationFromMap(
+		id,
+		new Map(timeline.items.map(item => [item.id, item]))
+	)
+}
+
+function computeItemDurationFromMap(
+	id: number,
+	items: Map<Id, Item.Any>
+): Ms {
+	const item = items.get(id)
 
 	if (!item) return ms(0)
 
 	switch (item.kind) {
 		case Kind.Sequence: {
 			const children = item.childrenIds
-				.map(childId => timeline.items.find(x => x.id === childId))
+				.map(childId => items.get(childId))
 				.filter(Boolean) as Item.Any[]
 
 			let total = ms(0)
@@ -338,8 +366,8 @@ export function computeItemDuration(
 					const next = children[i + 1]
 
 					if (prev && next && prev.kind !== Kind.Transition && next.kind !== Kind.Transition) {
-						const prevDur = computeItemDuration(prev.id, timeline)
-						const nextDur = computeItemDuration(next.id, timeline)
+						const prevDur = computeItemDurationFromMap(prev.id, items)
+						const nextDur = computeItemDurationFromMap(next.id, items)
 						const overlap = Math.max(0, Math.min(child.duration, prevDur, nextDur))
 
 						total = ms(total - overlap)
@@ -347,7 +375,7 @@ export function computeItemDuration(
 					continue
 				}
 
-				total = ms(total + computeItemDuration(child.id, timeline))
+				total = ms(total + computeItemDurationFromMap(child.id, items))
 			}
 
 			return total
@@ -357,7 +385,7 @@ export function computeItemDuration(
 			let longest = ms(0)
 
 			for (const childId of item.childrenIds) {
-				const duration = computeItemDuration(childId, timeline)
+				const duration = computeItemDurationFromMap(childId, items)
 				if (duration > longest) {
 					longest = duration
 				}

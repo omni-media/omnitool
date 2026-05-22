@@ -5,9 +5,11 @@ import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
+import {Transcription} from "../../features/speech/transcribe/types.js"
 import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
+import {CaptionAction, CaptionActions, captionDuration, CaptionOptions, CaptionPreset, captionPresets, CaptionSourceItem, segmentTranscript} from "../parts/captions.js"
 import {Anim, AnimateAction, Interpolation, Keyframes, ScalarAnimation, TrackTransform, Transform, TransformAnimation, TransformOptions, Vec2, VisualAnimationInput, VisualAnimationValue, VisualAnimations} from "../types.js"
 
 type VisualAnimateActions = {
@@ -308,6 +310,55 @@ export class O {
 		this.register(item)
 		return item
 	}
+
+	#makeCaption = (
+		transcript: Transcription,
+		preset: CaptionPreset,
+		options?: CaptionOptions,
+	): Item.Caption => {
+		const start = options?.start ?? 0
+		const item: Item.Caption = {
+			id: this.getId(),
+			kind: Kind.Caption,
+			segments: segmentTranscript(transcript, options),
+			start,
+			duration: options?.duration ?? Math.max(0, captionDuration(transcript) - start),
+		}
+
+		item.styleId = this.textStyle(options?.styles ?? preset.styles).id
+		item.spatialId = this.spatial(this.transform(preset.transform)).id
+
+		this.register(item)
+		return item
+	}
+
+	#makeCaptionAction = (preset: CaptionPreset): CaptionAction => {
+		const make = (transcript: Transcription, options?: CaptionOptions) =>
+			this.#makeCaption(transcript, preset, options)
+
+		const action = ((item: CaptionSourceItem, transcript: Transcription, options?: CaptionOptions): Item.Stack => {
+			const caption = make(transcript, {
+				...options,
+				start: options?.start ?? item.start,
+				duration: options?.duration ?? item.duration,
+			})
+			return this.stack(caption, item)
+		}) as CaptionAction
+
+		action.make = make
+		return action
+	}
+
+	#makeCaptionPresetActions = () => {
+		const entries = Object.entries(captionPresets)
+			.map(([name, preset]) => [name, this.#makeCaptionAction(preset)])
+		return Object.fromEntries(entries) as CaptionActions["presets"]
+	}
+
+	captions = Object.assign(
+		this.#makeCaptionAction(captionPresets.default),
+		{presets: this.#makeCaptionPresetActions()}
+	) as CaptionActions
 
 	gap = (duration: number): Item.Gap => {
 		const item = {

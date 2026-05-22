@@ -1,10 +1,25 @@
 
 import {Driver} from "../../driver/driver.js"
-import {Datafile, Item, Omni} from "../../timeline/index.js"
+import {Datafile, defaultTranscriberSpec, Item, makeTranscriber, Omni} from "../../timeline/index.js"
 
 export async function TimelineSchemaTest(driver: Driver, file: File) {
+	const transcriber = await makeTranscriber({
+		driver,
+		spec: defaultTranscriberSpec(),
+		workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+		onLoading: loading => console.log("transcriber loading", loading),
+	})
+
 	const omni = new Omni(driver)
 	const {videoA} = await omni.load({videoA: Datafile.make(file)})
+
+	const transcript = await transcriber.transcribe({
+		source: file,
+		language: "english",
+		onReport: report => console.log("transcriber report", report),
+		onTranscription: text => console.log("transcribing", text),
+	})
+
 	const timeline = omni.timeline(o => {
 		const text = o.text("content", {duration: 3000})
 		const fade = o.animate.opacity.make("easeIn", [
@@ -30,15 +45,15 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 				[3000, o.transform({position: [320, 0], scale: [1.15, 1.15], rotation: 0})],
 		])
 
-		const video = o.video(videoA, {duration: 3000, start: 1000})
+		const video = o.video(videoA, {duration: 6000, start: 1000})
 		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationIds: [fade.id, textMotion.id]})
 		o.set<Item.Video>(video.id, {spatialId: videoSpatial.id})
 
 		return o.sequence(
 			o.stack(
 				text,
-				video,
-				o.audio(videoA, {duration: 1000})
+				o.captions(video, transcript),
+				o.audio(videoA)
 			),
 			o.gap(500),
 			o.video(videoA, {duration: 7000, start: 5000})

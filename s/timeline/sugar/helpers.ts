@@ -6,6 +6,8 @@ import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
+import {CaptionOptions, CaptionSourceItem} from "../parts/captions.js"
+import {Transcription} from "../../features/speech/transcribe/types.js"
 import {AnimationPreset, PresetOptions} from "../parts/animations/types.js"
 import {Crop, FilterableItem, Item, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, visualAnimations} from "../parts/animations/registry.js"
@@ -73,6 +75,14 @@ export function text(
 	}
 ): Build<Item.Text> {
 	return o => o.text(content, options)
+}
+
+export function captions(
+	item: Build<CaptionSourceItem>,
+	transcript: Transcription,
+	options?: CaptionOptions
+): Build<Item.Stack> {
+	return o => o.captions(item(o), transcript, options)
 }
 
 export function gap(duration: number): Build<Item.Gap> {

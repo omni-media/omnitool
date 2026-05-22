@@ -110,6 +110,9 @@ export class Compositor {
 		parent: Container,
 	) {
 		const sprite = this.#findOrCreate<Text>(layer)!
+		sprite.text = layer.content
+		if (layer.style)
+			sprite.style = layer.style
 		this.#applyTransform(sprite, layer.matrix)
 		this.#applyAlpha(sprite, layer.alpha)
 		this.#applyCrop(sprite, layer.crop)

@@ -185,6 +185,17 @@ use `o.captions.presets` to choose from available pre-styled captions.
 pass `styles` in options to override preset styles.
 transcript chunk timestamps are in seconds.
 
+Update caption options after creation:
+
+```ts
+const caption = o.captions.make(transcript, {maxChars: 42})
+const style = o.textStyle({fill: "#00ff00"})
+o.set(caption.id, {
+	maxChars: 32,
+	styleId: style.id,
+})
+```
+
 Caption options:
 `styles` - sets styles, it overrides the preset's styles.
 `start` - transcript time where captions begin, in milliseconds.

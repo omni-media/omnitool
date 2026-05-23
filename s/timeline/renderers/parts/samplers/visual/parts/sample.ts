@@ -3,6 +3,7 @@ import {SampleContext} from "./types.js"
 import {sampleSequence} from "./sequence.js"
 import {Ms} from "../../../../../../units/ms.js"
 import {Item, Kind} from "../../../../../parts/item.js"
+import {segmentTranscript} from "../../../../../parts/captions.js"
 import {FilterSpec, Layer} from "../../../../../../driver/fns/schematic.js"
 import {AncestorAt, computeOpacity, computeWorldMatrix} from "../../../handy.js"
 
@@ -62,7 +63,7 @@ export async function sampleVisual(
 			if (time < 0 || time >= item.duration) return []
 
 			const transcriptTime = item.start + time
-			const segment = item.segments.find(segment => {
+			const segment = segmentTranscript(item.transcript, item).find(segment => {
 				const [start, end] = segment.timestamp
 				return transcriptTime >= start && transcriptTime < end
 			})

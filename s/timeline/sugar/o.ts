@@ -9,7 +9,7 @@ import {Transcription} from "../../features/speech/transcribe/types.js"
 import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
-import {CaptionAction, CaptionActions, captionDuration, CaptionOptions, CaptionPreset, captionPresets, CaptionSourceItem, segmentTranscript} from "../parts/captions.js"
+import {CaptionAction, CaptionActions, captionDuration, CaptionOptions, CaptionPreset, captionPresets, CaptionSourceItem} from "../parts/captions.js"
 import {Anim, AnimateAction, Interpolation, Keyframes, ScalarAnimation, TrackTransform, Transform, TransformAnimation, TransformOptions, Vec2, VisualAnimationInput, VisualAnimationValue, VisualAnimations} from "../types.js"
 
 type VisualAnimateActions = {
@@ -317,12 +317,16 @@ export class O {
 		options?: CaptionOptions,
 	): Item.Caption => {
 		const start = options?.start ?? 0
+		const duration = options?.duration ?? Math.max(0, captionDuration(transcript, options) - start)
 		const item: Item.Caption = {
 			id: this.getId(),
 			kind: Kind.Caption,
-			segments: segmentTranscript(transcript, options),
+			transcript,
 			start,
-			duration: options?.duration ?? Math.max(0, captionDuration(transcript) - start),
+			duration,
+			maxChars: options?.maxChars,
+			maxDuration: options?.maxDuration,
+			maxSilence: options?.maxSilence,
 		}
 
 		item.styleId = this.textStyle(options?.styles ?? preset.styles).id

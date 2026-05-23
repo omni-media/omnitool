@@ -45,15 +45,28 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 				[3000, o.transform({position: [320, 0], scale: [1.15, 1.15], rotation: 0})],
 		])
 
-		const video = o.video(videoA, {duration: 6000, start: 1000})
+		const video = o.video(videoA, {duration: 6000, start: 3000})
 		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationIds: [fade.id, textMotion.id]})
 		o.set<Item.Video>(video.id, {spatialId: videoSpatial.id})
 
 		return o.sequence(
 			o.stack(
 				text,
-				o.captions(video, transcript),
-				o.audio(videoA)
+				o.captions(video, transcript, {
+					maxChars: 34,
+					maxDuration: 2800,
+					maxSilence: 450,
+					styles: {
+						fontFamily: "Arial",
+						fontSize: 64,
+						fill: "#ffffff",
+						align: "center",
+						wordWrap: true,
+						wordWrapWidth: 1280,
+						stroke: {color: "#000000", width: 6},
+					},
+				}),
+				o.audio(videoA, {start: 3000})
 			),
 			o.gap(500),
 			o.video(videoA, {duration: 7000, start: 5000})

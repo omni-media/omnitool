@@ -1,5 +1,5 @@
 
-import {Item} from "./item.js"
+import type {Item} from "./item.js"
 import {TextStyleOptions} from "pixi.js"
 import {TransformOptions, Vec2} from "../types.js"
 import {Transcription, TranscriptSegment} from "../../features/speech/transcribe/types.js"
@@ -84,7 +84,7 @@ export function segmentTranscript(transcript: Transcription, options?: CaptionOp
 	return segments
 }
 
-export function captionDuration(transcript: Transcription) {
-	const segments = segmentTranscript(transcript)
+export function captionDuration(transcript: Transcription, options?: CaptionOptions) {
+	const segments = segmentTranscript(transcript, options)
 	return Math.max(0, ...segments.map(segment => segment.timestamp[1]))
 }

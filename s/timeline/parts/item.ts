@@ -5,7 +5,7 @@ import {Id, Hash} from "./basics.js"
 import {Ms} from "../../units/ms.js"
 import {Transform, VisualAnimations} from "../types.js"
 import type {FilterParams, FilterType} from "./filters.js"
-import {TranscriptSegment} from "../../features/speech/transcribe/types.js"
+import type {Transcription} from "../../features/speech/transcribe/types.js"
 
 export type Crop = [top: number, right: number, bottom: number, left: number]
 
@@ -115,9 +115,12 @@ export namespace Item {
 	export type Caption = {
 		id: Id
 		kind: Kind.Caption
-		segments: TranscriptSegment[]
+		transcript: Transcription
 		start: number
 		duration: number
+		maxChars?: number
+		maxDuration?: number
+		maxSilence?: number
 		spatialId?: Id
 		animationIds?: Id[]
 		styleId?: Id

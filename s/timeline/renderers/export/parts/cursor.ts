@@ -25,7 +25,7 @@ abstract class BaseVisualSampler {
 		protected timeline: TimelineFile
 	) {
 		this.#sampler = createVisualSampler(this.resolveMedia, (item, time) => {
-			const targetUs = toUs(time)
+			const targetUs = toUs(ms(item.start + time))
 			let cursor = this.#videoCursors.get(item.id)
 
 			if (!cursor) {
@@ -148,8 +148,7 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 		return this.sample(timecode)
 	}
 
-	protected createCursor(source: DecoderSource, _initialTargetUs: number, endUs: number): VideoFrameCursor {
-		const startUs = 0
+	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
 		const windowUs = 1_000_000
 		const prefetchThreshold = windowUs * 0.5
 

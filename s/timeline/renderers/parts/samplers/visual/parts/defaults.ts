@@ -8,7 +8,8 @@ export type VideoSampler = (item: Item.Video, time: Ms) => Promise<VideoFrame | 
 export function createDefaultVideoSampler(sink: VideoSink): VideoSampler {
 	return async (item, time) => {
 		const s = await sink.getSink(item.mediaHash)
-		const sample = await s?.getSample(time / 1000)
+		const mediaTime = item.start + time
+		const sample = await s?.getSample(mediaTime / 1000)
 		const frame = sample?.toVideoFrame()
 		sample?.close()
 		return frame ?? undefined

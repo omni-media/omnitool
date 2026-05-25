@@ -181,6 +181,7 @@ const transcriber = await makeTranscriber({
 
 `o.captions(video, transcript, options)` creates captions for a video or audio.
 `o.captions` uses `captionPresets.default` preset.
+The generated caption id is stored on the source item as `captionId`.
 use `o.captions.presets` to choose from available pre-styled captions.
 pass `styles` in options to override preset styles.
 transcript chunk timestamps are in seconds.

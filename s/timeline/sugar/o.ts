@@ -346,6 +346,7 @@ export class O {
 				start: options?.start ?? item.start,
 				duration: options?.duration ?? item.duration,
 			})
+			this.set<CaptionSourceItem>(item.id, {captionId: caption.id})
 			return this.stack(caption, item)
 		}) as CaptionAction
 

@@ -89,7 +89,6 @@ export namespace Item {
 		spatialId?: Id
 		animationIds?: Id[]
 		filterIds?: Id[]
-		captionId?: Id
 	}
 
 	export type Audio = {
@@ -99,7 +98,6 @@ export namespace Item {
 		start: number
 		duration: number
 		gain?: number
-		captionId?: Id
 	}
 
 	export type Text = {
@@ -118,6 +116,7 @@ export namespace Item {
 		id: Id
 		kind: Kind.Caption
 		transcript: Transcription
+		itemId?: Id
 		start: number
 		duration: number
 		maxChars?: number

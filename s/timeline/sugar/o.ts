@@ -322,6 +322,7 @@ export class O {
 			id: this.getId(),
 			kind: Kind.Caption,
 			transcript,
+			itemId: options?.itemId,
 			start,
 			duration,
 			maxChars: options?.maxChars,
@@ -343,10 +344,10 @@ export class O {
 		const action = ((item: CaptionSourceItem, transcript: Transcription, options?: CaptionOptions): Item.Stack => {
 			const caption = make(transcript, {
 				...options,
+				itemId: item.id,
 				start: options?.start ?? item.start,
 				duration: options?.duration ?? item.duration,
 			})
-			this.set<CaptionSourceItem>(item.id, {captionId: caption.id})
 			return this.stack(caption, item)
 		}) as CaptionAction
 

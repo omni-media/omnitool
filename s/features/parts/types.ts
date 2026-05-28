@@ -1,3 +1,4 @@
+
 import {DataType, DeviceType, TaskType} from "@huggingface/transformers"
 
 export type Loading = {
@@ -5,11 +6,11 @@ export type Loading = {
 	progress: number
 }
 
-export type PipelineSpec<T = string> = {
-	model: T
+export type PipelineSpec<Extras extends object = {}> = {
+	model: string
 	dtype: DataType
 	device: DeviceType
-}
+} & Extras
 
 export type PipeOptions = {
 	spec: PipelineSpec

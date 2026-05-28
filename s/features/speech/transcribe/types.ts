@@ -2,7 +2,7 @@
 import {AsSchematic} from "@e280/comrade"
 import {Pipeline} from "@huggingface/transformers"
 
-import {PipelineSpec} from "../../types.js"
+import {Loading, PipelineSpec} from "../../parts/types.js"
 import {Driver} from "../../../driver/driver.js"
 
 export type TranscriberSchematic = AsSchematic<{
@@ -17,11 +17,6 @@ export type TranscriberSchematic = AsSchematic<{
 		deliverTranscription(transcription: string): Promise<void>
 	}
 }>
-
-export type Loading = {
-	total: number
-	progress: number
-}
 
 export type TranscribeOptions = {
 	pipe: Pipeline
@@ -44,12 +39,12 @@ export type Transcription = {
 	chunks: TranscriptWord[]
 }
 
-type TranscriberModels = "onnx-community/whisper-tiny_timestamped"
+export type TranscriberModels = "onnx-community/whisper-tiny_timestamped"
 
-export interface TranscriberSpec extends PipelineSpec<TranscriberModels> {
+export type TranscriberSpec = PipelineSpec<{
 	chunkLength: number
 	strideLength: number
-}
+}>
 
 export type TranscriptionOptions = {
 	source: Blob

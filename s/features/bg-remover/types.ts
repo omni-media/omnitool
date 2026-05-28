@@ -1,5 +1,6 @@
+
 import {AsSchematic} from "@e280/comrade"
-import {Loading, PipelineSpec} from "../types.js"
+import {Loading, PipelineSpec} from "../parts/types.js"
 
 export type BgRemoverSchematic = AsSchematic<{
 	work: {
@@ -19,7 +20,8 @@ export type RemoverOptions = {
 export type BgRemoverModels = "onnx-community/ISNet-ONNX" | "Xenova/modnet"
 
 export type BgRemoverOptions = {
-	spec: PipelineSpec<BgRemoverModels>
+	spec: PipelineSpec
 	workerUrl: URL | string
 	onLoading: (loading: Loading) => void
 }
+

@@ -1,7 +1,6 @@
 
 import {pipeline} from "@huggingface/transformers"
-
-import {PipeOptions} from "../../../types.js"
+import {PipeOptions} from "./types.js"
 
 export async function loadPipe(options: PipeOptions) {
 	const {spec, onLoading} = options
@@ -16,4 +15,3 @@ export async function loadPipe(options: PipeOptions) {
 
 	return pipe
 }
-

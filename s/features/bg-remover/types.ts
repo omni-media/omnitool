@@ -5,7 +5,7 @@ import {Loading, PipelineSpec} from "../parts/types.js"
 export type BgRemoverSchematic = AsSchematic<{
 	work: {
 		prepare(spec: PipelineSpec): Promise<void>
-		remove(request: Blob): Promise<ImageBitmap>
+		remove(request: VideoFrame): Promise<VideoFrame>
 	},
 
 	host: {
@@ -14,10 +14,10 @@ export type BgRemoverSchematic = AsSchematic<{
 }>
 
 export type RemoverOptions = {
-	frame: Blob
+	frame: VideoFrame
 }
 
-export type BgRemoverModels = "onnx-community/ISNet-ONNX" | "Xenova/modnet"
+export type BgRemoverModels = "onnx-community/ISNet-ONNX" | "Xenova/modnet" | "briaai/RMBG-1.4"
 
 export type BgRemoverOptions = {
 	spec: PipelineSpec

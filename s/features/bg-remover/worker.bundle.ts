@@ -19,17 +19,31 @@ const makePrepare = (host: Host<BgRemoverSchematic>) => once(async(spec: Pipelin
 	})
 })
 
+const canvas = new OffscreenCanvas(1920, 1080)
+const ctx = canvas.getContext("2d")
+
 await Comrade.worker<BgRemoverSchematic>(shell => {
 	const prepare = makePrepare(shell.host)
 	return {
 		prepare,
 		async remove(request) {
 			const {pipe} = await deferred.promise
-			const output = await pipe(request)
+
+			canvas.width = request.codedWidth
+			canvas.height = request.codedHeight
+			ctx?.drawImage(request, 0, 0)
+
+			const output = await pipe(canvas)
 			const mask = output[0]
-    	const bitmap = await createImageBitmap(mask.toCanvas())
-			shell.transfer = [bitmap]
-			return bitmap
+
+			const frame = new VideoFrame(mask.toCanvas(), {
+				timestamp: request.timestamp,
+				duration: request.duration ?? undefined,
+			})
+
+			request.close()
+			shell.transfer = [frame]
+			return frame
 		}
 	}
 })

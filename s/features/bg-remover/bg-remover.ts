@@ -1,5 +1,5 @@
 import {queue} from "@e280/stz"
-import {Comrade, LoggerTap} from "@e280/comrade"
+import {Comrade, LoggerTap, tune} from "@e280/comrade"
 
 import {BgRemoverOptions, BgRemoverSchematic, RemoverOptions} from "./types.js"
 
@@ -17,7 +17,9 @@ export async function makeBgRemover({spec, workerUrl, onLoading}: BgRemoverOptio
 	await thread.work.prepare(spec)
 
 	return {
-		remove: queue(async(info: RemoverOptions) => await thread.work.remove(info.frame)),
+		remove: queue(async(input: RemoverOptions) =>
+			await thread.work.remove[tune]({transfer: [input.frame]})(input.frame)
+		),
 		dispose: () => thread.terminate()
 	}
 }

@@ -29,8 +29,8 @@ await Comrade.worker<BgRemoverSchematic>(shell => {
 		async remove(request) {
 			const {pipe} = await deferred.promise
 
-			canvas.width = request.codedWidth
-			canvas.height = request.codedHeight
+			canvas.width = request.displayWidth
+			canvas.height = request.displayHeight
 			ctx?.drawImage(request, 0, 0)
 
 			const output = await pipe(canvas)

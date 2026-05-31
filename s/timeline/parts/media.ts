@@ -7,6 +7,7 @@ import {loadDecoderSource} from "../../driver/utils/load-decoder-source.js"
 
 export class Media {
 	duration = 0
+	isImage = false
 	hasVideo = false
 	hasAudio = false
 
@@ -14,12 +15,22 @@ export class Media {
 
 	static async analyze(datafile: Datafile) {
 		const media = new this(datafile)
+
+		if (this.#isImage(datafile)) {
+			media.isImage = true
+			return media
+		}
+
 		const duration = (await this.duration(datafile.url)) * 1000
 		media.duration = duration
 		const {video, audio} = await this.#has(datafile.url)
 		media.hasAudio = audio
 		media.hasVideo = video
 		return media
+	}
+
+	static #isImage(datafile: Datafile) {
+		return datafile.blob.type.startsWith("image/")
 	}
 
 	static async duration(source: DecoderSource) {

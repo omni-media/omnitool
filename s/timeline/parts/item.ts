@@ -21,7 +21,8 @@ export enum Kind {
 	Transition,
 	TextStyle,
 	Filter,
-	Caption
+	Caption,
+	Image
 }
 
 export enum Effect {
@@ -91,6 +92,16 @@ export namespace Item {
 		filterIds?: Id[]
 	}
 
+	export type Image = {
+		id: Id
+		kind: Kind.Image
+		mediaHash: Hash
+		duration: number
+		spatialId?: Id
+		animationIds?: Id[]
+		filterIds?: Id[]
+	}
+
 	export type Audio = {
 		id: Id
 		kind: Kind.Audio
@@ -139,6 +150,7 @@ export namespace Item {
 		| Sequence
 		| Stack
 		| Video
+		| Image
 		| Audio
 		| Text
 		| Caption
@@ -153,8 +165,8 @@ export namespace Item {
 
 export type ContainerItem = Item.Sequence | Item.Stack
 export type NonContainerItem = Exclude<Item.Any, ContainerItem>
-export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Text | Item.Caption
-export type VisualAnimatableItem = Item.Video | Item.Text | Item.Caption
+export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Image | Item.Text | Item.Caption
+export type VisualAnimatableItem = Item.Video | Item.Image | Item.Text | Item.Caption
 
 export type PlayableItem = Item.Any & {
 	start: Ms

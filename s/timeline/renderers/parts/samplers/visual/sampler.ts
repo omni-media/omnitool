@@ -1,17 +1,20 @@
 
-import {VideoSink} from "./parts/sink.js"
+import {VideoSink} from "./parts/video-sink.js"
+import {ImageSink} from "./parts/image-sink.js"
 import {sampleVisual} from "./parts/sample.js"
 import {Ms} from "../../../../../units/ms.js"
 import {TimelineFile} from "../../../../parts/basics.js"
 import {DecoderSource} from "../../../../../driver/fns/schematic.js"
-import {createDefaultVideoSampler, VideoSampler} from "./parts/defaults.js"
+import {createDefaultImageSampler, createDefaultVideoSampler, VideoSampler} from "./parts/defaults.js"
 
 export function createVisualSampler(
 	resolveMedia: (hash: string) => DecoderSource,
 	sampleVideo?: VideoSampler
 ) {
-	const sink = new VideoSink(resolveMedia)
-	const videoSampler = sampleVideo ?? createDefaultVideoSampler(sink)
+	const imageSink = new ImageSink(resolveMedia)
+	const videoSink = new VideoSink(resolveMedia)
+	const imageSampler = createDefaultImageSampler(imageSink)
+	const videoSampler = sampleVideo ?? createDefaultVideoSampler(videoSink)
 
 	return {
 		async sample(timeline: TimelineFile, timecode: Ms) {
@@ -21,7 +24,7 @@ export function createVisualSampler(
 			if (!root)
 				return []
 
-			return sampleVisual({videoSampler, timeline, items}, root, timecode, [])
+			return sampleVisual({imageSampler, videoSampler, timeline, items}, root, timecode, [])
 		}
 	}
 }

@@ -207,6 +207,42 @@ Caption options:
 
 import `captionPresets` to list available caption looks.
 
+## 🧼 Background Remover
+
+```ts
+import {makeBgRemover, defaultBgRemoverSpec} from "@omnimedia/omnitool"
+
+const bgRemover = await makeBgRemover({
+	spec: defaultBgRemoverSpec(),
+	workerUrl: new URL("/features/bg-remover/worker.bundle.min.js", import.meta.url),
+	onLoading: loading => console.log("loading", loading),
+})
+
+const outputFrame = await bgRemover.remove({frame: inputFrame})
+
+bgRemover.dispose()
+```
+
+Use it on image or while decoding a video:
+
+```ts
+const bgRemover = await makeBgRemover({
+	spec: defaultBgRemoverSpec(),
+	workerUrl: new URL("/features/bg-remover/worker.bundle.min.js", import.meta.url),
+	onLoading: loading => console.log("loading", loading),
+})
+
+const video = driver.decodeVideo({
+	source: file,
+	onFrame: frame => bgRemover.remove({frame}),
+})
+```
+
+Notes:
+- `defaultBgRemoverSpec()` uses `Xenova/modnet` on `webgpu` with `auto` dtype.
+- `model`, `device`, and `dtype` are passed to Transformers.js and depend on browser/runtime support.
+- Call `dispose()` when the remover is no longer needed.
+
 ## 🎛 Filters
 
 Filter application:

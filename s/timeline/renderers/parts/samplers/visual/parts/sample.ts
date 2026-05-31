@@ -49,6 +49,13 @@ export async function sampleVisual(
 			return frame ? [{kind: "image", frame, matrix, alpha, crop, filters, id: item.id}] : []
 		}
 
+		case Kind.Image: {
+			if (time < 0 || time >= item.duration) return []
+
+			const frame = await ctx.imageSampler(item, time)
+			return frame ? [{kind: "image", frame, matrix, alpha, crop, filters, id: item.id}] : []
+		}
+
 		case Kind.Text: {
 			if (time < 0 || time >= item.duration) return []
 

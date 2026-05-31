@@ -56,6 +56,15 @@ export function video(
 	return o => o.video(media, options)
 }
 
+export function image(
+	media: Media,
+	options?: {
+		duration?: number
+	}
+): Build<Item.Image> {
+	return o => o.image(media, options)
+}
+
 export function audio(
 	media: Media,
 	options?: {

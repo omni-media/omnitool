@@ -96,7 +96,7 @@ export default ssg.page(import.meta.url, async orb => ({
 						<p>Build timeline and run the playback engine.</p>
 					</header>
 					<div class="demo-controls">
-						<input type="file" accept="video/*,audio/*" />
+						<input type="file" accept="video/*,audio/*,image/*" />
 					</div>
 					<div class="player-canvas"></div>
 					<div class="player">
@@ -120,7 +120,7 @@ export default ssg.page(import.meta.url, async orb => ({
 						<p>Build timeline and export a render.</p>
 					</header>
 					<div class="demo-controls">
-						<input type="file" accept="video/*,audio/*" />
+						<input type="file" accept="video/*,audio/*,image/*" />
 						<button data-action="export" disabled>Export</button>
 					</div>
 					<div class="demo-progress">

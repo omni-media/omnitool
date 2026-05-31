@@ -269,6 +269,25 @@ export class O {
 		return item
 	}
 
+	image = (
+		media: Media,
+		options?: {
+			duration?: number
+		}): Item.Image => {
+
+		if(!media.isImage)
+			throw new Error(`Image error: media "${media.datafile.filename}" is not an image.`)
+
+		const item: Item.Image = {
+			kind: Kind.Image,
+			id: this.getId(),
+			mediaHash: media.datafile.checksum.hash,
+			duration: options?.duration ?? 2000
+		}
+		this.register(item)
+		return item
+	}
+
 	audio = (
 		media: Media,
 		options?: {

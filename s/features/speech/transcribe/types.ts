@@ -1,7 +1,8 @@
 
 import {AsSchematic} from "@e280/comrade"
-import {DataType, DeviceType, Pipeline} from "@huggingface/transformers"
+import {Pipeline} from "@huggingface/transformers"
 
+import {Loading, PipelineSpec} from "../../parts/types.js"
 import {Driver} from "../../../driver/driver.js"
 
 export type TranscriberSchematic = AsSchematic<{
@@ -17,21 +18,11 @@ export type TranscriberSchematic = AsSchematic<{
 	}
 }>
 
-export type Loading = {
-	total: number
-	progress: number
-}
-
 export type TranscribeOptions = {
 	pipe: Pipeline
 	spec: TranscriberSpec
 	request: TranscriptionRequest
 	callbacks: TranscriptionCallbacks
-}
-
-export type TranscriberPipeOptions = {
-	spec: TranscriberSpec
-	onLoading: (loading: Loading) => void
 }
 
 export type SpeechTime = [start: number, end: number]
@@ -48,13 +39,12 @@ export type Transcription = {
 	chunks: TranscriptWord[]
 }
 
-export type TranscriberSpec = {
-	model: string
-	dtype: DataType
-	device: DeviceType
+export type TranscriberModels = "onnx-community/whisper-tiny_timestamped"
+
+export type TranscriberSpec = PipelineSpec<{
 	chunkLength: number
 	strideLength: number
-}
+}>
 
 export type TranscriptionOptions = {
 	source: Blob

@@ -1,9 +1,9 @@
 
 import {defer, once} from "@e280/stz"
 import {Comrade, Host} from "@e280/comrade"
-import {Pipeline} from "@huggingface/transformers"
+import {AutomaticSpeechRecognitionPipeline, Pipeline} from "@huggingface/transformers"
 
-import {loadPipe} from "./parts/load-pipe.js"
+import {loadPipe} from "../../parts/load-pipe.js"
 import {transcribe} from "./parts/transcribe.js"
 import {TranscriberSchematic, TranscriberSpec} from "./types.js"
 
@@ -14,8 +14,9 @@ const makePrepare = (host: Host<TranscriberSchematic>) => once(async(spec: Trans
 		spec,
 		pipe: await loadPipe({
 			spec,
+			task: "automatic-speech-recognition",
 			onLoading: loading => host.loading(loading),
-		}),
+		}) as AutomaticSpeechRecognitionPipeline
 	})
 })
 

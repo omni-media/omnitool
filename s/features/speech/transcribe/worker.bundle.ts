@@ -5,6 +5,7 @@ import {AutomaticSpeechRecognitionPipeline, Pipeline} from "@huggingface/transfo
 
 import {loadPipe} from "../../parts/load-pipe.js"
 import {transcribe} from "./parts/transcribe.js"
+import {exposeErrors} from "../../parts/expose-errors.js"
 import {TranscriberSchematic, TranscriberSpec} from "./types.js"
 
 const deferred = defer<{pipe: Pipeline, spec: TranscriberSpec}>()
@@ -23,8 +24,8 @@ const makePrepare = (host: Host<TranscriberSchematic>) => once(async(spec: Trans
 await Comrade.worker<TranscriberSchematic>(shell => {
 	const prepare = makePrepare(shell.host)
 	return {
-		prepare,
-		async transcribe(request) {
+		prepare: exposeErrors(prepare),
+		transcribe: exposeErrors(async(request) => {
 			const {pipe, spec} = await deferred.promise
 			return transcribe({
 				pipe,
@@ -35,7 +36,7 @@ await Comrade.worker<TranscriberSchematic>(shell => {
 					onTranscription: transcription => shell.host.deliverTranscription(transcription),
 				},
 			})
-		}
+		})
 	}
 })
 

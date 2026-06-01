@@ -6,6 +6,7 @@ import {BackgroundRemovalPipeline} from "@huggingface/transformers"
 import {PipelineSpec} from "../parts/types.js"
 import {BgRemoverSchematic} from "./types.js"
 import {loadPipe} from "../parts/load-pipe.js"
+import {exposeErrors} from "../parts/expose-errors.js"
 
 const deferred = defer<{spec: PipelineSpec, pipe: BackgroundRemovalPipeline}>()
 const makePrepare = (host: Host<BgRemoverSchematic>) => once(async(spec: PipelineSpec) => {
@@ -25,8 +26,8 @@ const ctx = canvas.getContext("2d")
 await Comrade.worker<BgRemoverSchematic>(shell => {
 	const prepare = makePrepare(shell.host)
 	return {
-		prepare,
-		async remove(request) {
+		prepare: exposeErrors(prepare),
+		remove: exposeErrors(async(request) => {
 			const {pipe} = await deferred.promise
 
 			canvas.width = request.displayWidth
@@ -44,7 +45,7 @@ await Comrade.worker<BgRemoverSchematic>(shell => {
 			request.close()
 			shell.transfer = [frame]
 			return frame
-		}
+		})
 	}
 })
 

@@ -45,7 +45,8 @@ const timeline = omni.timeline(o => {
 			caption
 		),
 		xfade,
-		o.video(clip, {start: 5000, duration: 2500})
+		o.video(clip, {start: 5000, duration: 2500}),
+		o.gap(400)
 	)
 
 	return o.stack(
@@ -60,7 +61,7 @@ Declarative helper style (no explicit `o` in timeline declarations):
 ```ts
 import {
 	Driver, Omni, Datafile,
-	timeline, sequence, stack, video, audio, text, transition, filter
+	timeline, sequence, stack, video, audio, text, gap, transition, filter
 } from "@omnimedia/omnitool"
 
 const driver = await Driver.setup()
@@ -79,6 +80,7 @@ const timeline = timeline(
 			),
 			transition.fade(500),
 			video(clip, {start: 5000, duration: 2500}),
+			gap(400),
 		),
 		audio(clip, {start: 5000, duration: 2500})
 	)

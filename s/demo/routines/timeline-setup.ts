@@ -49,7 +49,7 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 		o.set<Item.Text>(text.id, {styleId: style.id, spatialId: textSpatial.id, animationIds: [fade.id, textMotion.id]})
 		o.set<Item.Video>(video.id, {spatialId: videoSpatial.id})
 
-		return o.sequence(
+		const visual = o.sequence(
 			o.stack(
 				text,
 				o.captions(video, transcript, {
@@ -65,11 +65,15 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 						wordWrapWidth: 1280,
 						stroke: {color: "#000000", width: 6},
 					},
-				}),
-				o.audio(videoA, {start: 3000})
+				})
 			),
-			o.gap(500),
+			o.transition.circle(1500),
 			o.video(videoA, {duration: 7000, start: 5000})
+		)
+
+		return o.stack(
+			visual,
+			o.audio(videoA, {start: 3000, duration: video.duration})
 		)
 	})
 

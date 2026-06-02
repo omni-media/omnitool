@@ -154,7 +154,7 @@ export class Compositor {
 	) {
 		const transition = this.#transitions.get(name) ??
 			(this.#transitions.set(name, makeTransition({
-				name: "circle",
+				name,
 				renderer: this.pixi.renderer
 			})),
 	  	this.#transitions.get(name)!

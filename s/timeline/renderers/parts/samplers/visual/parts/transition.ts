@@ -20,7 +20,7 @@ export async function sampleTransition(
 	return f1 && f2 ? [{
 		id: item.id,
 		kind: "transition",
-		name: "circle",
+		name: item.name,
 		progress,
 		from: f1,
 		to: f2

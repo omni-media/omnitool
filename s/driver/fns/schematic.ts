@@ -7,6 +7,7 @@ import {Id} from "../../timeline/index.js"
 import {Crop} from "../../timeline/parts/item.js"
 import {Mat6} from "../../timeline/utils/matrix.js"
 import {FilterParams, FilterType} from "../../timeline/parts/filters.js"
+import {TransitionName} from "../../timeline/parts/transitions.js"
 
 export type DriverSchematic = AsSchematic<{
 
@@ -106,7 +107,7 @@ export type ImageLayer = {
 export type TransitionLayer = {
 	id: Id
   kind: 'transition'
-  name: string
+  name: TransitionName
   progress: number
   from: VideoFrame
   to: VideoFrame

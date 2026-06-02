@@ -5,6 +5,7 @@ import {O} from "./o.js"
 import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
+import {TransitionName, transitions} from "../parts/transitions.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {CaptionOptions, CaptionSourceItem} from "../parts/captions.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
@@ -19,6 +20,9 @@ type BuildVisualAnimateActions = {
 }
 type BuildPresetAnimateActions = {
 	[TKey in AnimationPreset]: BuildPresetAnimateAction
+}
+type BuildTransitionActions = {
+	[TKey in TransitionName]: (duration: number) => Build<Item.Transition>
 }
 
 function createTimeline(): TimelineFile {
@@ -226,9 +230,10 @@ export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {
 	return o => o.textStyle(style)
 }
 
-export const transition = {
-	crossfade(duration: number): Build<Item.Transition> {
-		return o => o.transition.crossfade(duration)
-	}
+function makeTransitionActions(): BuildTransitionActions {
+	const entries = Object.keys(transitions)
+		.map(key => [key, (duration: number) => (o: O) => o.transition[key as TransitionName](duration)])
+	return Object.fromEntries(entries) as BuildTransitionActions
 }
 
+export const transition = makeTransitionActions()

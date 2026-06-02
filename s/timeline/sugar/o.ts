@@ -6,8 +6,9 @@ import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
-import {Crop, Effect, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
+import {Crop, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
+import {TransitionAction, TransitionActions, transitions, TransitionName} from "../parts/transitions.js"
 import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
 import {CaptionAction, CaptionActions, captionDuration, CaptionOptions, CaptionPreset, captionPresets, CaptionSourceItem} from "../parts/captions.js"
 import {Anim, AnimateAction, Interpolation, Keyframes, ScalarAnimation, TrackTransform, Transform, TransformAnimation, TransformOptions, Vec2, VisualAnimationInput, VisualAnimationValue, VisualAnimations} from "../types.js"
@@ -395,18 +396,26 @@ export class O {
 		return item
 	}
 
-	transition = {
-		crossfade: (duration: number): Item.Transition => {
-			const item = {
+	#makeTransition = (key: TransitionName): TransitionAction => {
+		return (duration: number): Item.Transition => {
+			const item: Item.Transition = {
 				id: this.getId(),
 				kind: Kind.Transition,
-				effect: Effect.Crossfade,
+				name: transitions[key].name,
 				duration,
-			} as Item.Transition
+			}
 			this.register(item)
 			return item
-		},
+		}
 	}
+
+	#makeTransitions = (): TransitionActions => {
+		const entries = Object.keys(transitions)
+			.map(key => [key, this.#makeTransition(key as TransitionName)])
+		return Object.fromEntries(entries) as TransitionActions
+	}
+
+	transition = this.#makeTransitions()
 
   transform = (options?: TransformOptions): Transform => {
     const position: Vec2 = [

@@ -3,6 +3,7 @@ import {TextStyleOptions} from "pixi.js"
 
 import {Id, Hash} from "./basics.js"
 import {Ms} from "../../units/ms.js"
+import type {TransitionName} from "./transitions.js"
 import {Transform, VisualAnimations} from "../types.js"
 import type {FilterParams, FilterType} from "./filters.js"
 import type {Transcription} from "../../features/speech/transcribe/types.js"
@@ -23,10 +24,6 @@ export enum Kind {
 	Filter,
 	Caption,
 	Image
-}
-
-export enum Effect {
-	Crossfade,
 }
 
 export namespace Item {
@@ -142,7 +139,7 @@ export namespace Item {
 	export type Transition = {
 		id: Id
 		kind: Kind.Transition
-		effect: Effect.Crossfade
+		name: TransitionName
 		duration: number
 	}
 

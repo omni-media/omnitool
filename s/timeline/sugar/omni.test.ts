@@ -104,7 +104,7 @@ export default Science.suite({
 		const transitionDuration = 1000
 		const o = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA),
-			o.transition.crossfade(transitionDuration),
+			o.transition.fade(transitionDuration),
 			o.video(videoA)
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
@@ -117,7 +117,7 @@ export default Science.suite({
 		const transitionDuration = 1000
 		const o = new O({timeline: omni.timeline(o => o.stack(
 			o.video(videoA),
-			o.transition.crossfade(transitionDuration),
+			o.transition.fade(transitionDuration),
 			o.video(videoA)
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
@@ -127,10 +127,10 @@ export default Science.suite({
 	"ignore invalid transition": test(async () => {
 		const {omni, videoA} = await setupTest()
 		const o = new O({timeline: omni.timeline(o => o.sequence(
-			o.transition.crossfade(1000),
+			o.transition.fade(1000),
 			o.video(videoA),
 			o.video(videoA),
-			o.transition.crossfade(1000),
+			o.transition.fade(1000),
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
 		expect(timelineDuration).is(videoA.duration * 2)
@@ -141,7 +141,7 @@ export default Science.suite({
 		const duration = 3000
 		const o = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA, {duration}),
-			o.transition.crossfade(duration * 2),
+			o.transition.fade(duration * 2),
 			o.video(videoA, {duration})
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
@@ -153,9 +153,9 @@ export default Science.suite({
 		const transitionDuration = 1000
 		const o = new O({timeline: omni.timeline(o => o.sequence(
 			o.video(videoA),
-			o.transition.crossfade(transitionDuration),
+			o.transition.fade(transitionDuration),
 			o.video(videoA),
-			o.transition.crossfade(transitionDuration),
+			o.transition.fade(transitionDuration),
 			o.video(videoA)
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)

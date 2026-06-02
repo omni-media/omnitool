@@ -36,17 +36,20 @@ const timeline = omni.timeline(o => {
 		duration: 1500,
 		styles: {fill: "white", fontSize: 48}
 	})
-	const xfade = o.transition.crossfade(500)
+	const xfade = o.transition.fade(500)
 	const softened = o.filter.blur.make({strength: 8, quality: 4})
 
-	return o.sequence(
+	const visual = o.sequence(
 		o.stack(
 			o.video(clip, {start: 0, duration: 3000, filterIds: [softened.id]}),
 			caption
 		),
-		o.gap(400),
 		xfade,
-		o.video(clip, {start: 5000, duration: 2500}),
+		o.video(clip, {start: 5000, duration: 2500})
+	)
+
+	return o.stack(
+		visual,
 		o.audio(clip, {start: 5000, duration: 2500})
 	)
 })
@@ -57,7 +60,7 @@ Declarative helper style (no explicit `o` in timeline declarations):
 ```ts
 import {
 	Driver, Omni, Datafile,
-	timeline, stack, video, audio, text, gap, transition, filter
+	timeline, sequence, stack, video, audio, text, transition, filter
 } from "@omnimedia/omnitool"
 
 const driver = await Driver.setup()
@@ -66,16 +69,19 @@ const {clip} = await omni.load({clip: Datafile.make(file)})
 
 const timeline = timeline(
 	stack(
-		filter.blur(
-			video(clip, {start: 0, duration: 3000}),
-			{strength: 8, quality: 4}
+		sequence(
+			stack(
+				filter.blur(
+					video(clip, {start: 0, duration: 3000}),
+					{strength: 8, quality: 4}
+				),
+				text("Hello world", {duration: 1500}),
+			),
+			transition.fade(500),
+			video(clip, {start: 5000, duration: 2500}),
 		),
-		text("Hello world", {duration: 1500}),
-	),
-	gap(400),
-	transition.crossfade(500),
-	video(clip, {start: 5000, duration: 2500}),
-	audio(clip, {start: 5000, duration: 2500})
+		audio(clip, {start: 5000, duration: 2500})
+	)
 )
 ```
 
@@ -457,6 +463,31 @@ const opacity = resolveScalarAnimation(localTime, opacityAnimation)
 `resolveScalarAnimation` resolves an animated scalar value at the given local time.
 `localTime` is time relative to the item being resolved.
 `clamp` is the default and currently only extrapolation mode, holding the first or last keyframe value outside the authored range.
+
+## 🔀 Transitions
+
+Transitions are sequence items placed between two visual items.
+
+```ts
+const timeline = omni.timeline(o =>
+	o.sequence(
+		o.video(firstClip, {duration: 3000}),
+		o.transition.fade(700),
+		o.video(secondClip, {duration: 3000}),
+	)
+)
+```
+
+Use the exported transition registry to build UI:
+
+```ts
+import {transitions} from "@omnimedia/omnitool"
+
+const options = Object.entries(transitions).map(([key, transition]) => ({
+	key,
+	label: transition.label,
+}))
+```
 
 Worker URL notes:
 - `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.

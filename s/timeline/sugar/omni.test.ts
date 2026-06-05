@@ -108,7 +108,7 @@ export default Science.suite({
 			o.video(videoA)
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
-		const expectedDuration = (videoA.duration * 2) - transitionDuration
+		const expectedDuration = (videoA.duration * 2) + transitionDuration
 		expect(timelineDuration).is(expectedDuration)
 	}),
 
@@ -124,7 +124,7 @@ export default Science.suite({
 		expect(timelineDuration).is(videoA.duration)
 	}),
 
-	"ignore invalid transition": test(async () => {
+	"edge transition takes sequence space": test(async () => {
 		const {omni, videoA} = await setupTest()
 		const o = new O({timeline: omni.timeline(o => o.sequence(
 			o.transition.fade(1000),
@@ -133,10 +133,10 @@ export default Science.suite({
 			o.transition.fade(1000),
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
-		expect(timelineDuration).is(videoA.duration * 2)
+		expect(timelineDuration).is(videoA.duration * 2 + 2000)
 	}),
 
-	"clamp transition duration on overflow": test(async () => {
+	"transition duration can be longer than neighboring clips": test(async () => {
 		const {omni, videoA} = await setupTest()
 		const duration = 3000
 		const o = new O({timeline: omni.timeline(o => o.sequence(
@@ -145,7 +145,7 @@ export default Science.suite({
 			o.video(videoA, {duration})
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
-		expect(timelineDuration).is(duration)
+		expect(timelineDuration).is(duration * 4)
 	}),
 
 	"multiple transitions": test(async () => {
@@ -159,7 +159,7 @@ export default Science.suite({
 			o.video(videoA)
 		))})
 		const timelineDuration = computeItemDuration(o.timeline.rootId, o.timeline)
-		const expected = (videoA.duration * 3) - (transitionDuration * 2)
+		const expected = (videoA.duration * 3) + (transitionDuration * 2)
 		expect(timelineDuration).is(expected)
 	}),
 

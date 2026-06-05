@@ -11,7 +11,11 @@ export async function sampleVisual(
 	ctx: SampleContext,
 	item: Item.Any,
 	time: Ms,
-	ancestors: AncestorAt[]
+	ancestors: AncestorAt[],
+	options: {
+		/** Allow sampling trimmed media handles. */
+		allowHandles?: boolean
+	} = {}
 ): Promise<Layer[]> {
 	const matrix = computeWorldMatrix(ctx.items, ancestors, item, time)
 	const alpha = computeOpacity(ctx, item, time)
@@ -33,7 +37,7 @@ export async function sampleVisual(
 				item.childrenIds
 					.map(id => ctx.items.get(id))
 					.filter((child): child is Item.Any => !!child)
-					.map(child => sampleVisual(ctx, child, time, nextAnc))
+					.map(child => sampleVisual(ctx, child, time, nextAnc, options))
 			)
 
 			return layers.flat()
@@ -43,21 +47,21 @@ export async function sampleVisual(
 			return sampleSequence(ctx, item, time, ancestors)
 
 		case Kind.Video: {
-			if (time < 0 || time >= item.duration) return []
+			if (!options.allowHandles && (time < 0 || time >= item.duration)) return []
 
 			const frame = await ctx.videoSampler(item, time)
 			return frame ? [{kind: "image", frame, matrix, alpha, crop, filters, id: item.id}] : []
 		}
 
 		case Kind.Image: {
-			if (time < 0 || time >= item.duration) return []
+			if (!options.allowHandles && (time < 0 || time >= item.duration)) return []
 
 			const frame = await ctx.imageSampler(item, time)
 			return frame ? [{kind: "image", frame, matrix, alpha, crop, filters, id: item.id}] : []
 		}
 
 		case Kind.Text: {
-			if (time < 0 || time >= item.duration) return []
+			if (!options.allowHandles && (time < 0 || time >= item.duration)) return []
 
 			const style = item.styleId
 				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
@@ -67,7 +71,7 @@ export async function sampleVisual(
 		}
 
 		case Kind.Caption: {
-			if (time < 0 || time >= item.duration) return []
+			if (!options.allowHandles && (time < 0 || time >= item.duration)) return []
 
 			const transcriptTime = item.start + time
 			const segment = segmentTranscript(item.transcript, item).find(segment => {

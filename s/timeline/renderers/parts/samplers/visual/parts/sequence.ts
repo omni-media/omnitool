@@ -14,98 +14,84 @@ export async function sampleSequence(
 	ancestors: AncestorAt[]
 ): Promise<Layer[]> {
 	const state = sampleSequenceAt(ctx, seq, time)
-
 	if (!state) return []
 
 	const nextAnc = [...ancestors, {item: seq, localTime: time}]
 
-	if (!state.isTransitioning) {
+	if (!state.isTransitioning)
 		return sampleVisual(ctx, state.item, state.localTime, nextAnc)
-	}
 
 	return sampleTransition(
 		state.transition,
 		state.progress,
-		sampleVisual(ctx, state.outgoing, state.outgoingTime, nextAnc),
-		sampleVisual(ctx, state.incoming, state.incomingTime, nextAnc)
+		sampleTransitionHandle(ctx, state.outgoing, state.outgoingTime, nextAnc),
+		sampleTransitionHandle(ctx, state.incoming, state.incomingTime, nextAnc)
 	)
 }
 
-function sampleSequenceAt(
-	ctx: SampleContext,
-	seq: Item.Sequence,
-	time: Ms
-) {
+function sampleSequenceAt(ctx: SampleContext, seq: Item.Sequence, time: Ms) {
 	const children = seq.childrenIds
 		.map(id => ctx.items.get(id))
 		.filter((i): i is Item.Any => !!i)
 
 	let cursor = ms(0)
 
-	for (let i = 0; i < children.length; i++) {
-		const currentItem = children[i]
-		if (currentItem.kind === Kind.Transition)
-			continue
+	for (let index = 0; index < children.length; index++) {
+		const child = children[index]
+		const duration = computeItemDuration(child.id, ctx.timeline)
+		const end = ms(cursor + duration)
 
-		const currentItemStart = cursor
-		const currentItemDuration = computeItemDuration(currentItem.id, ctx.timeline)
-		const currentItemEnd = ms(currentItemStart + currentItemDuration)
-
-		const next = children[i + 1]
-		const hasTransition = next?.kind === Kind.Transition
-
-		if (!hasTransition) {
-			if (time < currentItemEnd) {
-				return {
-					isTransitioning: false,
-					item: currentItem,
-					localTime: ms(time - currentItemStart)
-				} as const
-			}
-
-			cursor = currentItemEnd
+		if (duration <= 0) {
+			cursor = end
 			continue
 		}
 
-		const transition = next as Item.Transition
-		const incoming = children[i + 2]
-
-		if (!incoming || incoming.kind === Kind.Transition) {
-			cursor = currentItemEnd
+		if (time < cursor || time >= end) {
+			cursor = end
 			continue
 		}
 
-		const incomingItemDuration = computeItemDuration(incoming.id, ctx.timeline)
-		const overlap = Math.max(0, Math.min(transition.duration, currentItemDuration, incomingItemDuration))
-		const currentItemSoloEnd = ms(currentItemEnd - overlap)
+		const localTime = ms(time - cursor)
 
-		if (time < currentItemSoloEnd) {
-			return {
-				isTransitioning: false,
-				item: currentItem,
-				localTime: ms(time - currentItemStart)
-			} as const
-		}
+		if (child.kind !== Kind.Transition)
+			return {isTransitioning: false, item: child, localTime} as const
 
-		if (time < currentItemEnd) {
-			const inLocal = ms(time - currentItemSoloEnd)
-			const outLocal = ms(time - currentItemStart)
+		const outgoing = children[index - 1]
+		const incoming = children[index + 1]
+		const isValidTransition =
+			outgoing && incoming &&
+			outgoing.kind !== Kind.Transition &&
+			incoming.kind !== Kind.Transition
 
-			return {
-				isTransitioning: true,
-				incoming,
-				outgoing: currentItem,
-				outgoingTime: outLocal,
-				incomingTime: inLocal,
-				progress: overlap > 0 ? inLocal / overlap : 1,
-				transition
-			} as const
-		}
+		if (!isValidTransition) return null
 
-		cursor = currentItemSoloEnd
-		i++
+		const outgoingDuration = computeItemDuration(outgoing.id, ctx.timeline)
+		return {
+			isTransitioning: true,
+			incoming,
+			outgoing,
+			outgoingTime: ms(outgoingDuration + localTime),
+			incomingTime: ms(localTime - duration),
+			progress: localTime / duration,
+			transition: child
+		} as const
 	}
 
 	return null
+}
+
+async function sampleTransitionHandle(
+	ctx: SampleContext,
+	item: Item.Any,
+	time: Ms,
+	ancestors: AncestorAt[]
+) {
+	const handleLayers = await sampleVisual(ctx, item, time, ancestors, {allowHandles: true})
+	if (handleLayers.some(layer => layer.kind === "image"))
+		return handleLayers
+
+	const duration = computeItemDuration(item.id, ctx.timeline)
+	const clampedTime = ms(Math.max(0, Math.min(time, duration > 0 ? duration - 1 : 0)))
+	return sampleVisual(ctx, item, clampedTime, ancestors)
 }
 

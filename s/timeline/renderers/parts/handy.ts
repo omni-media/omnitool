@@ -2,7 +2,7 @@
 import {ms, Ms} from '../../../units/ms.js'
 import {Id, TimelineFile} from '../../parts/basics.js'
 import {Keyframes, TransformAnimation} from '../../types.js'
-import { SampleContext } from './samplers/visual/parts/types.js'
+import {SampleContext} from './samplers/visual/parts/types.js'
 import {I6, Mat6, mul6, transformToMat6} from '../../utils/matrix.js'
 import {ContainerItem, Item, Kind, PlayableItem} from '../../parts/item.js'
 import {resolveScalarAnimation, resolveTransformAnimation} from '../../utils/anim.js'
@@ -368,33 +368,12 @@ function computeItemDurationFromMap(
 
 	switch (item.kind) {
 		case Kind.Sequence: {
-			const children = item.childrenIds
-				.map(childId => items.get(childId))
-				.filter(Boolean) as Item.Any[]
+			let duration = ms(0)
 
-			let total = ms(0)
+			for (const childId of item.childrenIds)
+				duration = ms(duration + computeItemDurationFromMap(childId, items))
 
-			for (let i = 0; i < children.length; i++) {
-				const child = children[i]
-
-				if (child.kind === Kind.Transition) {
-					const prev = children[i - 1]
-					const next = children[i + 1]
-
-					if (prev && next && prev.kind !== Kind.Transition && next.kind !== Kind.Transition) {
-						const prevDur = computeItemDurationFromMap(prev.id, items)
-						const nextDur = computeItemDurationFromMap(next.id, items)
-						const overlap = Math.max(0, Math.min(child.duration, prevDur, nextDur))
-
-						total = ms(total - overlap)
-					}
-					continue
-				}
-
-				total = ms(total + computeItemDurationFromMap(child.id, items))
-			}
-
-			return total
+			return duration
 		}
 
 		case Kind.Stack: {

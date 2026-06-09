@@ -184,9 +184,8 @@ export class Playback {
 		if (this.#audioStartSec === null)
 			return
 
-		for await (const {sample, timestamp} of this.audioSampler.sampleAudio(
-			this.timeline,
-			ms(from * 1000)
+		for await (const {sample, timestamp, gain} of this.audioSampler.sampleAudio(
+			this.timeline, ms(from * 1000)
 		)) {
 
 			if (signal.aborted || !this.#controller.isPlaying())
@@ -196,8 +195,11 @@ export class Playback {
 				await new Promise(r => setTimeout(r, 25))
 
 			const node = ctx.createBufferSource()
+			const itemGain = ctx.createGain()
 			node.buffer = sample.toAudioBuffer()
-			node.connect(this.audioGain)
+			itemGain.gain.value = gain
+			node.connect(itemGain)
+			itemGain.connect(this.audioGain)
 			node.onended = () => this.audioNodes.delete(node)
 			this.audioNodes.add(node)
 

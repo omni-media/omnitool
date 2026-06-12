@@ -1,22 +1,25 @@
 
-import {Hex, Thumbprint} from "@e280/stz"
+import {hex, thumbprint} from "@e280/stz"
+import {blake3} from "@noble/hashes/blake3.js"
 
 import {Hash} from "../parts/basics.js"
 
 export class Checksum {
 	constructor(
-		public data: Uint8Array,
-		public bytes: Uint8Array,
 		public hash: Hash,
 		public nickname: string,
 	) {}
 
-	static async make(data: Uint8Array) {
-		const data2 = new Uint8Array(data)
-		const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", data2))
-		const hash = Hex.fromBytes(bytes)
-		const nickname = Thumbprint.sigil.fromBytes(bytes)
-		return new this(data, bytes, hash, nickname)
+	static async make(file: Blob) {
+		const hasher = blake3.create()
+
+		for await (const chunk of file.stream())
+			hasher.update(chunk)
+
+		const digest = hasher.digest()
+		const hash = hex.fromBytes(digest)
+		const nickname = thumbprint.sigil.fromBytes(digest)
+		return new this(hash, nickname)
 	}
 }
 

@@ -38,6 +38,7 @@
 		"@e280/strata": "^0.2.5",
 		"@e280/stz": "^0.2.15",
 		"@huggingface/transformers": "^3.8.1",
+		"@noble/hashes": "^2.2.0",
 		"comrade": "^0.0.3",
 		"gl-transitions": "^1.43.0",
 		"gsap": "^3.14.2",

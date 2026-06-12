@@ -1,7 +1,7 @@
 
 import {Item} from "./item.js"
 
-/** sha256 hash */
+/** BLAKE3 hash */
 export type Hash = string
 
 /** item identifier */

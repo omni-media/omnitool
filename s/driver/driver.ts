@@ -121,5 +121,9 @@ export class Driver {
 		return await this.compositor.composite(composition)
 	}
 
+	resize(width: number, height: number) {
+		this.compositor.resize(width, height)
+	}
+
 }
 

@@ -47,6 +47,10 @@ export class Compositor {
 	#activeObjects = new Map<number, {sprite: Container, dispose: () => void}>()
 	#cropMasks = new WeakMap<Container, Graphics>()
 
+	resize(width: number, height: number) {
+		this.pixi.renderer.resize(width, height)
+	}
+
 	async composite(
 		composition: Composition,
 	) {

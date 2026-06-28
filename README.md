@@ -509,6 +509,7 @@ const driver = await Driver.setup({workerUrl})
 const player = await omni.playback(timeline)
 
 document.body.appendChild(player.canvas)
+player.resize(1280, 720)
 await player.play()
 player.playbackRate = 0.5 // slow motion
 player.playbackRate = -1 // reverse
@@ -516,6 +517,7 @@ player.playbackRate = -1 // reverse
 
 Notes:
 - Call `await player.update(timeline)` if you update the timeline.
+- Call `player.resize(width, height)` to resize the preview canvas.
 - `playbackRate` supports slower, faster, and reverse visual playback. Audio currently plays only at `1`.
 
 ## 📤 Export

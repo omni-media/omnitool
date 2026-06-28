@@ -41,6 +41,10 @@ export class VideoPlayer {
 		this.playback.setFps(fps(value))
 	}
 
+	resize(width: number, height: number) {
+		this.driver.resize(width, height)
+	}
+
 	get isSeeking() {
 		return this.#flushTask !== null
 	}

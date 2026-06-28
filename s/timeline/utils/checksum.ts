@@ -1,6 +1,6 @@
 
 import {hex, thumbprint} from "@e280/stz"
-import {blake3} from "@noble/hashes/blake3.js"
+import {blake3} from "@awasm/noble"
 
 import {Hash} from "../parts/basics.js"
 

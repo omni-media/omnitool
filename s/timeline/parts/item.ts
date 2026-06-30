@@ -26,6 +26,10 @@ export enum Kind {
 	Image
 }
 
+export type ItemMeta = {
+	label?: string
+}
+
 export namespace Item {
 	export type TextStyle = {
 		id: Id
@@ -60,7 +64,7 @@ export namespace Item {
 		id: Id
 		kind: Kind.Gap
 		duration: number
-	}
+	} & ItemMeta
 
 	export type Sequence = {
 		id: Id
@@ -68,7 +72,7 @@ export namespace Item {
 		childrenIds: Id[]
 		spatialId?: Id
 		filterIds?: Id[]
-	}
+	} & ItemMeta
 
 	export type Stack = {
 		id: Id
@@ -76,7 +80,7 @@ export namespace Item {
 		childrenIds: Id[]
 		spatialId?: Id
 		filterIds?: Id[]
-	}
+	} & ItemMeta
 
 	export type Video = {
 		id: Id
@@ -87,7 +91,7 @@ export namespace Item {
 		spatialId?: Id
 		animationIds?: Id[]
 		filterIds?: Id[]
-	}
+	} & ItemMeta
 
 	export type Image = {
 		id: Id
@@ -97,7 +101,7 @@ export namespace Item {
 		spatialId?: Id
 		animationIds?: Id[]
 		filterIds?: Id[]
-	}
+	} & ItemMeta
 
 	export type Audio = {
 		id: Id
@@ -106,7 +110,7 @@ export namespace Item {
 		start: number
 		duration: number
 		gain?: number
-	}
+	} & ItemMeta
 
 	export type Text = {
 		id: Id
@@ -117,7 +121,7 @@ export namespace Item {
 		animationIds?: Id[]
 		styleId?: Id
 		filterIds?: Id[]
-	}
+	} & ItemMeta
 
 
 	export type Caption = {
@@ -134,14 +138,14 @@ export namespace Item {
 		animationIds?: Id[]
 		styleId?: Id
 		filterIds?: Id[]
-	}
+	} & ItemMeta
 
 	export type Transition = {
 		id: Id
 		kind: Kind.Transition
 		name: TransitionName
 		duration: number
-	}
+	} & ItemMeta
 
 	export type Any = (
 		| Sequence

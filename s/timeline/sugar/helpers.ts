@@ -10,7 +10,7 @@ import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {CaptionOptions, CaptionSourceItem} from "../parts/captions.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
 import {AnimationPreset, PresetOptions} from "../parts/animations/types.js"
-import {Crop, FilterableItem, Item, VisualAnimatableItem} from "../parts/item.js"
+import {Crop, FilterableItem, Item, ItemMeta, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, Vec2, VisualAnimationInput, VisualAnimations} from "../types.js"
 
@@ -22,8 +22,9 @@ type BuildPresetAnimateActions = {
 	[TKey in AnimationPreset]: BuildPresetAnimateAction
 }
 type BuildTransitionActions = {
-	[TKey in TransitionName]: (duration: number) => Build<Item.Transition>
+	[TKey in TransitionName]: (duration: number, options?: ItemMeta) => Build<Item.Transition>
 }
+type ContainerInput = [label: string, ...items: Build[]] | Build[]
 
 function createTimeline(): TimelineFile {
 	return {
@@ -42,12 +43,24 @@ export function timeline(root: Build): TimelineFile {
 	return o.timeline
 }
 
-export function sequence(...items: Build[]): Build<Item.Sequence> {
-	return o => o.sequence(...items.map(item => item(o)))
+export function sequence(...input: ContainerInput): Build<Item.Sequence> {
+	const [first, ...rest] = input
+	const label = typeof first === "string" ? first : undefined
+	const items = (label ? rest : input) as Build[]
+	return o => {
+		const built = items.map(item => item(o))
+		return label ? o.sequence(label, ...built) : o.sequence(...built)
+	}
 }
 
-export function stack(...items: Build[]): Build<Item.Stack> {
-	return o => o.stack(...items.map(item => item(o)))
+export function stack(...input: ContainerInput): Build<Item.Stack> {
+	const [first, ...rest] = input
+	const label = typeof first === "string" ? first : undefined
+	const items = (label ? rest : input) as Build[]
+	return o => {
+		const built = items.map(item => item(o))
+		return label ? o.stack(label, ...built) : o.stack(...built)
+	}
 }
 
 export function video(
@@ -55,6 +68,7 @@ export function video(
 	options?: {
 		start?: number,
 		duration?: number
+		label?: string
 	}
 ): Build<Item.Video> {
 	return o => o.video(media, options)
@@ -64,6 +78,7 @@ export function image(
 	media: Media,
 	options?: {
 		duration?: number
+		label?: string
 	}
 ): Build<Item.Image> {
 	return o => o.image(media, options)
@@ -75,6 +90,7 @@ export function audio(
 		start?: number,
 		duration?: number,
 		gain?: number
+		label?: string
 	}
 ): Build<Item.Audio> {
 	return o => o.audio(media, options)
@@ -85,6 +101,7 @@ export function text(
 	options?: {
 		duration?: number,
 		styles?: TextStyleOptions
+		label?: string
 	}
 ): Build<Item.Text> {
 	return o => o.text(content, options)
@@ -98,8 +115,8 @@ export function captions(
 	return o => o.captions(item(o), transcript, options)
 }
 
-export function gap(duration: number): Build<Item.Gap> {
-	return o => o.gap(duration)
+export function gap(duration: number, options?: ItemMeta): Build<Item.Gap> {
+	return o => o.gap(duration, options)
 }
 
 export function spatial(transform?: Transform, crop?: Crop): Build<Item.Spatial> {
@@ -232,7 +249,7 @@ export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {
 
 function makeTransitionActions(): BuildTransitionActions {
 	const entries = Object.keys(transitions)
-		.map(key => [key, (duration: number) => (o: O) => o.transition[key as TransitionName](duration)])
+		.map(key => [key, (duration: number, options?: ItemMeta) => (o: O) => o.transition[key as TransitionName](duration, options)])
 	return Object.fromEntries(entries) as BuildTransitionActions
 }
 

@@ -56,6 +56,17 @@ const timeline = omni.timeline(o => {
 })
 ```
 
+You can label your items:
+
+```ts
+const visual = o.sequence(
+	"Main sequence",
+	o.video(clip, {label: "Intro"}),
+	o.transition.fade(500, {label: "Fade"}),
+	o.text("Hello world", {label: "Title"})
+)
+```
+
 Declarative helper style (no explicit `o` in timeline declarations):
 
 ```ts

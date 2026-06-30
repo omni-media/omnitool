@@ -5,6 +5,7 @@ import {TransformOptions, Vec2} from "../types.js"
 import {Transcription, TranscriptSegment} from "../../features/speech/transcribe/types.js"
 
 export type CaptionOptions = {
+	label?: string
 	itemId?: Item.Caption["itemId"]
 	start?: number
 	duration?: number

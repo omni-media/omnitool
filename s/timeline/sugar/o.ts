@@ -6,7 +6,7 @@ import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
-import {Crop, FilterableItem, Item, Kind, VisualAnimatableItem} from "../parts/item.js"
+import {Crop, FilterableItem, Item, ItemMeta, Kind, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {TransitionAction, TransitionActions, transitions, TransitionName} from "../parts/transitions.js"
 import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
@@ -16,6 +16,8 @@ import {Anim, AnimateAction, Interpolation, Keyframes, ScalarAnimation, TrackTra
 type VisualAnimateActions = {
 	[TKey in keyof VisualAnimations]-?: AnimateAction<TKey>
 }
+
+type ContainerInput = [label: string, ...items: Item.Any[]] | Item.Any[]
 
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
@@ -229,20 +231,28 @@ export class O {
 		presets: this.#makePresetAnimateActions(),
 	}
 
-	sequence = (...items: Item.Any[]): Item.Sequence => {
+	sequence = (...input: ContainerInput): Item.Sequence => {
+		const [first, ...rest] = input
+		const label = typeof first === "string" ? first : undefined
+		const items = (label ? rest : input) as Item.Any[]
 		const item =  {
 			id: this.getId(),
 			kind: Kind.Sequence,
+			label,
 			childrenIds: items.map(item => item.id)
 		} as Item.Sequence
 		this.register(item)
 		return item
 	}
 
-	stack = (...items: Item.Any[]): Item.Stack => {
+	stack = (...input: ContainerInput): Item.Stack => {
+		const [first, ...rest] = input
+		const label = typeof first === "string" ? first : undefined
+		const items = (label ? rest : input) as Item.Any[]
 		const item = {
 			kind: Kind.Stack,
 			id: this.getId(),
+			label,
 			childrenIds: items.map(item => item.id)
 		} as Item.Stack
 		this.register(item)
@@ -254,6 +264,7 @@ export class O {
 		options?: {
 			start?: number,
 			duration?: number
+			label?: string
 		}): Item.Video => {
 
 		if(!media.hasVideo)
@@ -262,6 +273,7 @@ export class O {
 		const item: Item.Video = {
 			kind: Kind.Video,
 			id: this.getId(),
+			label: options?.label,
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration
@@ -274,6 +286,7 @@ export class O {
 		media: Media,
 		options?: {
 			duration?: number
+			label?: string
 		}): Item.Image => {
 
 		if(!media.isImage)
@@ -282,6 +295,7 @@ export class O {
 		const item: Item.Image = {
 			kind: Kind.Image,
 			id: this.getId(),
+			label: options?.label,
 			mediaHash: media.datafile.checksum.hash,
 			duration: options?.duration ?? 2000
 		}
@@ -295,6 +309,7 @@ export class O {
 			start?: number,
 			duration?: number,
 			gain?: number
+			label?: string
 		}): Item.Audio => {
 
 		if(!media.hasAudio)
@@ -303,6 +318,7 @@ export class O {
 		const item: Item.Audio = {
 			kind: Kind.Audio,
 			id: this.getId(),
+			label: options?.label,
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration,
@@ -315,10 +331,12 @@ export class O {
 	text = (content: string, options?: {
 			duration?: number,
 			styles?: TextStyleOptions
+			label?: string
 		}): Item.Text => {
 
 		const item = {
 			id: this.getId(),
+			label: options?.label,
 			content,
 			kind: Kind.Text,
 			duration: options?.duration ?? 2000
@@ -341,6 +359,7 @@ export class O {
 		const item: Item.Caption = {
 			id: this.getId(),
 			kind: Kind.Caption,
+			label: options?.label,
 			transcript,
 			itemId: options?.itemId,
 			start,
@@ -386,10 +405,11 @@ export class O {
 		{presets: this.#makeCaptionPresetActions()}
 	) as CaptionActions
 
-	gap = (duration: number): Item.Gap => {
+	gap = (duration: number, options?: ItemMeta): Item.Gap => {
 		const item = {
 			id: this.getId(),
 			kind: Kind.Gap,
+			label: options?.label,
 			duration
 		} as Item.Gap
 		this.register(item)
@@ -397,10 +417,11 @@ export class O {
 	}
 
 	#makeTransition = (key: TransitionName): TransitionAction => {
-		return (duration: number): Item.Transition => {
+		return (duration: number, options?: ItemMeta): Item.Transition => {
 			const item: Item.Transition = {
 				id: this.getId(),
 				kind: Kind.Transition,
+				label: options?.label,
 				name: transitions[key].name,
 				duration,
 			}

@@ -92,6 +92,21 @@ export default Science.suite({
 		expect(textLayer[0].kind).is("text")
 	}),
 
+	"disabled visual item keeps sequence time but does not render": test(async () => {
+		const {omni, videoA, resolveMedia} = await setupTest()
+		const {timeline} = new O({timeline: omni.timeline(o => o.sequence(
+			o.video(videoA, {duration: 2000, enabled: false}),
+			o.video(videoA, {duration: 2000}),
+		))})
+		const sampler = createVisualSampler(resolveMedia)
+
+		const disabledLayers = await sampler.sample(timeline, ms(1000))
+		expect(disabledLayers.length).is(0)
+
+		const nextLayers = await sampler.sample(timeline, ms(2500))
+		expect(nextLayers[0].kind).is("image")
+	}),
+
 	"audio mix sums overlapping chunks": test(async () => {
 		const mixer = new AudioMix({chunkFrames: 4, clamp: false})
 		async function *samples() {

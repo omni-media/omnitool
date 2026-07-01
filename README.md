@@ -56,16 +56,18 @@ const timeline = omni.timeline(o => {
 })
 ```
 
-You can label your items:
+Items can have `label` and `enabled` fields:
 
 ```ts
 const visual = o.sequence(
 	"Main sequence",
 	o.video(clip, {label: "Intro"}),
-	o.transition.fade(500, {label: "Fade"}),
-	o.text("Hello world", {label: "Title"})
+	o.transition.fade(500, {label: "Fade", enabled: false}),
+	o.text("Hello world", {label: "Title", enabled: false})
 )
 ```
+
+Disabled items do not render or play audio, but still keep their timeline duration and occupy space.
 
 Declarative helper style (no explicit `o` in timeline declarations):
 

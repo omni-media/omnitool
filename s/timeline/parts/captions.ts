@@ -6,6 +6,7 @@ import {Transcription, TranscriptSegment} from "../../features/speech/transcribe
 
 export type CaptionOptions = {
 	label?: string
+	enabled?: boolean
 	itemId?: Item.Caption["itemId"]
 	start?: number
 	duration?: number

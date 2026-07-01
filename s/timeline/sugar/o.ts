@@ -6,7 +6,7 @@ import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
-import {Crop, FilterableItem, Item, ItemMeta, Kind, VisualAnimatableItem} from "../parts/item.js"
+import {Crop, FilterableItem, Item, ItemBase, Kind, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {TransitionAction, TransitionActions, transitions, TransitionName} from "../parts/transitions.js"
 import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
@@ -52,7 +52,7 @@ export class O {
 		const item = {
 			id: this.getId(),
 			kind: Kind.TextStyle,
-			style
+			style,
 		} as Item.TextStyle
 		this.register(item)
 		return item
@@ -64,7 +64,6 @@ export class O {
   		kind: Kind.Spatial,
   		transform: transform ?? this.transform(),
   		crop,
-  		enabled: true
   	}
 		this.register(item)
   	return item
@@ -75,7 +74,6 @@ export class O {
 			id: this.getId(),
 			kind: Kind.Animation,
 			anims,
-			enabled: true
 		}
 		this.register(item)
 		return item
@@ -136,7 +134,6 @@ export class O {
 				kind: Kind.Filter,
 				type,
 				params,
-				enabled: true
 			}
 			this.register(item)
 			return item
@@ -265,6 +262,7 @@ export class O {
 			start?: number,
 			duration?: number
 			label?: string
+			enabled?: boolean
 		}): Item.Video => {
 
 		if(!media.hasVideo)
@@ -274,6 +272,7 @@ export class O {
 			kind: Kind.Video,
 			id: this.getId(),
 			label: options?.label,
+			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration
@@ -287,6 +286,7 @@ export class O {
 		options?: {
 			duration?: number
 			label?: string
+			enabled?: boolean
 		}): Item.Image => {
 
 		if(!media.isImage)
@@ -296,6 +296,7 @@ export class O {
 			kind: Kind.Image,
 			id: this.getId(),
 			label: options?.label,
+			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
 			duration: options?.duration ?? 2000
 		}
@@ -310,6 +311,7 @@ export class O {
 			duration?: number,
 			gain?: number
 			label?: string
+			enabled?: boolean
 		}): Item.Audio => {
 
 		if(!media.hasAudio)
@@ -319,6 +321,7 @@ export class O {
 			kind: Kind.Audio,
 			id: this.getId(),
 			label: options?.label,
+			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
 			start: options?.start ?? 0,
 			duration: options?.duration ?? media.duration,
@@ -332,11 +335,13 @@ export class O {
 			duration?: number,
 			styles?: TextStyleOptions
 			label?: string
+			enabled?: boolean
 		}): Item.Text => {
 
 		const item = {
 			id: this.getId(),
 			label: options?.label,
+			enabled: options?.enabled,
 			content,
 			kind: Kind.Text,
 			duration: options?.duration ?? 2000
@@ -360,6 +365,7 @@ export class O {
 			id: this.getId(),
 			kind: Kind.Caption,
 			label: options?.label,
+			enabled: options?.enabled,
 			transcript,
 			itemId: options?.itemId,
 			start,
@@ -405,11 +411,12 @@ export class O {
 		{presets: this.#makeCaptionPresetActions()}
 	) as CaptionActions
 
-	gap = (duration: number, options?: ItemMeta): Item.Gap => {
+	gap = (duration: number, options?: ItemBase): Item.Gap => {
 		const item = {
 			id: this.getId(),
 			kind: Kind.Gap,
 			label: options?.label,
+			enabled: options?.enabled,
 			duration
 		} as Item.Gap
 		this.register(item)
@@ -417,11 +424,12 @@ export class O {
 	}
 
 	#makeTransition = (key: TransitionName): TransitionAction => {
-		return (duration: number, options?: ItemMeta): Item.Transition => {
+		return (duration: number, options?: ItemBase): Item.Transition => {
 			const item: Item.Transition = {
 				id: this.getId(),
 				kind: Kind.Transition,
 				label: options?.label,
+				enabled: options?.enabled,
 				name: transitions[key].name,
 				duration,
 			}

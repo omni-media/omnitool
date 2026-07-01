@@ -17,6 +17,9 @@ export async function sampleVisual(
 		allowHandles?: boolean
 	} = {}
 ): Promise<Layer[]> {
+	if ("enabled" in item && item.enabled === false)
+		return item.kind === Kind.Gap ? [{id: item.id, kind: "gap"}] : []
+
 	const matrix = computeWorldMatrix(ctx.items, ancestors, item, time)
 	const alpha = computeOpacity(ctx, item, time)
 	const crop = "spatialId" in item && item.spatialId
@@ -25,7 +28,7 @@ export async function sampleVisual(
 	const filters = "filterIds" in item && item.filterIds
 		? item.filterIds
 			.map(id => ctx.items.get(id) as Item.Filter | undefined)
-			.filter((filter): filter is Item.Filter => !!filter?.enabled)
+			.filter((filter): filter is Item.Filter => !!filter && filter.enabled !== false)
 			.map(filter => ({type: filter.type, params: filter.params}) as FilterSpec)
 		: undefined
 
@@ -63,9 +66,10 @@ export async function sampleVisual(
 		case Kind.Text: {
 			if (!options.allowHandles && (time < 0 || time >= item.duration)) return []
 
-			const style = item.styleId
-				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
+			const textStyle = item.styleId
+				? ctx.items.get(item.styleId) as Item.TextStyle | undefined
 				: undefined
+			const style = textStyle?.enabled !== false ? textStyle?.style : undefined
 
 			return [{id: item.id, kind: "text", content: item.content, style, matrix, alpha, crop, filters}]
 		}
@@ -81,9 +85,10 @@ export async function sampleVisual(
 			if (!segment)
 				return []
 
-			const style = item.styleId
-				? (ctx.items.get(item.styleId) as Item.TextStyle)?.style
+			const textStyle = item.styleId
+				? ctx.items.get(item.styleId) as Item.TextStyle | undefined
 				: undefined
+			const style = textStyle?.enabled !== false ? textStyle?.style : undefined
 
 			return [{id: item.id, kind: "text", content: segment.text, style, matrix, alpha, crop, filters}]
 		}

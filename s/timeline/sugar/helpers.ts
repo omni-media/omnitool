@@ -10,7 +10,7 @@ import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {CaptionOptions, CaptionSourceItem} from "../parts/captions.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
 import {AnimationPreset, PresetOptions} from "../parts/animations/types.js"
-import {Crop, FilterableItem, Item, ItemMeta, VisualAnimatableItem} from "../parts/item.js"
+import {Crop, FilterableItem, Item, ItemBase, VisualAnimatableItem} from "../parts/item.js"
 import {animationPresets, visualAnimations} from "../parts/animations/registry.js"
 import {Anim, AnimateAction, Interpolation, Keyframes, TrackTransform, Transform, Vec2, VisualAnimationInput, VisualAnimations} from "../types.js"
 
@@ -22,7 +22,7 @@ type BuildPresetAnimateActions = {
 	[TKey in AnimationPreset]: BuildPresetAnimateAction
 }
 type BuildTransitionActions = {
-	[TKey in TransitionName]: (duration: number, options?: ItemMeta) => Build<Item.Transition>
+	[TKey in TransitionName]: (duration: number, options?: ItemBase) => Build<Item.Transition>
 }
 type ContainerInput = [label: string, ...items: Build[]] | Build[]
 
@@ -69,6 +69,7 @@ export function video(
 		start?: number,
 		duration?: number
 		label?: string
+		enabled?: boolean
 	}
 ): Build<Item.Video> {
 	return o => o.video(media, options)
@@ -79,6 +80,7 @@ export function image(
 	options?: {
 		duration?: number
 		label?: string
+		enabled?: boolean
 	}
 ): Build<Item.Image> {
 	return o => o.image(media, options)
@@ -91,6 +93,7 @@ export function audio(
 		duration?: number,
 		gain?: number
 		label?: string
+		enabled?: boolean
 	}
 ): Build<Item.Audio> {
 	return o => o.audio(media, options)
@@ -102,6 +105,7 @@ export function text(
 		duration?: number,
 		styles?: TextStyleOptions
 		label?: string
+		enabled?: boolean
 	}
 ): Build<Item.Text> {
 	return o => o.text(content, options)
@@ -115,7 +119,7 @@ export function captions(
 	return o => o.captions(item(o), transcript, options)
 }
 
-export function gap(duration: number, options?: ItemMeta): Build<Item.Gap> {
+export function gap(duration: number, options?: ItemBase): Build<Item.Gap> {
 	return o => o.gap(duration, options)
 }
 
@@ -249,7 +253,7 @@ export function textStyle(style: TextStyleOptions): Build<Item.TextStyle> {
 
 function makeTransitionActions(): BuildTransitionActions {
 	const entries = Object.keys(transitions)
-		.map(key => [key, (duration: number, options?: ItemMeta) => (o: O) => o.transition[key as TransitionName](duration, options)])
+		.map(key => [key, (duration: number, options?: ItemBase) => (o: O) => o.transition[key as TransitionName](duration, options)])
 	return Object.fromEntries(entries) as BuildTransitionActions
 }
 

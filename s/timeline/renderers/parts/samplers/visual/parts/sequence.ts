@@ -53,6 +53,9 @@ function sampleSequenceAt(ctx: SampleContext, seq: Item.Sequence, time: Ms) {
 
 		const localTime = ms(time - cursor)
 
+		if (child.enabled === false)
+			return {isTransitioning: false, item: child, localTime} as const
+
 		if (child.kind !== Kind.Transition)
 			return {isTransitioning: false, item: child, localTime} as const
 

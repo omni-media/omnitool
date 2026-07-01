@@ -1,4 +1,4 @@
-import type {Item, ItemMeta} from "./item.js"
+import type {Item, ItemBase} from "./item.js"
 
 export const transitionNames = [
 	"Bounce",
@@ -78,7 +78,7 @@ export type Transition = {
 }
 
 export interface TransitionAction {
-	(duration: number, options?: ItemMeta): Item.Transition
+	(duration: number, options?: ItemBase): Item.Transition
 }
 
 export type TransitionActions = {

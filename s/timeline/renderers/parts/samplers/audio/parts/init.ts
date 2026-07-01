@@ -15,6 +15,8 @@ export async function initStreams(
 		items.map(async ({item, localTime}) => {
 			if (item.kind !== Kind.Audio)
 				return
+			if (item.enabled === false)
+				return
 
 			const sink = await pool.getSink(item.mediaHash)
 			if (!sink)

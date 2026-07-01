@@ -110,7 +110,7 @@ function applySpatialIfAny(
 	let matrix = parentMatrix
 	if ("spatialId" in item && item.spatialId) {
 		const spatial = items.get(item.spatialId) as Item.Spatial | undefined
-		if (spatial?.enabled) {
+		if (spatial && spatial.enabled !== false) {
 			const local = transformToMat6(spatial.transform)
 			matrix = mul6(local, matrix)
 		}
@@ -120,7 +120,7 @@ function applySpatialIfAny(
 		for (const id of item.animationIds) {
 			const animation = items.get(id) as Item.Animation | undefined
 			const anim = animation?.anims.transform
-			if (animation?.enabled && anim && transformActiveAt(anim, time)) {
+			if (animation?.enabled !== false && anim && transformActiveAt(anim, time)) {
 				const local = transformToMat6(resolveTransformAnimation(time, anim))
 				matrix = mul6(local, matrix)
 			}
@@ -410,7 +410,7 @@ export function computeOpacity(
 	for (const id of item.animationIds) {
 		const animation = ctx.items.get(id) as Item.Animation | undefined
 		const anim = animation?.anims.opacity
-		if (animation?.enabled && anim && keyframesActiveAt(anim.track, time))
+		if (animation?.enabled !== false && anim && keyframesActiveAt(anim.track, time))
 			opacity = resolveScalarAnimation(time, anim)
 	}
 	return opacity

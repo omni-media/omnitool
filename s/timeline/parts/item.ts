@@ -26,8 +26,9 @@ export enum Kind {
 	Image
 }
 
-export type ItemMeta = {
+export type ItemBase = {
 	label?: string
+	enabled?: boolean
 }
 
 export namespace Item {
@@ -35,6 +36,7 @@ export namespace Item {
 		id: Id
 		kind: Kind.TextStyle
 		style: TextStyleOptions
+		enabled?: boolean
 	}
 
 	export type Spatial = {
@@ -42,14 +44,14 @@ export namespace Item {
 		kind: Kind.Spatial
 		transform: Transform
 		crop?: Crop
-		enabled: boolean
+		enabled?: boolean
 	}
 
 	export type Animation = {
 		id: Id
 		kind: Kind.Animation
 		anims: VisualAnimations
-		enabled: boolean
+		enabled?: boolean
 	}
 
 	export type Filter<T extends FilterType = FilterType> = {
@@ -57,14 +59,14 @@ export namespace Item {
 		kind: Kind.Filter
 		type: T
 		params?: FilterParams<T>
-		enabled: boolean
+		enabled?: boolean
 	}
 
 	export type Gap = {
 		id: Id
 		kind: Kind.Gap
 		duration: number
-	} & ItemMeta
+	} & ItemBase
 
 	export type Sequence = {
 		id: Id
@@ -72,7 +74,7 @@ export namespace Item {
 		childrenIds: Id[]
 		spatialId?: Id
 		filterIds?: Id[]
-	} & ItemMeta
+	} & ItemBase
 
 	export type Stack = {
 		id: Id
@@ -80,7 +82,7 @@ export namespace Item {
 		childrenIds: Id[]
 		spatialId?: Id
 		filterIds?: Id[]
-	} & ItemMeta
+	} & ItemBase
 
 	export type Video = {
 		id: Id
@@ -91,7 +93,7 @@ export namespace Item {
 		spatialId?: Id
 		animationIds?: Id[]
 		filterIds?: Id[]
-	} & ItemMeta
+	} & ItemBase
 
 	export type Image = {
 		id: Id
@@ -101,7 +103,7 @@ export namespace Item {
 		spatialId?: Id
 		animationIds?: Id[]
 		filterIds?: Id[]
-	} & ItemMeta
+	} & ItemBase
 
 	export type Audio = {
 		id: Id
@@ -110,7 +112,7 @@ export namespace Item {
 		start: number
 		duration: number
 		gain?: number
-	} & ItemMeta
+	} & ItemBase
 
 	export type Text = {
 		id: Id
@@ -121,7 +123,7 @@ export namespace Item {
 		animationIds?: Id[]
 		styleId?: Id
 		filterIds?: Id[]
-	} & ItemMeta
+	} & ItemBase
 
 
 	export type Caption = {
@@ -138,14 +140,14 @@ export namespace Item {
 		animationIds?: Id[]
 		styleId?: Id
 		filterIds?: Id[]
-	} & ItemMeta
+	} & ItemBase
 
 	export type Transition = {
 		id: Id
 		kind: Kind.Transition
 		name: TransitionName
 		duration: number
-	} & ItemMeta
+	} & ItemBase
 
 	export type Any = (
 		| Sequence

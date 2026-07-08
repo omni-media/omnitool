@@ -17,14 +17,17 @@ export async function initStreams(
 				return
 			if (item.enabled === false)
 				return
+			if (localTime >= item.duration)
+				return
 
 			const sink = await pool.getSink(item.mediaHash)
 			if (!sink)
 				return
 
 			const mediaTime = item.start + localTime
+			const mediaEnd = item.start + item.duration
 			const offset = seconds((from - mediaTime) / 1000)
-			const iter = sink.samples(mediaTime / 1000)
+			const iter = sink.samples(mediaTime / 1000, mediaEnd / 1000)
 
 			const first = await iter.next()
 			if (first.done)

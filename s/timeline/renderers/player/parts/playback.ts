@@ -1,4 +1,5 @@
 
+import {AudioLevels} from "./audio-levels.js"
 import {Fps} from '../../../../units/fps.js'
 import {ms, Ms} from '../../../../units/ms.js'
 import {Driver} from '../../../../driver/driver.js'
@@ -12,6 +13,7 @@ import {createAudioSampler} from '../../parts/samplers/audio/sampler.js'
 import {createVisualSampler} from '../../parts/samplers/visual/sampler.js'
 
 export class Playback {
+	audioLevels
 	audioSampler
 	seekVisualSampler
 	playVisualSampler: CursorVisualSampler | null = null
@@ -26,7 +28,7 @@ export class Playback {
 
 	audioContext = new AudioContext({sampleRate: 48000})
 	audioGain = this.audioContext.createGain()
-	audioNodes = new Set<AudioBufferSourceNode>()
+	audioNodes = new Map<AudioBufferSourceNode, GainNode>()
 	#audioAbort: AbortController | null = null
 
 	constructor(
@@ -36,6 +38,11 @@ export class Playback {
 	) {
 		this.audioGain.connect(this.audioContext.destination)
 		this.audioGain.gain.value = 0.7 ** 2
+		this.audioLevels = new AudioLevels(
+			this.audioContext,
+			() => this.currentTime,
+			() => this.#controller.isPlaying()
+		)
 		this.seekVisualSampler = createVisualSampler(this.resolveMedia)
 		this.audioSampler = createAudioSampler(this.resolveMedia)
 		this.#samples()
@@ -88,12 +95,14 @@ export class Playback {
 		this.reversePlayVisualSampler = new ReverseCursorVisualSampler(this.driver, this.resolveMedia, this.timeline)
 
 		this.#controller.play()
+		this.audioLevels.start()
 		this.#startAudio()
 	}
 
 	pause() {
 		this.#playbackStart = this.currentTime
 		this.#controller.pause()
+		this.audioLevels.stop()
 		this.#stopAudio()
 
 		if (this.playVisualSampler) {
@@ -165,8 +174,10 @@ export class Playback {
 		this.#audioAbort?.abort()
 		this.#audioAbort = null
 
-		for (const node of this.audioNodes)
+		for (const [node, gain] of this.audioNodes) {
 			node.stop()
+			this.audioLevels.detach(gain)
+		}
 
 		this.audioNodes.clear()
 	}
@@ -184,7 +195,7 @@ export class Playback {
 		if (this.#audioStartSec === null)
 			return
 
-		for await (const {sample, timestamp, gain} of this.audioSampler.sampleAudio(
+		for await (const {itemId, sample, timestamp, gain} of this.audioSampler.sampleAudio(
 			this.timeline, ms(from * 1000)
 		)) {
 
@@ -200,8 +211,14 @@ export class Playback {
 			itemGain.gain.value = gain
 			node.connect(itemGain)
 			itemGain.connect(this.audioGain)
-			node.onended = () => this.audioNodes.delete(node)
-			this.audioNodes.add(node)
+
+			node.onended = () => {
+				this.audioNodes.delete(node)
+				this.audioLevels.detach(itemGain)
+			}
+
+			this.audioNodes.set(node, itemGain)
+			this.audioLevels.attach(itemId, itemGain)
 
 			const startAt = this.#audioStartSec + timestamp - from
 

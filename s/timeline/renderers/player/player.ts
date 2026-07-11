@@ -4,6 +4,7 @@ import {fps} from "../../../units/fps.js"
 import {Playback} from "./parts/playback.js"
 import {Driver} from "../../../driver/driver.js"
 import {TimelineFile} from "../../parts/basics.js"
+import {AudioLevelObserver} from "./parts/types.js"
 import {DecoderSource} from "../../../driver/fns/schematic.js"
 
 type ResolveMedia = (hash: string) => DecoderSource
@@ -11,6 +12,7 @@ type ResolveMedia = (hash: string) => DecoderSource
 export class VideoPlayer {
 	canvas: HTMLCanvasElement
 	playback: Playback
+	readonly audio: {levels: AudioLevelObserver}
 
 	#pendingSeek: number | null = null
 	#flushTask: Promise<void> | null = null
@@ -21,6 +23,7 @@ export class VideoPlayer {
 		timeline: TimelineFile
 	) {
 		this.playback = new Playback(driver, timeline, resolveMedia)
+		this.audio = {levels: this.playback.audioLevels}
 		this.canvas = driver.compositor.pixi.renderer.canvas
 	}
 

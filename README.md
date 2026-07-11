@@ -533,6 +533,15 @@ Notes:
 - Call `player.resize(width, height)` to resize the preview canvas.
 - `playbackRate` supports slower, faster, and reverse visual playback. Audio currently plays only at `1`.
 
+Subscribe to the mixed, post-gain level of selected audio items - for clip, group, or master meters:
+
+```ts
+const off = player.audio.levels.on(
+	() => itemIds,
+	({time, peak, rms}) => {}
+)
+```
+
 ## 📤 Export
 
 ```ts

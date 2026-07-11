@@ -42,6 +42,7 @@ export async function initStreams(
 				get currentSample() {return currentSample},
 				timelineTime: () => seconds(offset + currentSample.timestamp),
 				output: () => ({
+					itemId: item.id,
 					sample: currentSample,
 					timestamp: offset + currentSample.timestamp,
 					gain: item.gain ?? 1

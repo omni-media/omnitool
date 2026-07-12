@@ -37,7 +37,7 @@ export class Playback {
 		private resolveMedia: (hash: string) => DecoderSource
 	) {
 		this.audioGain.connect(this.audioContext.destination)
-		this.audioGain.gain.value = 0.7 ** 2
+		this.audioGain.gain.value = 1
 		this.audioLevels = new AudioLevels(
 			this.audioContext,
 			() => this.currentTime,

@@ -11,15 +11,17 @@ import {DecoderSource} from '../../driver/fns/schematic.js'
 import {loadDecoderSource} from '../../driver/utils/load-decoder-source.js'
 
 export class Filmstrip {
-	#sink: CanvasSink
-	#cache: Map<number, WrappedCanvas> = new Map()
+	#sink
+	#duration
 	#activeRange: TimeRange = [0, 0]
+	#cache: Map<number, WrappedCanvas> = new Map()
 
 	private constructor(
-		private videoTrack: InputVideoTrack,
+		videoTrack: InputVideoTrack,
 		private options: FilmstripOptions
 	) {
 		this.#sink = new CanvasSink(videoTrack, options.canvasSinkOptions)
+		this.#duration = videoTrack.computeDuration()
 	}
 
 	static async init(source: DecoderSource, options: FilmstripOptions) {
@@ -60,12 +62,10 @@ export class Filmstrip {
 		return [start - tileSize * margin, end + tileSize * margin]
 	}
 
-	async #generatePlaceholders() {
+	async #timestamps() {
 		const [rangeStart, rangeEnd] = this.#activeRange
 		const neededTimestamps = new Set<number>()
-
-		// duration should be computed but with trim etc also
-		const duration = await this.videoTrack.computeDuration()
+		const duration = await this.#duration
 		for (
 			let timestamp = Math.max(0, rangeStart);
 			timestamp <= rangeEnd;
@@ -75,35 +75,24 @@ export class Filmstrip {
 			if (timestamp >= 0 && timestamp <= duration)
 				neededTimestamps.add(timestamp)
 		}
+		return neededTimestamps
+	}
 
+	async #generatePlaceholders(neededTimestamps: Set<number>) {
 		this.options.onPlaceholders?.([...neededTimestamps])
 	}
 
-	async #generateTiles() {
-		const [rangeStart, rangeEnd] = this.#activeRange
-		const neededTimestamps = new Set<number>()
-
-		// duration should be computed but with trim etc also
-		const duration = await this.videoTrack.computeDuration()
-		for (
-			let timestamp = Math.max(0, rangeStart);
-			timestamp <= rangeEnd;
-			timestamp += this.options.frequency
-		) {
-			// Clamp to valid time range
-			if (timestamp >= 0 && timestamp <= duration)
-				neededTimestamps.add(timestamp)
-		}
-
+	async #generateTiles(neededTimestamps: Set<number>) {
 		const missingTimestamps = [...neededTimestamps]
 			.filter(t => !this.#cache.has(t))
 
 		let i = 0
 		for await (const canvas of this.#sink.canvasesAtTimestamps(missingTimestamps)) {
+			const requestedTime = missingTimestamps[i++]
 			if(canvas) {
-				const requestedTime = missingTimestamps[i++]
 				this.#cache.set(requestedTime, canvas)
 			}
+			await new Promise<void>(resolve => setTimeout(resolve))
 		}
 
 		// Dispose canvases outside the new range
@@ -147,15 +136,15 @@ export class Filmstrip {
 	#shouldRunAgain = false
 
 	async #update() {
-		this.#generatePlaceholders()
-		// Perform update immediately. If multiple updates are requested while updating,
-		// only the latest one will run after the current finishes (skips intermediate ones).
+		const timestamps = this.#timestamps()
+		timestamps.then(timestamps => this.#generatePlaceholders(timestamps))
+
 		if(this.#updating) {
 			this.#shouldRunAgain = true
 			return
 		}
 
-		this.#updating = this.#generateTiles()
+		this.#updating = timestamps.then(timestamps => this.#generateTiles(timestamps))
 		await this.#updating
 		this.#updating = null
 

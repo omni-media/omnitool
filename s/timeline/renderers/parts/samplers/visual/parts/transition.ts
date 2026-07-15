@@ -1,6 +1,6 @@
 
 import {Item} from "../../../../../parts/item.js"
-import {Layer} from "../../../../../../driver/fns/schematic.js"
+import {ImageLayer, Layer} from "../../../../../../driver/fns/schematic.js"
 
 export async function sampleTransition(
 	item: Item.Transition,
@@ -9,20 +9,20 @@ export async function sampleTransition(
 	p2: Promise<Layer[]>
 ): Promise<Layer[]> {
 	const [l1, l2] = await Promise.all([p1, p2])
-	const f1 = l1.find(l => l.kind === "image")?.frame
-	const f2 = l2.find(l => l.kind === "image")?.frame
+	const from = l1.find((layer): layer is ImageLayer => layer.kind === "image")
+	const to = l2.find((layer): layer is ImageLayer => layer.kind === "image")
 
 	const rest = [
 		...l1.filter(l => l.kind !== "image"),
 		...l2.filter(l => l.kind !== "image")
 	]
 
-	return f1 && f2 ? [{
+	return from && to ? [{
 		id: item.id,
 		kind: "transition",
 		name: item.name,
 		progress,
-		from: f1,
-		to: f2
+		from,
+		to,
 	}, ...rest] : rest
 }

@@ -1,6 +1,6 @@
 //@ts-ignore
 import transitions from "gl-transitions"
-import {Filter, GlProgram, Sprite, Texture, ImageSource} from "pixi.js"
+import {Filter, GlProgram, RenderTexture, Sprite} from "pixi.js"
 
 import {vertex} from "./parts/vertex.js"
 import {uniforms} from "./parts/uniforms.js"
@@ -10,9 +10,7 @@ import {GLTransition, TransitionOptions, TransitionRendererOptions} from "./part
 export function makeTransition({name, renderer}: TransitionOptions) {
 	const transition = transitions.find((t: GLTransition) => t.name === name) as GLTransition
 	const transitionSprite = new Sprite()
-	const transitionTexture = new Texture()
-	const sourceFrom = new ImageSource({})
-	const sourceTo = new ImageSource({})
+	const output = RenderTexture.create({width: 1, height: 1})
 
 	const filter = new Filter({
 		glProgram: new GlProgram({
@@ -20,8 +18,6 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 			fragment: fragment(transition.glsl),
 		}),
 		resources: {
-			from: sourceFrom,
-			to: sourceTo,
 			uniforms: {
 				...uniforms.basics,
 				...uniforms.custom(transition)
@@ -31,30 +27,33 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 
 	transitionSprite.filters = [filter]
 
+	const resize = (width: number, height: number) => {
+		if (transitionSprite.width !== width || transitionSprite.height !== height) {
+			transitionSprite.setSize({width, height})
+			output.resize(width, height)
+		}
+	}
+
 	return {
-		render({width, height, from, to, progress}: TransitionRendererOptions) {
-			if(transitionSprite.width !== width || transitionSprite.height !== height) {
-				transitionSprite.setSize({width, height})
-				transitionTexture.source.resize(width, height)
-			}
-
-			sourceFrom.resource = from
-			sourceTo.resource = to
-			sourceFrom.update()
-			sourceTo.update()
-
+		dispose() {
+			transitionSprite.destroy(true)
+			output.destroy(true)
+		},
+		render({from, to, width, height, progress}: TransitionRendererOptions) {
+			resize(width, height)
+			filter.resources.from = from.source
+			filter.resources.to = to.source
 			filter.resources.uniforms.uniforms.progress = progress
 
 			renderer.render({
 				container: transitionSprite,
-				target: transitionTexture,
-				clear: false,
+				target: output,
+				clear: true,
 				width,
 				height
 			})
 
-			return transitionTexture
+			return output
 		}
 	}
 }
-

@@ -7,6 +7,7 @@ import {
 	FederatedPointerEvent,
 	Filter,
 	Graphics,
+	RenderTexture,
 	Renderer,
 	Sprite,
 	Text,
@@ -17,9 +18,9 @@ import * as PixiFilters from "pixi-filters"
 import {Id} from "../../timeline/index.js"
 import {Crop} from "../../timeline/parts/item.js"
 import {findPixiFilter} from "../utils/find-pixi-filter.js"
-import {Composition, FilterSpec, Layer} from "../fns/schematic.js"
 import {Mat6, mat6ToMatrix} from "../../timeline/utils/matrix.js"
 import {makeTransition} from "../../features/transition/transition.js"
+import {Composition, FilterSpec, ImageLayer, Layer, TransitionLayer} from "../fns/schematic.js"
 
 export class Compositor {
 	onPointerDown = pub<[{event: FederatedPointerEvent, id: Id, object: Container}]>()
@@ -42,7 +43,11 @@ export class Compositor {
 
 	constructor(public pixi: {renderer: Renderer, stage: Container}) {}
 
-	#transitions: Map<string, ReturnType<typeof makeTransition>> = new Map()
+	#transitions = new Map<Id, {
+		transition: ReturnType<typeof makeTransition>
+		from: RenderTexture
+		to: RenderTexture
+	}>()
 	// objects rendered for current Composition
 	#activeObjects = new Map<number, {sprite: Container, dispose: () => void}>()
 	#cropMasks = new WeakMap<Container, Graphics>()
@@ -56,7 +61,9 @@ export class Compositor {
 	) {
 		const {stage, renderer} = this.pixi
 
-		this.#cleanup(this.#collectIds(composition))
+		const activeIds = this.#collectIds(composition)
+		this.#cleanup(activeIds)
+		this.#cleanupTransitions(activeIds)
 		const {dispose} = await this.#renderLayer(composition, stage)
 		renderer.render(stage)
 
@@ -128,7 +135,7 @@ export class Compositor {
 	}
 
 	#renderImageLayer(
-		layer: Extract<Layer, {kind: 'image'}>,
+		layer: ImageLayer,
 		parent: Container,
 	) {
 		const sprite = this.#findOrCreate<Sprite>(layer)!
@@ -137,12 +144,7 @@ export class Compositor {
 			sprite.texture.destroy(true)
 		}
 
-		const texture = Texture.from(layer.frame)
-		sprite.texture = texture
-		this.#applyTransform(sprite, layer.matrix)
-		this.#applyAlpha(sprite, layer.alpha)
-		this.#applyCrop(sprite, layer.crop)
-		this.#applyFilters(sprite, layer.filters)
+		this.#applyImageLayer(sprite, layer)
 		parent.addChild(sprite)
 
 		return {
@@ -153,20 +155,55 @@ export class Compositor {
 	}
 
 	#renderTransitionLayer(
-		{from, to, progress, name}: Extract<Layer, {kind: 'transition'}>,
+		{id, from, to, progress, name}: TransitionLayer,
 		parent: Container,
 	) {
-		const transition = this.#transitions.get(name) ??
-			(this.#transitions.set(name, makeTransition({
-				name,
-				renderer: this.pixi.renderer
-			})),
-	  	this.#transitions.get(name)!
-		)
-		const texture = transition.render({from, to, progress, width: from.displayWidth, height: from.displayHeight})
+		const transition = this.#transitions.get(id) ?? this.#createTransition(id, name)
+		const {renderer} = this.pixi
+		transition.from.resize(renderer.width, renderer.height)
+		transition.to.resize(renderer.width, renderer.height)
+		this.#renderImageToTexture(from, transition.from)
+		this.#renderImageToTexture(to, transition.to)
+		const texture = transition.transition.render({
+			from: transition.from,
+			to: transition.to,
+			progress,
+			width: renderer.width,
+			height: renderer.height
+		})
 		const sprite = new Sprite(texture)
 		parent.addChild(sprite)
 		return {dispose: () => sprite.destroy(false)}
+	}
+
+	#createTransition(id: Id, name: TransitionLayer['name']) {
+		const transition = {
+			transition: makeTransition({name, renderer: this.pixi.renderer}),
+			from: RenderTexture.create({width: 1, height: 1}),
+			to: RenderTexture.create({width: 1, height: 1})
+		}
+		this.#transitions.set(id, transition)
+		return transition
+	}
+
+	#renderImageToTexture(layer: ImageLayer, target: RenderTexture) {
+		const sprite = new Sprite()
+		const texture = this.#applyImageLayer(sprite, layer)
+
+		this.pixi.renderer.render({container: sprite, target, clear: true})
+		sprite.destroy({children: true})
+		texture.destroy(false)
+		layer.frame.close()
+	}
+
+	#applyImageLayer(sprite: Sprite, layer: ImageLayer) {
+		const texture = Texture.from(layer.frame)
+		sprite.texture = texture
+		this.#applyTransform(sprite, layer.matrix)
+		this.#applyAlpha(sprite, layer.alpha)
+		this.#applyCrop(sprite, layer.crop)
+		this.#applyFilters(sprite, layer.filters)
+		return texture
 	}
 
 	#applyTransform(target: Sprite | Text, worldMatrix?: Mat6) {
@@ -317,6 +354,17 @@ export class Compositor {
 				dispose()
 				sprite.destroy(true)
 				this.#activeObjects.delete(id)
+			}
+		}
+	}
+
+	#cleanupTransitions(activeIds: Set<number>) {
+		for (const [id, cached] of this.#transitions) {
+			if (!activeIds.has(id)) {
+				cached.transition.dispose()
+				cached.from.destroy(true)
+				cached.to.destroy(true)
+				this.#transitions.delete(id)
 			}
 		}
 	}

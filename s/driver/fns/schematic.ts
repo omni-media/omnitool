@@ -106,11 +106,11 @@ export type ImageLayer = {
 
 export type TransitionLayer = {
 	id: Id
-  kind: 'transition'
-  name: TransitionName
-  progress: number
-  from: VideoFrame
-  to: VideoFrame
+	kind: 'transition'
+	name: TransitionName
+	progress: number
+	from: ImageLayer
+	to: ImageLayer
 }
 
 export type GapLayer = {

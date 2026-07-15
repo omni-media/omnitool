@@ -1,4 +1,5 @@
-import {Renderer} from "pixi.js"
+
+import {Renderer, Texture} from "pixi.js"
 import {TransitionName} from "../../../timeline/parts/transitions.js"
 
 export interface TransitionOptions {
@@ -7,8 +8,8 @@ export interface TransitionOptions {
 }
 
 export interface TransitionRendererOptions {
-	from: VideoFrame
-	to: VideoFrame
+	from: Texture
+	to: Texture
 	progress: number
 	width: number
 	height: number

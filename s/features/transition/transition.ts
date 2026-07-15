@@ -1,6 +1,6 @@
 //@ts-ignore
 import transitions from "gl-transitions"
-import {Filter, GlProgram, RenderTexture, Sprite} from "pixi.js"
+import {Filter, GlProgram, RenderTexture, Sprite, Texture} from "pixi.js"
 
 import {vertex} from "./parts/vertex.js"
 import {uniforms} from "./parts/uniforms.js"
@@ -9,7 +9,7 @@ import {GLTransition, TransitionOptions, TransitionRendererOptions} from "./part
 
 export function makeTransition({name, renderer}: TransitionOptions) {
 	const transition = transitions.find((t: GLTransition) => t.name === name) as GLTransition
-	const transitionSprite = new Sprite()
+	const transitionSprite = new Sprite(Texture.WHITE)
 	const output = RenderTexture.create({width: 1, height: 1})
 
 	const filter = new Filter({
@@ -18,6 +18,8 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 			fragment: fragment(transition.glsl),
 		}),
 		resources: {
+			from: Texture.WHITE.source,
+			to: Texture.WHITE.source,
 			uniforms: {
 				...uniforms.basics,
 				...uniforms.custom(transition)

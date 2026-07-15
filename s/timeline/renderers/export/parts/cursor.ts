@@ -68,8 +68,8 @@ export class CursorVisualSampler extends BaseVisualSampler {
 		return this.sample(timecode)
 	}
 
-	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
-		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000, end: endUs / 1_000_000})
+	protected createCursor(source: DecoderSource, startUs: number, _endUs: number): VideoFrameCursor {
+		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000})
 		const reader = video.readable.getReader()
 
 		let current: VideoFrame | null = null

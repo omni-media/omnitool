@@ -192,7 +192,7 @@ export class Compositor {
 
 		this.pixi.renderer.render({container: sprite, target, clear: true})
 		sprite.destroy({children: true})
-		texture.destroy(false)
+		texture.destroy(true)
 		layer.frame.close()
 	}
 

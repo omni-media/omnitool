@@ -19,7 +19,7 @@ export const vertex = `
 
 	vec2 filterTextureCoord( void )
 	{
-	return aPosition * (uOutputFrame.zw * uInputSize.zw);
+		return aPosition;
 	}
 
 	void main(void)

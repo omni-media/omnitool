@@ -9,6 +9,7 @@ export async function filmstripTest(file: File, root: HTMLElement) {
 	const container = root.querySelector(".filmstrip")!
 	const FPS_10 = 1 / 10
 	let rangeSize = 0.5
+	let frequency = FPS_10
 	container.replaceChildren()
 
 	const filmstrip = await Filmstrip.init(
@@ -30,24 +31,28 @@ export async function filmstripTest(file: File, root: HTMLElement) {
 				}
 			}
 	)
+	const update = () => {
+		const start = +rangeSlider.value
+		filmstrip.update({range: [start, start + rangeSize], frequency})
+	}
+
 	rangeSizeSlider.oninput = () => {
 		rangeSize = +rangeSizeSlider.value
 		const start = +rangeSlider.value
-		const end = start + rangeSize
-		filmstrip.range = [start, end]
-		rangeView.textContent = `visible time range: [${start}, ${end}]`
+		rangeView.textContent = `visible time range: [${start}, ${start + rangeSize}]`
+		update()
 	}
 	rangeSlider.oninput = () => {
 		const start = +rangeSlider.value
-		const end = start + rangeSize
-		filmstrip.range = [start, end]
-		rangeView.textContent = `visible time range: [${start}, ${end}]`
+		rangeView.textContent = `visible time range: [${start}, ${start + rangeSize}]`
+		update()
 	}
 	frequencySlider.oninput = () => {
-		filmstrip.frequency = 1 / +frequencySlider.value
-		frequencyView.textContent = `frame every ${filmstrip.frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
+		frequency = 1 / +frequencySlider.value
+		frequencyView.textContent = `frame every ${frequency.toFixed(3)} second (${frequencySlider.value} frames per second)`
+		update()
 	}
-	filmstrip.range = [10, 10.5]
+	update()
 }
 
 function createLabeledCanvas(time: number, canvas: HTMLCanvasElement) {

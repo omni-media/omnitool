@@ -41,25 +41,13 @@ export class Filmstrip {
 		else throw new Error("Source has no video track")
 	}
 
-	/**
- 	* Sets the frequency (granularity) of filmstrip thumbnails.
- 	* Changing this triggers a filmstrip refresh after any ongoing update finishes.
- 	* @param value - The new frequency in seconds.
- 	*/
-	set frequency(value: number) {
-		if(value !== this.options.frequency) {
-			this.options.frequency = value
-			this.#update()
-		}
+	#computeActiveRange([start, end]: TimeRange, margin = 1): TimeRange {
+		const tileSize = end - start
+		return [start - tileSize * margin, end + tileSize * margin]
 	}
 
 	get frequency() {
 		return this.options.frequency
-	}
-
-	#computeActiveRange([start, end]: TimeRange, margin = 1): TimeRange {
-		const tileSize = end - start
-		return [start - tileSize * margin, end + tileSize * margin]
 	}
 
 	async #timestamps() {
@@ -108,16 +96,18 @@ export class Filmstrip {
 	}
 
 	/**
- 	* Updates the visible time range for the filmstrip.
- 	*
- 	* Triggers a thumbnails update, with extended margins to preload
- 	* thumbnails slightly outside the visible range.
- 	* @param visibleRange - The current timeline viewport as a [start, end] tuple in seconds.
- 	*/
-	set range(visibleRange: TimeRange) {
+	* Updates filmstrip thumbnails when its range or frequency changes.
+	*
+	* @param update.range The current timeline viewport as a [start, end] tuple in seconds.
+	* Thumbnails preload slightly outside the visible range.
+	* @param update.frequency The granularity of filmstrip thumbnails in seconds.
+	*/
+	update({range: visibleRange, frequency}: FilmstripUpdate) {
 		const [visStart, visEnd] = visibleRange
 		const visibleSize = visEnd - visStart
 		const [actStart, actEnd] = this.#activeRange
+		const frequencyChanged = frequency !== this.options.frequency
+		this.options.frequency = frequency
 
 		// trigger when we're 1x visible width away from margin edges
 		const leftTrigger = actStart + visibleSize
@@ -126,7 +116,7 @@ export class Filmstrip {
 		const nearLeftEdge = visStart < leftTrigger
 		const nearRightEdge = visEnd > rightTrigger
 
-		if (!nearLeftEdge && !nearRightEdge) return
+		if (!nearLeftEdge && !nearRightEdge && !frequencyChanged) return
 
 		this.#activeRange = this.#computeActiveRange(visibleRange, 2)
 		this.#update()
@@ -163,6 +153,7 @@ export class Filmstrip {
 }
 
 export type TimeRange = [start: number, end: number]
+export type FilmstripUpdate = {range: TimeRange, frequency: number}
 
 interface FilmstripOptions {
 	frequency: number

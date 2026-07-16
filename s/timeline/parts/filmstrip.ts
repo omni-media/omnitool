@@ -12,16 +12,15 @@ import {loadDecoderSource} from '../../driver/utils/load-decoder-source.js'
 
 export class Filmstrip {
 	#sink
-	#duration
 	#activeRange: TimeRange = [0, 0]
 	#cache: Map<number, WrappedCanvas> = new Map()
 
 	private constructor(
 		videoTrack: InputVideoTrack,
+		private duration: number,
 		private options: FilmstripOptions
 	) {
 		this.#sink = new CanvasSink(videoTrack, options.canvasSinkOptions)
-		this.#duration = videoTrack.computeDuration()
 	}
 
 	static async init(source: DecoderSource, options: FilmstripOptions) {
@@ -30,14 +29,17 @@ export class Filmstrip {
 			source: await loadDecoderSource(source)
 		})
 		const videoTrack = await input.getPrimaryVideoTrack()
-		if(videoTrack)
+		if(videoTrack) {
+			const duration = await videoTrack.computeDuration()
 			return new Filmstrip(
-				videoTrack, {
+				videoTrack,
+				duration, {
 					frequency: options.frequency ?? 1,
 					canvasSinkOptions: options.canvasSinkOptions ?? {width: 80, height: 50, fit: "fill"},
 					onChange: options.onChange,
 					onPlaceholders: options.onPlaceholders
 			})
+		}
 		else throw new Error("Source has no video track")
 	}
 
@@ -50,23 +52,22 @@ export class Filmstrip {
 		return this.options.frequency
 	}
 
-	async #timestamps() {
+	#timestamps() {
 		const [rangeStart, rangeEnd] = this.#activeRange
 		const neededTimestamps = new Set<number>()
-		const duration = await this.#duration
 		for (
 			let timestamp = Math.max(0, rangeStart);
 			timestamp <= rangeEnd;
 			timestamp += this.options.frequency
 		) {
 			// Clamp to valid time range
-			if (timestamp >= 0 && timestamp <= duration)
+			if (timestamp >= 0 && timestamp <= this.duration)
 				neededTimestamps.add(timestamp)
 		}
 		return neededTimestamps
 	}
 
-	async #generatePlaceholders(neededTimestamps: Set<number>) {
+	#generatePlaceholders(neededTimestamps: Set<number>) {
 		this.options.onPlaceholders?.([...neededTimestamps])
 	}
 
@@ -127,14 +128,14 @@ export class Filmstrip {
 
 	async #update() {
 		const timestamps = this.#timestamps()
-		timestamps.then(timestamps => this.#generatePlaceholders(timestamps))
+		this.#generatePlaceholders(timestamps)
 
 		if(this.#updating) {
 			this.#shouldRunAgain = true
 			return
 		}
 
-		this.#updating = timestamps.then(timestamps => this.#generateTiles(timestamps))
+		this.#updating = this.#generateTiles(timestamps)
 		await this.#updating
 		this.#updating = null
 

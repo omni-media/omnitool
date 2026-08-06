@@ -5,12 +5,13 @@ import {ms, Ms} from '../../../../units/ms.js'
 import {Driver} from '../../../../driver/driver.js'
 import {realtime} from '../../parts/schedulers.js'
 import {seconds} from '../../../../units/seconds.js'
-import {TimelineFile} from '../../../parts/basics.js'
 import {computeItemDuration} from '../../parts/handy.js'
-import {CursorVisualSampler, ReverseCursorVisualSampler} from '../../export/parts/cursor.js'
+import {TimelineFile} from '../../../parts/basics.js'
+import {resolveAudioGain} from '../../../parts/audio.js'
 import {DecoderSource} from '../../../../driver/fns/schematic.js'
 import {createAudioSampler} from '../../parts/samplers/audio/sampler.js'
 import {createVisualSampler} from '../../parts/samplers/visual/sampler.js'
+import {CursorVisualSampler, ReverseCursorVisualSampler} from '../../export/parts/cursor.js'
 
 export class Playback {
 	audioLevels
@@ -27,7 +28,7 @@ export class Playback {
 	onTick = this.#controller.onTick
 
 	audioContext = new AudioContext({sampleRate: 48000})
-	audioGain = this.audioContext.createGain()
+	#masterGain = this.audioContext.createGain()
 	audioNodes = new Map<AudioBufferSourceNode, GainNode>()
 	#audioAbort: AbortController | null = null
 
@@ -36,8 +37,8 @@ export class Playback {
 		private timeline: TimelineFile,
 		private resolveMedia: (hash: string) => DecoderSource
 	) {
-		this.audioGain.connect(this.audioContext.destination)
-		this.audioGain.gain.value = 1
+		this.#masterGain.connect(this.audioContext.destination)
+		this.#updateMasterGain()
 		this.audioLevels = new AudioLevels(
 			this.audioContext,
 			() => this.currentTime,
@@ -50,6 +51,11 @@ export class Playback {
 
 	update(timeline: TimelineFile) {
 		this.timeline = timeline
+		this.#updateMasterGain()
+	}
+
+	#updateMasterGain() {
+		this.#masterGain.gain.value = resolveAudioGain(this.timeline.audio)
 	}
 
 	get isPlaying() {
@@ -210,7 +216,7 @@ export class Playback {
 			node.buffer = sample.toAudioBuffer()
 			itemGain.gain.value = gain
 			node.connect(itemGain)
-			itemGain.connect(this.audioGain)
+			itemGain.connect(this.#masterGain)
 
 			node.onended = () => {
 				this.audioNodes.delete(node)

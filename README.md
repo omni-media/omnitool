@@ -100,6 +100,16 @@ const timeline = timeline(
 )
 ```
 
+## 🔊 Audio
+
+Set gain per clip or for the whole timeline. Gain is linear, where `1` is unchanged.
+Set `enabled` to `false` to mute a clip or the whole timeline.
+
+```ts
+o.audio(clip, {gain: 0.8, enabled: false})
+timeline.audio = {gain: 0.8, enabled: false}
+```
+
 ## 💬 Captions
 
 Captions render transcript data as timed, styled text.

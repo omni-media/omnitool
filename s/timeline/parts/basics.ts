@@ -1,5 +1,6 @@
 
 import {Item} from "./item.js"
+import {AudioSettings} from "./audio.js"
 
 /** BLAKE3 hash */
 export type Hash = string
@@ -13,5 +14,6 @@ export type TimelineFile = {
 	version: number
 	rootId: Id
 	items: Item.Any[]
+	audio?: AudioSettings
 }
 

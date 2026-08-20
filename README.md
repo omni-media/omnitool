@@ -555,8 +555,16 @@ const off = player.audio.levels.on(
 ## 📤 Export
 
 ```ts
-await omni.render(timeline, framerate)
+const readable = await omni.render(timeline, framerate, ({frame, total, ratio}) => {
+	console.log(`Export progress: ${Math.round(ratio * 100)}% (${frame}/${total} frames)`)
+})
 ```
+
+Pass an optional `onProgress` callback as the 3rd argument to `omni.render` to track frame rendering progress:
+
+* `frame` – current frame number being rendered (1-indexed)
+* `total` – total expected frames in the export
+* `ratio` – completion ratio from `0` to `1`
 
 ## 🧩 Timeline Format (TimelineFile)
 

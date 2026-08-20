@@ -34,7 +34,8 @@ export class Compositor {
 			height: 1080,
 			preference: "webgl", // webgl and webgl2 causes memory leaks on chrome
 			background: "black",
-			preferWebGLVersion: 2
+			preferWebGLVersion: 2,
+			preserveDrawingBuffer: true,
 		})
 		const stage = new Container()
 		stage.interactive = true

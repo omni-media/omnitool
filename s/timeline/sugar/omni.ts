@@ -8,7 +8,7 @@ import {Datafile} from "../utils/datafile.js"
 import {TimelineFile} from "../parts/basics.js"
 import {ResourcePool} from "../parts/resource-pool.js"
 import {VideoPlayer} from "../renderers/player/player.js"
-import {produce} from "../renderers/export/produce.js"
+import {produce, ExportProgress} from "../renderers/export/produce.js"
 
 export class Omni {
 	resources = new ResourcePool()
@@ -44,12 +44,17 @@ export class Omni {
 		)
 	}
 
-	render = async (timeline: TimelineFile, framerate: number = 30) => {
+	render = async (
+		timeline: TimelineFile,
+		framerate: number = 30,
+		onProgress?: (progress: ExportProgress) => void,
+	) => {
 		return produce({
 			timeline,
 			fps: fps(framerate),
 			driver: this.driver,
-			resolveMedia: (hash) => this.resources.require(hash).url
+			resolveMedia: (hash) => this.resources.require(hash).url,
+			onProgress,
 		})
 	}
 }

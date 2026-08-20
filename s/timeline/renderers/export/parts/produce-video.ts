@@ -1,5 +1,6 @@
 
 import {Fps} from "../../../../units/fps.js"
+import {ExportProgress} from "../produce.js"
 import {CursorVisualSampler} from "./cursor.js"
 import {Driver} from "../../../../driver/driver.js"
 import {fixedStep} from "../../parts/schedulers.js"
@@ -12,11 +13,13 @@ export function produceVideo({
 	fps,
 	driver,
 	resolveMedia,
+	onProgress,
 }: {
-	driver: Driver
-	resolveMedia: (hash: string) => DecoderSource
-	timeline: TimelineFile
 	fps: Fps
+	driver: Driver
+	timeline: TimelineFile
+	resolveMedia: (hash: string) => DecoderSource
+	onProgress?: (progress: ExportProgress) => void
 }) {
 
 	const stream = new TransformStream<VideoFrame, VideoFrame>()
@@ -24,6 +27,7 @@ export function produceVideo({
 	const sampler = new CursorVisualSampler(driver, resolveMedia, timeline)
 	const dt = 1 / fps
 	const duration = computeItemDuration(timeline.rootId, timeline)
+	const total = Math.max(1, Math.ceil((duration / 1000) * fps))
 
 	async function produce() {
 		await fixedStep({fps, duration}, async (timecode, i) => {
@@ -37,6 +41,12 @@ export function produceVideo({
 
 			await writer.write(frame)
 			composed.close()
+
+			onProgress?.({
+				frame: i + 1,
+				total,
+				ratio: (i + 1) / total,
+			})
 		})
 
 		await writer.close()

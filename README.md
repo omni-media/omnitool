@@ -551,12 +551,20 @@ const off = player.audio.levels.on(
 ## 📤 Export
 
 ```ts
-const readable = await omni.render(timeline, framerate, ({frame, total, ratio}) => {
-	console.log(`Export progress: ${Math.round(ratio * 100)}% (${frame}/${total} frames)`)
+const readable = await omni.render(timeline, {
+	framerate,
+	config: {
+		video: {codec: 'avc', bitrate: 5_000_000},
+		audio: {codec: 'aac', bitrate: 192_000},
+	},
+	onProgress: ({frame, total, ratio}) => {
+		console.log(`Export progress: ${Math.round(ratio * 100)}% (${frame}/${total} frames)`)
+	},
 })
 ```
 
-Pass an optional `onProgress` callback as the 3rd argument to `omni.render` to track frame rendering progress:
+Use `config` to override video or audio encoder settings.
+Pass `onProgress` to track frame rendering progress:
 
 * `frame` – current frame number being rendered (1-indexed)
 * `total` – total expected frames in the export

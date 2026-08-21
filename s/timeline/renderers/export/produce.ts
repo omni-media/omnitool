@@ -4,7 +4,7 @@ import {Driver} from "../../../driver/driver.js"
 import {TimelineFile} from "../../parts/basics.js"
 import {produceAudio} from "./parts/produce-audio.js"
 import {produceVideo} from "./parts/produce-video.js"
-import {DecoderSource} from "../../../driver/fns/schematic.js"
+import {DecoderSource, RenderConfig} from "../../../driver/fns/schematic.js"
 
 export type ExportProgress = {
 	frame: number
@@ -12,10 +12,16 @@ export type ExportProgress = {
 	ratio: number
 }
 
+export type ExportConfig = {
+	audio?: Partial<RenderConfig["audio"]>
+	video?: Partial<RenderConfig["video"]>
+}
+
 export function produce(opts: {
 	timeline: TimelineFile
 	fps: Fps
 	driver: Driver
+	config?: ExportConfig
 	resolveMedia: (hash: string) => DecoderSource
 	onProgress?: (progress: ExportProgress) => void
 }) {
@@ -27,8 +33,8 @@ export function produce(opts: {
 		video,
 		audio,
 		config: {
-			audio: {codec: 'opus', bitrate: 128000},
-			video: {codec: 'vp9', bitrate: 1000000}
+			audio: {codec: 'opus', bitrate: 128000, ...opts.config?.audio},
+			video: {codec: 'vp9', bitrate: 1000000, ...opts.config?.video}
 		}
 	})
 }

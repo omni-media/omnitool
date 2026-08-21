@@ -46,9 +46,11 @@ export interface EncoderInput {
 	config: RenderConfig
 }
 
+type WorkerEncodingConfig<T> = Omit<T, "onEncodedPacket" | "onEncoderConfig">
+
 export interface RenderConfig {
-	video: VideoEncodingConfig
-	audio: AudioEncodingConfig
+	video: WorkerEncodingConfig<VideoEncodingConfig>
+	audio: WorkerEncodingConfig<AudioEncodingConfig>
 }
 
 export type DecoderSource = Blob | string | URL

@@ -15,6 +15,7 @@ type WalkAtCallbacks = {
 	sequence: (x: Item.Sequence, localTime: Ms, ancestors: AncestorAt[]) => void
 	stack: (x: Item.Stack, localTime: Ms, ancestors: AncestorAt[]) => void
 	video: (x: Item.Video, localTime: Ms, ancestors: AncestorAt[]) => void
+	clip: (x: Item.Clip, localTime: Ms, ancestors: AncestorAt[]) => void
 	image: (x: Item.Image, localTime: Ms, ancestors: AncestorAt[]) => void
 	text: (x: Item.Text, localTime: Ms, ancestors: AncestorAt[]) => void
 	caption: (x: Item.Caption, localTime: Ms, ancestors: AncestorAt[]) => void
@@ -25,6 +26,7 @@ type WalkCallbacks = {
 	sequence?: (x: Item.Sequence, matrix: Mat6, ancestors: AncestorAt[]) => void
 	stack?: (x: Item.Stack, matrix: Mat6, ancestors: AncestorAt[]) => void
 	video?: (x: Item.Video, matrix: Mat6, ancestors: AncestorAt[]) => void
+	clip?: (x: Item.Clip, matrix: Mat6, ancestors: AncestorAt[]) => void
 	image?: (x: Item.Image, matrix: Mat6, ancestors: AncestorAt[]) => void
 	text?: (x: Item.Text, matrix: Mat6, ancestors: AncestorAt[]) => void
 	caption?: (x: Item.Caption, matrix: Mat6, ancestors: AncestorAt[]) => void
@@ -55,6 +57,7 @@ export function itemsAt(p: Props): At[] {
 		sequence: () => { },
 		stack: () => { },
 		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		clip: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		image: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		caption: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
@@ -77,6 +80,7 @@ export function itemsFrom(p: FromProps): At[] {
 		sequence: () => { },
 		stack: () => { },
 		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
+		clip: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		image: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
 		caption: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
@@ -180,6 +184,10 @@ export function walk(
 			callbacks.video?.(item, currentMatrix, ancestors)
 			break
 
+		case Kind.Clip:
+			callbacks.clip?.(item, currentMatrix, ancestors)
+			break
+
 		case Kind.Image:
 			callbacks.image?.(item, currentMatrix, ancestors)
 			break
@@ -252,6 +260,10 @@ function walkAt(
 
 		case Kind.Video:
 			callbacks.video(item, time, ancestors)
+			break
+
+		case Kind.Clip:
+			callbacks.clip(item, time, ancestors)
 			break
 
 		case Kind.Image:
@@ -328,6 +340,10 @@ function walkFrom(
 
 		case Kind.Video:
 			callbacks.video(item, from, ancestors)
+			break
+
+		case Kind.Clip:
+			callbacks.clip(item, from, ancestors)
 			break
 
 		case Kind.Image:

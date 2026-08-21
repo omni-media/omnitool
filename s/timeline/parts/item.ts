@@ -23,7 +23,8 @@ export enum Kind {
 	TextStyle,
 	Filter,
 	Caption,
-	Image
+	Image,
+	Clip,
 }
 
 export type ItemBase = {
@@ -114,6 +115,18 @@ export namespace Item {
 		gain?: number
 	} & ItemBase
 
+	export type Clip = {
+		id: Id
+		kind: Kind.Clip
+		mediaHash: Hash
+		start: number
+		duration: number
+		gain?: number
+		spatialId?: Id
+		animationIds?: Id[]
+		filterIds?: Id[]
+	} & ItemBase
+
 	export type Text = {
 		id: Id
 		kind: Kind.Text
@@ -155,6 +168,7 @@ export namespace Item {
 		| Video
 		| Image
 		| Audio
+		| Clip
 		| Text
 		| Caption
 		| Gap
@@ -168,8 +182,8 @@ export namespace Item {
 
 export type ContainerItem = Item.Sequence | Item.Stack
 export type NonContainerItem = Exclude<Item.Any, ContainerItem>
-export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Image | Item.Text | Item.Caption
-export type VisualAnimatableItem = Item.Video | Item.Image | Item.Text | Item.Caption
+export type FilterableItem = Item.Sequence | Item.Stack | Item.Video | Item.Clip | Item.Image | Item.Text | Item.Caption
+export type VisualAnimatableItem = Item.Video | Item.Clip | Item.Image | Item.Text | Item.Caption
 
 export type PlayableItem = Item.Any & {
 	start: Ms

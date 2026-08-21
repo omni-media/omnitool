@@ -49,7 +49,8 @@ export async function sampleVisual(
 		case Kind.Sequence:
 			return sampleSequence(ctx, item, time, ancestors)
 
-		case Kind.Video: {
+		case Kind.Video:
+		case Kind.Clip: {
 			if (!options.allowHandles && (time < 0 || time >= item.duration)) return []
 
 			const frame = await ctx.videoSampler(item, time)

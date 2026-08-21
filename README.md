@@ -37,24 +37,23 @@ const timeline = omni.timeline(o => {
 		styles: {fill: "white", fontSize: 48}
 	})
 	const xfade = o.transition.fade(500)
-	const softened = o.filter.blur.make({strength: 8, quality: 4})
+	const primary = o.filter.blur(
+		o.clip(clip, {start: 0, duration: 3000}),
+		{strength: 8, quality: 4}
+	)
 
-	const visual = o.sequence(
-		o.stack(
-			o.video(clip, {start: 0, duration: 3000, filterIds: [softened.id]}),
-			caption
-		),
+	const storyline = o.sequence(
+		primary,
 		xfade,
-		o.video(clip, {start: 5000, duration: 2500}),
+		o.clip(clip, {start: 5000, duration: 2500}),
 		o.gap(400)
 	)
 
-	return o.stack(
-		visual,
-		o.audio(clip, {start: 5000, duration: 2500})
-	)
+	return o.stack(storyline, caption)
 })
 ```
+
+Use `o.video` or `o.audio` when you want separate video and audio items, and `o.image` for still images.
 
 Items can have `label` and `enabled` fields:
 
@@ -74,30 +73,27 @@ Declarative helper style (no explicit `o` in timeline declarations):
 ```ts
 import {
 	Driver, Omni, Datafile,
-	timeline, sequence, stack, video, audio, text, gap, transition, filter
+	timeline, sequence, stack, clip, text, gap, transition, filter
 } from "@omnimedia/omnitool"
 
 const driver = await Driver.setup()
 const omni = new Omni(driver)
-const {clip} = await omni.load({clip: Datafile.make(file)})
+const {footage} = await omni.load({footage: Datafile.make(file)})
 
-const timeline = timeline(
-	stack(
-		sequence(
-			stack(
-				filter.blur(
-					video(clip, {start: 0, duration: 3000}),
-					{strength: 8, quality: 4}
-				),
-				text("Hello world", {duration: 1500}),
-			),
-			transition.fade(500),
-			video(clip, {start: 5000, duration: 2500}),
-			gap(400),
-		),
-		audio(clip, {start: 5000, duration: 2500})
-	)
+const storyline = sequence(
+	filter.blur(
+		clip(footage, {start: 0, duration: 3000}),
+		{strength: 8, quality: 4}
+	),
+	transition.fade(500),
+	clip(footage, {start: 5000, duration: 2500}),
+	gap(400),
 )
+
+const project = timeline(stack(
+	storyline,
+	text("Hello world", {duration: 1500}),
+))
 ```
 
 ## 🔊 Audio
@@ -597,6 +593,8 @@ Timeline items:
 - 9 `TextStyle`
 - 10 `Filter`
 - 11 `Caption`
+- 12 `Image`
+- 13 `Clip`
 
 ## 🗺️ Roadmap
 - CLI commands:

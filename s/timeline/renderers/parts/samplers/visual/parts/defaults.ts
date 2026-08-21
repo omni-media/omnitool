@@ -4,7 +4,7 @@ import {ImageSink} from "./image-sink.js"
 import {Ms} from "../../../../../../units/ms.js"
 import {Item} from "../../../../../parts/item.js"
 
-export type VideoSampler = (item: Item.Video, time: Ms) => Promise<VideoFrame | undefined>
+export type VideoSampler = (item: Item.Video | Item.Clip, time: Ms) => Promise<VideoFrame | undefined>
 export type ImageSampler = (item: Item.Image, time: Ms) => Promise<VideoFrame | undefined>
 
 export function createDefaultVideoSampler(sink: VideoSink): VideoSampler {

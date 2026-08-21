@@ -13,7 +13,7 @@ export async function initStreams(
 ): Promise<ActiveStream[]> {
 	const streams = await Promise.all(
 		items.map(async ({item, localTime}) => {
-			if (item.kind !== Kind.Audio)
+			if (item.kind !== Kind.Audio && item.kind !== Kind.Clip)
 				return
 			if (item.enabled === false)
 				return

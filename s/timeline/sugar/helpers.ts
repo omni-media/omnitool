@@ -75,6 +75,19 @@ export function video(
 	return o => o.video(media, options)
 }
 
+export function clip(
+	media: Media,
+	options?: {
+		start?: number,
+		duration?: number,
+		gain?: number
+		label?: string
+		enabled?: boolean
+	}
+): Build<Item.Clip> {
+	return o => o.clip(media, options)
+}
+
 export function image(
 	media: Media,
 	options?: {

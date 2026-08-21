@@ -33,7 +33,7 @@ export const captionPresets = {
 }
 
 export type CaptionPreset = (typeof captionPresets)[keyof typeof captionPresets]
-export type CaptionSourceItem = Item.Video | Item.Audio
+export type CaptionSourceItem = Item.Video | Item.Audio | Item.Clip
 export type CaptionAction = {
 	(item: CaptionSourceItem, transcript: Transcription, options?: CaptionOptions): Item.Stack
 	make: (transcript: Transcription, options?: CaptionOptions) => Item.Caption

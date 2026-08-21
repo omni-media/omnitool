@@ -281,6 +281,33 @@ export class O {
 		return item
 	}
 
+	clip = (
+		media: Media,
+		options?: {
+			start?: number,
+			duration?: number,
+			gain?: number
+			label?: string
+			enabled?: boolean
+		}): Item.Clip => {
+
+		if (!media.hasVideo && !media.hasAudio)
+			throw new Error(`Clip error: media "${media.datafile.filename}" has no audio or video track.`)
+
+		const item: Item.Clip = {
+			kind: Kind.Clip,
+			id: this.getId(),
+			label: options?.label,
+			enabled: options?.enabled,
+			mediaHash: media.datafile.checksum.hash,
+			start: options?.start ?? 0,
+			duration: options?.duration ?? media.duration,
+			gain: options?.gain ?? 1,
+		}
+		this.register(item)
+		return item
+	}
+
 	image = (
 		media: Media,
 		options?: {

@@ -48,7 +48,11 @@ export interface EncoderInput {
 
 type WorkerEncodingConfig<T> = Omit<T, "onEncodedPacket" | "onEncoderConfig">
 
+export type RenderContainer = "mp4" | "webm" | "mov" | "mkv"
+
 export interface RenderConfig {
+	container: RenderContainer
+	framerate: number
 	video: WorkerEncodingConfig<VideoEncodingConfig>
 	audio: WorkerEncodingConfig<AudioEncodingConfig>
 }

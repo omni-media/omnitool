@@ -41,6 +41,8 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 			video: video.readable,
 			audio: audio.readable,
 			config: {
+				container: "mp4",
+				framerate: 30,
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}
 			}

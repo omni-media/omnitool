@@ -35,6 +35,8 @@ export async function setupTransitionsTest(driver: Driver, source: DecoderSource
 		driver.encode({
 			video: video.readable,
 			config: {
+				container: "mp4",
+				framerate: 30,
 				audio: {codec: "opus", bitrate: 128000},
 				video: {codec: "vp9", bitrate: 1000000}
 			}

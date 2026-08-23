@@ -1,7 +1,6 @@
 
 import {O} from "./o.js"
 import {Item} from "../parts/item.js"
-import {fps} from "../../units/fps.js"
 import {Media} from "../parts/media.js"
 import {Driver} from "../../driver/driver.js"
 import {Datafile} from "../utils/datafile.js"
@@ -11,7 +10,6 @@ import {VideoPlayer} from "../renderers/player/player.js"
 import {ExportConfig, ExportProgress, produce} from "../renderers/export/produce.js"
 
 export type RenderOptions = {
-	framerate?: number
 	onProgress?: (progress: ExportProgress) => void
 	config?: ExportConfig
 }
@@ -54,10 +52,9 @@ export class Omni {
 		timeline: TimelineFile,
 		options: RenderOptions = {},
 	) => {
-		const {framerate = 30, onProgress, config} = options
+		const {onProgress, config} = options
 		return produce({
 			timeline,
-			fps: fps(framerate),
 			driver: this.driver,
 			resolveMedia: (hash) => this.resources.require(hash).url,
 			onProgress,

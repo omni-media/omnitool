@@ -1,15 +1,26 @@
 import {Comrade} from "@e280/comrade"
 
-import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, VideoSampleSource, VideoSample, AudioSampleSink,
-	AudioSampleSource, AudioSample, StreamTarget, BlobSource, UrlSource} from "mediabunny"
+import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, WebMOutputFormat, MovOutputFormat,
+	MkvOutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget,
+	BlobSource, UrlSource} from "mediabunny"
 
-import {DecoderSource, DriverSchematic} from "./schematic.js"
+import {DecoderSource, DriverSchematic, RenderContainer} from "./schematic.js"
 
 const loadSource = async (source: DecoderSource) => {
 	if(source instanceof Blob) {
 		return new BlobSource(source)
 	} else {
 		return new UrlSource(source)
+	}
+}
+
+const makeOutputFormat = (container: RenderContainer) => {
+	switch(container) {
+		case "mp4": return new Mp4OutputFormat()
+		case "webm": return new WebMOutputFormat()
+		case "mov": return new MovOutputFormat()
+		case "mkv": return new MkvOutputFormat()
+		default: throw new Error(`Unsupported render container: ${container}`)
 	}
 }
 
@@ -85,14 +96,14 @@ export const setupDriverWork = (
 
 		async encode({video, audio, config, writable}) {
 			const output = new Output({
-				format: new Mp4OutputFormat(),
+				format: makeOutputFormat(config.container),
 				target: new StreamTarget(writable, {chunked: true})
 			})
 
 			async function encodeVideo() {
 				if(!video) return
 				const videoSource = new VideoSampleSource(config.video)
-				output.addVideoTrack(videoSource)
+				output.addVideoTrack(videoSource, {frameRate: config.framerate})
 				for await (const frame of video) {
 					const sample = new VideoSample(frame)
 					await videoSource.add(sample)

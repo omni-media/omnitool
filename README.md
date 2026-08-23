@@ -567,6 +567,7 @@ const {readable, done} = await omni.render(timeline, {
 Use `config` to configure the container, framerate, video, and audio settings.
 Supported containers are `mp4`, `webm`, `mov`, and `mkv`.
 The default export uses the `webm` container at 30 fps with VP9 video and Opus audio.
+`done` resolves when encoding finishes and rejects with errors that can be shown to the user.
 Pass `onProgress` to track frame rendering progress:
 
 * `frame` – current frame number being rendered (1-indexed)

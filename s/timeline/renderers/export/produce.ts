@@ -29,7 +29,7 @@ export function produce(opts: {
 	onProgress?: (progress: ExportProgress) => void
 }) {
 	const config: RenderConfig = {
-		container: opts.config?.container ?? "mp4",
+		container: opts.config?.container ?? "webm",
 		framerate: opts.config?.framerate ?? 30,
 		audio: {codec: "opus", bitrate: 128000, ...opts.config?.audio},
 		video: {codec: "vp9", bitrate: 1000000, ...opts.config?.video}

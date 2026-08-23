@@ -551,11 +551,12 @@ const off = player.audio.levels.on(
 ## 📤 Export
 
 ```ts
-const readable = await omni.render(timeline, {
-	framerate,
+const {readable, done} = await omni.render(timeline, {
 	config: {
-		video: {codec: 'avc', bitrate: 5_000_000},
-		audio: {codec: 'aac', bitrate: 192_000},
+		container: 'webm',
+		framerate: 30,
+		video: {codec: 'vp9', bitrate: 5_000_000},
+		audio: {codec: 'opus', bitrate: 192_000},
 	},
 	onProgress: ({frame, total, ratio}) => {
 		console.log(`Export progress: ${Math.round(ratio * 100)}% (${frame}/${total} frames)`)
@@ -563,7 +564,9 @@ const readable = await omni.render(timeline, {
 })
 ```
 
-Use `config` to override video or audio encoder settings.
+Use `config` to configure the container, framerate, video, and audio settings.
+Supported containers are `mp4`, `webm`, `mov`, and `mkv`.
+The default export uses the `webm` container at 30 fps with VP9 video and Opus audio.
 Pass `onProgress` to track frame rendering progress:
 
 * `frame` – current frame number being rendered (1-indexed)

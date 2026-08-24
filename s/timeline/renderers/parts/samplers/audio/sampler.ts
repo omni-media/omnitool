@@ -15,7 +15,7 @@ export function createAudioSampler(resolveMedia: (hash: string) => DecoderSource
 	return {
 		async *sampleAudio(timeline: TimelineFile, from: Ms) {
 			const items = itemsFrom({timeline, from})
-			const streams = await initStreams(sinkPool, items, from)
+			const streams = await initStreams(sinkPool, items)
 
 			while (streams.length > 0) {
 				const {stream, index} = findEarliestStream(streams)

@@ -2,17 +2,15 @@
 import {AudioSinkPool} from "./sink.js"
 import {ActiveStream} from "./types.js"
 import {itemsFrom} from "../../../handy.js"
-import {Ms} from "../../../../../../units/ms.js"
 import {Kind} from "../../../../../parts/item.js"
 import {seconds} from "../../../../../../units/seconds.js"
 
 export async function initStreams(
 	pool: AudioSinkPool,
-	items: ReturnType<typeof itemsFrom>,
-	from: Ms
+	items: ReturnType<typeof itemsFrom>
 ): Promise<ActiveStream[]> {
 	const streams = await Promise.all(
-		items.map(async ({item, localTime}) => {
+		items.map(async ({item, localTime, timelineStart}) => {
 			if (item.kind !== Kind.Audio && item.kind !== Kind.Clip)
 				return
 			if (item.enabled === false)
@@ -26,7 +24,7 @@ export async function initStreams(
 
 			const mediaTime = item.start + localTime
 			const mediaEnd = item.start + item.duration
-			const offset = seconds((from - mediaTime) / 1000)
+			const offset = seconds((timelineStart - item.start) / 1000)
 			const iter = sink.samples(mediaTime / 1000, mediaEnd / 1000)
 
 			const first = await iter.next()

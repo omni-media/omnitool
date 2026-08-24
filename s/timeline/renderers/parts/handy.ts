@@ -49,6 +49,10 @@ interface At {
 	ancestors: AncestorAt[]
 }
 
+interface From extends At {
+	timelineStart: Ms
+}
+
 export function itemsAt(p: Props): At[] {
 	const results: At[] = []
 	const itemMap = new Map(p.timeline.items.map(item => [item.id, item]))
@@ -72,19 +76,19 @@ interface FromProps {
 	from: Ms
 }
 
-export function itemsFrom(p: FromProps): At[] {
-	const results: At[] = []
+export function itemsFrom(p: FromProps): From[] {
+	const results: From[] = []
 	const itemMap = new Map(p.timeline.items.map(item => [item.id, item]))
 
-	walkFrom(p.timeline.rootId, itemMap, p.from, {
+	walkFrom(p.timeline.rootId, itemMap, p.from, ms(0), {
 		sequence: () => { },
 		stack: () => { },
-		video: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
-		clip: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
-		image: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
-		text: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
-		caption: (item, localTime, ancestors) => results.push({ item, localTime, ancestors }),
-		audio: (item, localTime, ancestors) => results.push({ item, localTime, ancestors })
+		video: (item, localTime, ancestors, timelineStart) => results.push({ item, localTime, ancestors, timelineStart }),
+		clip: (item, localTime, ancestors, timelineStart) => results.push({ item, localTime, ancestors, timelineStart }),
+		image: (item, localTime, ancestors, timelineStart) => results.push({ item, localTime, ancestors, timelineStart }),
+		text: (item, localTime, ancestors, timelineStart) => results.push({ item, localTime, ancestors, timelineStart }),
+		caption: (item, localTime, ancestors, timelineStart) => results.push({ item, localTime, ancestors, timelineStart }),
+		audio: (item, localTime, ancestors, timelineStart) => results.push({ item, localTime, ancestors, timelineStart })
 	})
 
 	return results
@@ -288,7 +292,12 @@ function walkFrom(
 	id: Id,
 	items: Map<Id, Item.Any>,
 	from: Ms,
-	callbacks: WalkAtCallbacks,
+	timelineStart: Ms,
+	callbacks: {
+		[K in keyof WalkAtCallbacks]: (
+			...args: [...Parameters<WalkAtCallbacks[K]>, timelineStart: Ms]
+		) => void
+	},
 	ancestors: AncestorAt[] = []
 ) {
 	const item = items.get(id)
@@ -296,14 +305,14 @@ function walkFrom(
 
 	switch (item.kind) {
 		case Kind.Stack:
-			callbacks.stack(item, from, ancestors)
+			callbacks.stack(item, from, ancestors, timelineStart)
 			for (const childId of item.childrenIds) {
-				walkFrom(childId, items, from, callbacks, [...ancestors, {item, localTime: from}])
+				walkFrom(childId, items, from, timelineStart, callbacks, [...ancestors, {item, localTime: from}])
 			}
 			break
 
 		case Kind.Sequence: {
-			callbacks.sequence(item, from, ancestors)
+			callbacks.sequence(item, from, ancestors, timelineStart)
 
 			let offset = ms(0)
 
@@ -328,6 +337,7 @@ function walkFrom(
 					childId,
 					items,
 					localTime,
+					ms(timelineStart + offset),
 					callbacks,
 					[...ancestors, {item, localTime: from}]
 				)
@@ -339,27 +349,27 @@ function walkFrom(
 		}
 
 		case Kind.Video:
-			callbacks.video(item, from, ancestors)
+			callbacks.video(item, from, ancestors, timelineStart)
 			break
 
 		case Kind.Clip:
-			callbacks.clip(item, from, ancestors)
+			callbacks.clip(item, from, ancestors, timelineStart)
 			break
 
 		case Kind.Image:
-			callbacks.image(item, from, ancestors)
+			callbacks.image(item, from, ancestors, timelineStart)
 			break
 
 		case Kind.Text:
-			callbacks.text(item, from, ancestors)
+			callbacks.text(item, from, ancestors, timelineStart)
 			break
 
 		case Kind.Caption:
-			callbacks.caption(item, from, ancestors)
+			callbacks.caption(item, from, ancestors, timelineStart)
 			break
 
 		case Kind.Audio:
-			callbacks.audio(item, from, ancestors)
+			callbacks.audio(item, from, ancestors, timelineStart)
 			break
 	}
 }

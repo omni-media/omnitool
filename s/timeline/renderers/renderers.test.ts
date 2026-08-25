@@ -23,7 +23,7 @@ export async function setupTest() {
 	const omni = new Omni(driver)
 
 	const testVideo = await loadVideo("/assets/temp/test.mp4")
-	const {videoA} = await omni.load({videoA: Datafile.make(testVideo, "test.mp4")})
+	const {videoA} = await omni.load({videoA: Datafile.make(testVideo, {filename: "test.mp4"})})
 
 	const resolveMedia = (hash: string) => omni.resources.require(hash).blob
 

@@ -15,7 +15,7 @@ export async function setupTest() {
 	const omni = new Omni(driver)
 
 	const testVideo = await loadVideo("/assets/temp/test.mp4")
-	const {videoA} = await omni.load({videoA: Datafile.make(testVideo, "test.mp4")})
+	const {videoA} = await omni.load({videoA: Datafile.make(testVideo, {filename: "test.mp4"})})
 
 	return {driver, omni, testVideo, videoA}
 }
@@ -26,7 +26,7 @@ export default Science.suite({
 		const omni = new Omni(driver)
 
 		const testVideo = await loadVideo("/assets/temp/test.mp4")
-		const {videoA} = await omni.load({videoA: Datafile.make(testVideo, "test.mp4")})
+		const {videoA} = await omni.load({videoA: Datafile.make(testVideo, {filename: "test.mp4"})})
 
 		const o = new O({timeline: omni.timeline(o => o.sequence())})
 		const rootItem = o.require<Item.Sequence>(o.timeline.rootId)!
@@ -191,7 +191,7 @@ export default Science.suite({
 		const driver = await Driver.setup({workerUrl})
 		const omni = new Omni(driver)
 		const testVideo = await loadVideo("/assets/temp/test.mp4")
-		const {videoA} = await omni.load({videoA: Datafile.make(testVideo, "test.mp4")})
+		const {videoA} = await omni.load({videoA: Datafile.make(testVideo, {filename: "test.mp4"})})
 		expect(omni.resources.require(videoA.datafile.checksum.hash)).happy()
 	}),
 

@@ -1,5 +1,12 @@
 
 import {Checksum} from "./checksum.js"
+import {Hash} from "../parts/basics.js"
+
+export type DatafileOptions = {
+	filename?: string
+	/** Trusted resource identity. The blob is not read to verify it. */
+	hash?: Hash
+}
 
 export class Datafile {
 	constructor(
@@ -9,9 +16,11 @@ export class Datafile {
 		public checksum: Checksum,
 	) {}
 
-	static async make(file: Blob, name?: string) {
-		const checksum = await Checksum.make(file)
-		const filename = name ?? checksum.nickname
+	static async make(file: Blob, options: DatafileOptions = {}) {
+		const checksum = options.hash === undefined
+			? await Checksum.make(file)
+			: Checksum.fromHash(options.hash)
+		const filename = options.filename ?? checksum.nickname
 		const url = URL.createObjectURL(file)
 		return new this(url, file, filename, checksum)
 	}

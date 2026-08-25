@@ -2,7 +2,7 @@
 import {Item} from "./item.js"
 import {AudioSettings} from "./audio.js"
 
-/** BLAKE3 hash */
+/** Media resource identity. Omnitool generates a BLAKE3 hash by default. */
 export type Hash = string
 
 /** item identifier */

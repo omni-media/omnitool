@@ -19,7 +19,7 @@ npm i @omnimedia/omnitool
 
 ## 📦 Quick Start
 
-#### Declaring the timeline
+#### Loading media
 
 ```ts
 import {Driver, Omni, Datafile} from "@omnimedia/omnitool"
@@ -30,7 +30,11 @@ const omni = new Omni(driver)
 const {clip} = await omni.load({
 	clip: Datafile.make(file) // file is a File or Blob
 })
+```
 
+#### Declaring the timeline
+
+```ts
 const timeline = omni.timeline(o => {
 	const caption = o.text("Hello world", {
 		duration: 1500,
@@ -94,6 +98,20 @@ const project = timeline(stack(
 	storyline,
 	text("Hello world", {duration: 1500}),
 ))
+```
+
+## 📁 Loading Media
+
+The filename defaults to a checksum-derived nickname. Pass an existing hash to skip
+file hashing; otherwise Omnitool generates a BLAKE3 hash:
+
+```ts
+const {clip} = await omni.load({
+	clip: Datafile.make(file, {
+		filename: file.name,
+		hash,
+	})
+})
 ```
 
 ## 🔊 Audio

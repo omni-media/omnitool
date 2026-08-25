@@ -21,5 +21,10 @@ export class Checksum {
 		const nickname = thumbprint.sigil.fromBytes(digest)
 		return new this(hash, nickname)
 	}
+
+	static fromHash(hash: Hash) {
+		const nickname = thumbprint.sigil.fromBytes(new TextEncoder().encode(hash))
+		return new this(hash, nickname)
+	}
 }
 

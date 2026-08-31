@@ -646,8 +646,6 @@ omnitool optimize promo.json
 omnitool ai "make a 15s promo for tea"
 ```
 
-- smooth seeking
-- keyframes
 - custom filters, likely via driver-side registration with timeline sugar such as:
 
 ```ts

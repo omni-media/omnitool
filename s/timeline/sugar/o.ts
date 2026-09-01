@@ -4,6 +4,7 @@ import {TextStyleOptions} from "pixi.js"
 import {Media} from "../parts/media.js"
 import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
+import {ContainerArgs, parseContainerArgs} from "./container.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {Transcription} from "../../features/speech/transcribe/types.js"
 import {Crop, FilterableItem, Item, ItemBase, Kind, VisualAnimatableItem} from "../parts/item.js"
@@ -17,7 +18,10 @@ type VisualAnimateActions = {
 	[TKey in keyof VisualAnimations]-?: AnimateAction<TKey>
 }
 
-type ContainerInput = [label: string, ...items: Item.Any[]] | Item.Any[]
+type ContainerFactory<T extends Item.Sequence | Item.Stack> = {
+	(...children: Item.Any[]): T
+	(options: ItemBase, ...children: Item.Any[]): T
+}
 
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
@@ -228,29 +232,25 @@ export class O {
 		presets: this.#makePresetAnimateActions(),
 	}
 
-	sequence = (...input: ContainerInput): Item.Sequence => {
-		const [first, ...rest] = input
-		const label = typeof first === "string" ? first : undefined
-		const items = (label ? rest : input) as Item.Any[]
+	sequence: ContainerFactory<Item.Sequence> = (...args: ContainerArgs<Item.Any>) => {
+		const {options, children} = parseContainerArgs(args)
 		const item =  {
+			...options,
 			id: this.getId(),
 			kind: Kind.Sequence,
-			label,
-			childrenIds: items.map(item => item.id)
+			childrenIds: children.map(item => item.id)
 		} as Item.Sequence
 		this.register(item)
 		return item
 	}
 
-	stack = (...input: ContainerInput): Item.Stack => {
-		const [first, ...rest] = input
-		const label = typeof first === "string" ? first : undefined
-		const items = (label ? rest : input) as Item.Any[]
+	stack: ContainerFactory<Item.Stack> = (...args: ContainerArgs<Item.Any>) => {
+		const {options, children} = parseContainerArgs(args)
 		const item = {
-			kind: Kind.Stack,
+			...options,
 			id: this.getId(),
-			label,
-			childrenIds: items.map(item => item.id)
+			kind: Kind.Stack,
+			childrenIds: children.map(item => item.id)
 		} as Item.Stack
 		this.register(item)
 		return item

@@ -5,6 +5,7 @@ import {O} from "./o.js"
 import {Media} from "../parts/media.js"
 import {TimelineFile} from "../parts/basics.js"
 import {FilterAction} from "../parts/filters.js"
+import {ContainerArgs, parseContainerArgs} from "./container.js"
 import {TransitionName, transitions} from "../parts/transitions.js"
 import {filters, FilterParams, FilterType} from "../parts/filters.js"
 import {CaptionOptions, CaptionSourceItem} from "../parts/captions.js"
@@ -24,7 +25,6 @@ type BuildPresetAnimateActions = {
 type BuildTransitionActions = {
 	[TKey in TransitionName]: (duration: number, options?: ItemBase) => Build<Item.Transition>
 }
-type ContainerInput = [label: string, ...items: Build[]] | Build[]
 
 function createTimeline(): TimelineFile {
 	return {
@@ -43,23 +43,23 @@ export function timeline(root: Build): TimelineFile {
 	return o.timeline
 }
 
-export function sequence(...input: ContainerInput): Build<Item.Sequence> {
-	const [first, ...rest] = input
-	const label = typeof first === "string" ? first : undefined
-	const items = (label ? rest : input) as Build[]
+export function sequence(...children: Build[]): Build<Item.Sequence>
+export function sequence(options: ItemBase, ...children: Build[]): Build<Item.Sequence>
+export function sequence(...args: ContainerArgs<Build>): Build<Item.Sequence> {
+	const {options, children} = parseContainerArgs(args)
 	return o => {
-		const built = items.map(item => item(o))
-		return label ? o.sequence(label, ...built) : o.sequence(...built)
+		const built = children.map(child => child(o))
+		return o.sequence(options, ...built)
 	}
 }
 
-export function stack(...input: ContainerInput): Build<Item.Stack> {
-	const [first, ...rest] = input
-	const label = typeof first === "string" ? first : undefined
-	const items = (label ? rest : input) as Build[]
+export function stack(...children: Build[]): Build<Item.Stack>
+export function stack(options: ItemBase, ...children: Build[]): Build<Item.Stack>
+export function stack(...args: ContainerArgs<Build>): Build<Item.Stack> {
+	const {options, children} = parseContainerArgs(args)
 	return o => {
-		const built = items.map(item => item(o))
-		return label ? o.stack(label, ...built) : o.stack(...built)
+		const built = children.map(child => child(o))
+		return o.stack(options, ...built)
 	}
 }
 

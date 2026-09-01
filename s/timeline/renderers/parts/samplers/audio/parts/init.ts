@@ -10,10 +10,10 @@ export async function initStreams(
 	items: ReturnType<typeof itemsFrom>
 ): Promise<ActiveStream[]> {
 	const streams = await Promise.all(
-		items.map(async ({item, localTime, timelineStart}) => {
+		items.map(async ({item, localTime, timelineStart, ancestors}) => {
 			if (item.kind !== Kind.Audio && item.kind !== Kind.Clip)
 				return
-			if (item.enabled === false)
+			if (item.enabled === false || ancestors.some(({item}) => item.enabled === false))
 				return
 			if (localTime >= item.duration)
 				return

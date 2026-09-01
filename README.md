@@ -63,7 +63,7 @@ Items can have `label` and `enabled` fields:
 
 ```ts
 const visual = o.sequence(
-	"Main sequence",
+	{label: "Main sequence", enabled: false},
 	o.video(clip, {label: "Intro"}),
 	o.transition.fade(500, {label: "Fade", enabled: false}),
 	o.text("Hello world", {label: "Title", enabled: false})
@@ -71,6 +71,7 @@ const visual = o.sequence(
 ```
 
 Disabled items do not render or play audio, but still keep their timeline duration and occupy space.
+Disabling a sequence or stack suppresses all its descendants without changing their individual flags.
 
 Declarative helper style (no explicit `o` in timeline declarations):
 

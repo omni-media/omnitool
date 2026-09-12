@@ -14,6 +14,9 @@ export const fragment = (glsl: string) => `
 	}
 
 	// gl-transition code here
+	// Undo Pixi's WebGL 1 input alias before gl-transition function parameters,
+	// it was causing some of gl-transitions to not work.
+	#undef in
 	${glsl}
 	// gl-transition code end
 

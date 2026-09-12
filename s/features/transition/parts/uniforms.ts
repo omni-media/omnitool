@@ -5,7 +5,7 @@ export const uniforms = {
 		Object.entries(transition.defaultParams).map(([name, value]) => [
 			name,
 			{
-				value,
+				value: typeof value === "boolean" ? Number(value) : value,
 				type: getUniformType(transition.paramsTypes[name])
 			}
 		])
@@ -20,10 +20,11 @@ export const uniforms = {
 }
 
 const getUniformType = (type: string) => {
-	if(type === "f32" || type === "i32") {
-		return type
-	} else if(type === "float") {
+	if (type === "float" || type === "f32")
 		return "f32"
-	}
-	else return `${type}<f32>`
+	if (type === "int" || type === "bool" || type === "i32")
+		return "i32"
+	if (type === "ivec2")
+		return "vec2<i32>"
+	return `${type}<f32>`
 }

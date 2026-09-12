@@ -19,7 +19,7 @@ export async function collectPeakLevels(driver: Driver, source: DecoderSource) {
 
 		const frames = audioData.numberOfFrames
 		const plane = new Float32Array(frames)
-		audioData.copyTo(plane, {planeIndex: 0})
+		audioData.copyTo(plane, {planeIndex: 0, format: "f32-planar"})
 
 		for (let i = 0; i < plane.length; i++) {
 			const amplitude = Math.abs(plane[i]!)

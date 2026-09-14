@@ -1,0 +1,63 @@
+{
+  "type": "GodrayFilter",
+  "schema": {
+    "time": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "step": 0.01
+    },
+    "gain": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "step": 0.01
+    },
+    "lacunarity": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 2.75,
+      "step": 0.01
+    },
+    "alpha": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "step": 0.01
+    },
+    "parallel": {
+      "type": "boolean",
+      "default": true
+    },
+    "angle": {
+      "type": "number",
+      "min": -60,
+      "max": 60,
+      "default": 30,
+      "step": 1
+    },
+    "center": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "min": -100,
+          "max": 2012,
+          "default": 956,
+          "step": 1
+        },
+        "y": {
+          "type": "number",
+          "min": -1000,
+          "max": -100,
+          "default": -100,
+          "step": 1
+        }
+      }
+    }
+  }
+}

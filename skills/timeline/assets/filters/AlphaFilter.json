@@ -1,0 +1,12 @@
+{
+  "type": "AlphaFilter",
+  "schema": {
+    "alpha": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "step": 0.01
+    }
+  }
+}

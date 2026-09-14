@@ -8,10 +8,11 @@
 	"main": "x/index.js",
 	"files": [
 		"x",
-		"s"
+		"s",
+		"skills"
 	],
 	"scripts": {
-		"build": "run-s _clean _tsc _ln _scute",
+		"build": "run-s _clean _tsc _ln _scute _skills",
 		"start": "octo 'scute -vw' 'tsc -w' 'node --watch x/tests.test.js' 'http-server x'",
 		"_clean": "rm -rf x && mkdir x",
 		"_tsc": "tsc",
@@ -19,6 +20,7 @@
 		"_ln-s": "ln -s \"$(realpath s)\" x/s",
 		"_ln-assets": "ln -s \"$(realpath assets)\" x/assets",
 		"_scute": "scute -v",
+		"_skills": "node scripts/catalog.js",
 		"test": "echo \"node tests disabled for now\"",
 		"test-debug": "node inspect x/tests.test.js"
 	},

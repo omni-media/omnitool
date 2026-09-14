@@ -1,0 +1,56 @@
+{
+  "type": "RadialBlurFilter",
+  "schema": {
+    "angle": {
+      "type": "number",
+      "min": -180,
+      "max": 180,
+      "default": 20,
+      "step": 1
+    },
+    "radius": {
+      "type": "number",
+      "min": -1,
+      "max": 1912,
+      "default": 300,
+      "step": 1
+    },
+    "center": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "min": 0,
+          "max": 1912,
+          "default": 956,
+          "step": 1
+        },
+        "y": {
+          "type": "number",
+          "min": 0,
+          "max": 920,
+          "default": 460,
+          "step": 1
+        }
+      }
+    },
+    "kernelSize": {
+      "type": "choice",
+      "options": [
+        3,
+        5,
+        7,
+        9,
+        11,
+        13,
+        15,
+        17,
+        19,
+        21,
+        23,
+        25
+      ],
+      "default": 15
+    }
+  }
+}

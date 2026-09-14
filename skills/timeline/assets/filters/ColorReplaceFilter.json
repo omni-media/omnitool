@@ -1,0 +1,20 @@
+{
+  "type": "ColorReplaceFilter",
+  "schema": {
+    "originalColor": {
+      "type": "color",
+      "default": "#ff0000"
+    },
+    "targetColor": {
+      "type": "color",
+      "default": "#000000"
+    },
+    "tolerance": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0.4,
+      "step": 0.01
+    }
+  }
+}

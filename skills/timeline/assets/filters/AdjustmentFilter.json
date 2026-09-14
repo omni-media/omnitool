@@ -1,0 +1,54 @@
+{
+  "type": "AdjustmentFilter",
+  "schema": {
+    "gamma": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "saturation": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "contrast": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "brightness": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "red": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "green": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "blue": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 1
+    },
+    "alpha": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "step": 0.01
+    }
+  }
+}

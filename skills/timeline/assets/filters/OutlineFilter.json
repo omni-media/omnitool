@@ -1,0 +1,27 @@
+{
+  "type": "OutlineFilter",
+  "schema": {
+    "thickness": {
+      "type": "number",
+      "min": 0,
+      "max": 10,
+      "default": 4,
+      "step": 0.1
+    },
+    "color": {
+      "type": "color",
+      "default": "#000000"
+    },
+    "alpha": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "step": 0.01
+    },
+    "knockout": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "type": "TiltShiftFilter",
+  "schema": {
+    "blur": {
+      "type": "number",
+      "min": 0,
+      "max": 200,
+      "default": 100,
+      "step": 0.1
+    },
+    "gradientBlur": {
+      "type": "number",
+      "min": 0,
+      "max": 1000,
+      "default": 600,
+      "step": 1
+    },
+    "start": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "min": 0,
+          "max": 1912,
+          "default": 0,
+          "step": 1
+        },
+        "y": {
+          "type": "number",
+          "min": 0,
+          "max": 920,
+          "default": 460,
+          "step": 1
+        }
+      }
+    },
+    "end": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "min": 0,
+          "max": 1912,
+          "default": 1912,
+          "step": 1
+        },
+        "y": {
+          "type": "number",
+          "min": 0,
+          "max": 920,
+          "default": 460,
+          "step": 1
+        }
+      }
+    }
+  }
+}

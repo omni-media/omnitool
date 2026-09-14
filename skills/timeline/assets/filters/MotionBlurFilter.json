@@ -1,0 +1,49 @@
+{
+  "type": "MotionBlurFilter",
+  "schema": {
+    "velocity": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "min": -90,
+          "max": 90,
+          "default": 40,
+          "step": 1
+        },
+        "y": {
+          "type": "number",
+          "min": -90,
+          "max": 90,
+          "default": 40,
+          "step": 1
+        }
+      }
+    },
+    "kernelSize": {
+      "type": "choice",
+      "options": [
+        3,
+        5,
+        7,
+        9,
+        11,
+        13,
+        15,
+        17,
+        19,
+        21,
+        23,
+        25
+      ],
+      "default": 15
+    },
+    "offset": {
+      "type": "number",
+      "min": -150,
+      "max": 150,
+      "default": 0,
+      "step": 1
+    }
+  }
+}

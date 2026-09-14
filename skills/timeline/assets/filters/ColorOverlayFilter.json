@@ -1,0 +1,16 @@
+{
+  "type": "ColorOverlayFilter",
+  "schema": {
+    "color": {
+      "type": "color",
+      "default": "#ff0000"
+    },
+    "alpha": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "step": 0.01
+    }
+  }
+}

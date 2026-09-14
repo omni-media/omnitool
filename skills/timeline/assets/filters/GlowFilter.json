@@ -1,0 +1,48 @@
+{
+  "type": "GlowFilter",
+  "schema": {
+    "distance": {
+      "type": "number",
+      "min": 0,
+      "max": 20,
+      "default": 15,
+      "step": 0.1
+    },
+    "innerStrength": {
+      "type": "number",
+      "min": 0,
+      "max": 20,
+      "default": 0,
+      "step": 0.1
+    },
+    "outerStrength": {
+      "type": "number",
+      "min": 0,
+      "max": 20,
+      "default": 2,
+      "step": 0.1
+    },
+    "color": {
+      "type": "color",
+      "default": "#ffffff"
+    },
+    "quality": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0.2,
+      "step": 0.01
+    },
+    "alpha": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "step": 0.01
+    },
+    "knockout": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

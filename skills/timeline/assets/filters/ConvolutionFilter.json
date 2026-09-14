@@ -1,0 +1,83 @@
+{
+  "type": "ConvolutionFilter",
+  "schema": {
+    "width": {
+      "type": "number",
+      "min": 0,
+      "max": 500,
+      "default": 300,
+      "step": 1
+    },
+    "height": {
+      "type": "number",
+      "min": 0,
+      "max": 500,
+      "default": 300,
+      "step": 1
+    },
+    "matrix": {
+      "type": "array",
+      "items": [
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "step": 0.01
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "step": 0.01
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "step": 0.01
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "step": 0.01
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "step": 0.01
+        },
+        {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0
+        }
+      ]
+    }
+  }
+}

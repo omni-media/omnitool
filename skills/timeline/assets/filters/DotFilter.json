@@ -1,0 +1,23 @@
+{
+  "type": "DotFilter",
+  "schema": {
+    "scale": {
+      "type": "number",
+      "min": 0.3,
+      "max": 1,
+      "default": 1,
+      "step": 0.01
+    },
+    "angle": {
+      "type": "number",
+      "min": 0,
+      "max": 5,
+      "default": 5,
+      "step": 0.01
+    },
+    "grayscale": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

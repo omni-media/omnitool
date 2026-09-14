@@ -17,6 +17,14 @@
 npm i @omnimedia/omnitool
 ```
 
+## AI skill
+
+Teach your AI agent to create and edit Omnitool timeline JSON:
+
+```sh
+npx skills add omni-media/omnitool
+```
+
 ## 📦 Quick Start
 
 #### Loading media
@@ -225,9 +233,10 @@ const transcriber = await makeTranscriber({
 > Browser usage commonly uses `"wasm"` or `"webgpu"`. `"webgpu"` for speed, `"wasm"` for more device support
 > `workerUrl` depends on where you host the worker bundle.
 
-`o.captions(video, transcript, options)` creates captions for a video or audio.
+`o.captions(source, transcript, options)` creates a caption for a Video, Audio, or Clip
+and returns a Stack containing the caption and source.
+The caption's `itemId` points to the source item.
 `o.captions` uses `captionPresets.default` preset.
-The generated caption id is stored on the source item as `captionId`.
 use `o.captions.presets` to choose from available pre-styled captions.
 pass `styles` in options to override preset styles.
 transcript chunk timestamps are in seconds.

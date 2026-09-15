@@ -1,3 +1,4 @@
+// Generate skill catalogs from Omnitool's filter and transition registries.
 
 import {mkdir, readFile, rm, writeFile} from "node:fs/promises"
 
@@ -25,4 +26,3 @@ await Promise.all([
 		writeFile(new URL(`${type}.json`, filtersDirectory), serialize({type, schema})),
 	),
 ])
-

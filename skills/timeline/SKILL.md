@@ -35,22 +35,22 @@ Read references for features affected by the edit, including existing attachment
 {
   "format": "timeline",
   "info": "https://omniclip.app/",
-  "version": 0,
-  "rootId": 1,
+  "version": 1,
+  "rootId": "00000000000000000000000000000001",
   "items": [
-    {"id": 1, "kind": 1, "childrenIds": [2, 3]},
-    {"id": 2, "kind": 4, "content": "Hello", "duration": 1500},
-    {"id": 3, "kind": 0, "childrenIds": [4, 5]},
-    {"id": 4, "kind": 5, "duration": 500},
-    {"id": 5, "kind": 4, "content": "World", "duration": 2000}
+    {"id": "00000000000000000000000000000001", "kind": 1, "childrenIds": ["00000000000000000000000000000002", "00000000000000000000000000000003"]},
+    {"id": "00000000000000000000000000000002", "kind": 4, "content": "Hello", "duration": 1500},
+    {"id": "00000000000000000000000000000003", "kind": 0, "childrenIds": ["00000000000000000000000000000004", "00000000000000000000000000000005"]},
+    {"id": "00000000000000000000000000000004", "kind": 5, "duration": 500},
+    {"id": "00000000000000000000000000000005", "kind": 4, "content": "World", "duration": 2000}
   ]
 }
 ```
 
 This lasts 2500 ms. `Hello` starts at 0; `World` starts at 500. Both have default styling/position, so `Hello` appears above `World` during their overlap.
 
-- `items` is a flat array of objects with unique numeric `id` and numeric `kind`. `rootId` identifies the root content item, usually a Sequence or Stack.
-- Existing numeric IDs are opaque identifiers. Copy them exactly; never recalculate, shorten, round, renumber, or substitute them. Use fresh positive integer IDs for new objects; avoid `0` for new references because some attachment lookups use truthiness. Reference targets must exist and have the appropriate kind; container ancestry must be acyclic.
+- `items` is a flat array of objects with a unique string `id` and numeric `kind`. `rootId` identifies the root content item, usually a Sequence or Stack.
+- IDs are opaque. Copy existing IDs exactly; never reinterpret, shorten, or substitute them. Use a fresh 32-character lowercase hexadecimal string for each new object. Reference targets must exist and have the appropriate kind; container ancestry must be acyclic.
 - Structural links are `childrenIds`. Attachments are `spatialId` → Spatial, `animationIds` → Animation, `filterIds` → Filter, `styleId` → TextStyle. Attachments belong in `items`, not in `childrenIds`.
 - Shared attachments affect every referencing item. Clone an attachment before changing it for only one owner. Use separate content objects/IDs for separately editable or simultaneously visible occurrences. Remove referenced objects only after accounting for all their users.
 - Optional `enabled` defaults to true. Disabled content retains its duration; disabled containers suppress descendants. Content kinds accept optional `label`; labels do not identify objects uniquely.
@@ -61,8 +61,8 @@ Fields below are required unless marked `?`; all items also have `id`, `kind`. J
 
 | Kind | Name | Fields beyond identity | Optional attachments |
 | --- | --- | --- | --- |
-| 0 | Sequence | `childrenIds: number[]` | `spatialId`, `filterIds` |
-| 1 | Stack | `childrenIds: number[]` | `spatialId`, `filterIds` |
+| 0 | Sequence | `childrenIds: string[]` | `spatialId`, `filterIds` |
+| 1 | Stack | `childrenIds: string[]` | `spatialId`, `filterIds` |
 | 2 | Video (silent) | `mediaHash: string`, `start`, `duration` | `spatialId`, `animationIds`, `filterIds` |
 | 3 | Audio | `mediaHash: string`, `start`, `duration`, `gain?` | — |
 | 4 | Text | `content: string`, `duration` | `spatialId`, `animationIds`, `filterIds`, `styleId` |

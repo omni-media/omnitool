@@ -375,7 +375,7 @@ function walkFrom(
 }
 
 export function computeItemDuration(
-	id: number,
+	id: Id,
 	timeline: TimelineFile
 ): Ms {
 	return computeItemDurationFromMap(
@@ -385,7 +385,7 @@ export function computeItemDuration(
 }
 
 function computeItemDurationFromMap(
-	id: number,
+	id: Id,
 	items: Map<Id, Item.Any>
 ): Ms {
 	const item = items.get(id)

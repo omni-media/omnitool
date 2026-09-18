@@ -4,7 +4,7 @@ Text and Caption content is normally plain text. Their optional `styleId` points
 
 ```json
 {
-  "id": 21,
+  "id": "00000000000000000000000000000021",
   "kind": 9,
   "style": {
     "fontFamily": "Arial",

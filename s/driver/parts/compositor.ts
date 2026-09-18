@@ -50,7 +50,7 @@ export class Compositor {
 		to: RenderTexture
 	}>()
 	// objects rendered for current Composition
-	#activeObjects = new Map<number, {sprite: Container, dispose: () => void}>()
+	#activeObjects = new Map<Id, {sprite: Container, dispose: () => void}>()
 	#cropMasks = new WeakMap<Container, Graphics>()
 
 	resize(width: number, height: number) {
@@ -335,8 +335,8 @@ export class Compositor {
 		} else return object.sprite as T
 	}
 
-	#collectIds(layers: Layer | Composition): Set<number> {
-		const result = new Set<number>()
+	#collectIds(layers: Layer | Composition): Set<Id> {
+		const result = new Set<Id>()
 		const traverse = (node: Layer | Composition) => {
 			if (Array.isArray(node)) {
 				for (const child of node) traverse(child)
@@ -348,7 +348,7 @@ export class Compositor {
 		return result
 	}
 
-	#cleanup(activeIds: Set<number>) {
+	#cleanup(activeIds: Set<Id>) {
 		for (const id of this.#activeObjects.keys()) {
 			if (!activeIds.has(id)) {
 				const {sprite, dispose} = this.#activeObjects.get(id)!
@@ -359,7 +359,7 @@ export class Compositor {
 		}
 	}
 
-	#cleanupTransitions(activeIds: Set<number>) {
+	#cleanupTransitions(activeIds: Set<Id>) {
 		for (const [id, cached] of this.#transitions) {
 			if (!activeIds.has(id)) {
 				cached.transition.dispose()

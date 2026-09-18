@@ -4,7 +4,7 @@ Attach filters to a visual item with `filterIds`, in application order:
 
 ```json
 {
-  "id": 50,
+  "id": "00000000000000000000000000000050",
   "kind": 10,
   "type": "BlurFilter",
   "params": {"strength": 8, "quality": 4}

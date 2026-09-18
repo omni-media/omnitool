@@ -30,9 +30,9 @@ export class Omni {
 			timeline: {
 				format: "timeline",
 				info: "https://omniclip.app/",
-				version: 0,
+				version: 1,
 				items: [],
-				rootId: 0
+				rootId: ""
 			}
 		})
 		const root = fn(o)

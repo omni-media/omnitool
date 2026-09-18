@@ -38,7 +38,7 @@ export class O {
 	}
 
 	getId() {
-		return hex.toInteger(hex.random())
+		return hex.random(16)
 	}
 
   #mutate(fn: (project: TimelineFile) => TimelineFile) {

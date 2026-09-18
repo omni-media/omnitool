@@ -30,9 +30,9 @@ function createTimeline(): TimelineFile {
 	return {
 		format: "timeline",
 		info: "https://omniclip.app/",
-		version: 0,
+		version: 1,
 		items: [],
-		rootId: 0
+		rootId: ""
 	}
 }
 

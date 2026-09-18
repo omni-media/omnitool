@@ -4,7 +4,7 @@ Attach with the visual item's `animationIds`. Supported properties are `opacity`
 
 ```json
 {
-  "id": 30,
+  "id": "00000000000000000000000000000030",
   "kind": 7,
   "anims": {
     "opacity": {"terp": "linear", "track": [[0, 0], [500, 1], [2000, 1]]},

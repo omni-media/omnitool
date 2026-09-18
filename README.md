@@ -610,12 +610,12 @@ All durations and timestamps are in milliseconds.
 {
 	"format": "timeline",
 	"info": "https://omniclip.app/",
-	"version": 0,
-	"rootId": 123,
+	"version": 1,
+	"rootId": "00000000000000000000000000000123",
 	"items": [
-		{"id": 123, "kind": 0, "childrenIds": [456, 789]},
-		{"id": 456, "kind": 2, "mediaHash": "...", "start": 0, "duration": 3000},
-		{"id": 789, "kind": 4, "content": "Hello", "duration": 1500}
+		{"id": "00000000000000000000000000000123", "kind": 0, "childrenIds": ["00000000000000000000000000000456", "00000000000000000000000000000789"]},
+		{"id": "00000000000000000000000000000456", "kind": 2, "mediaHash": "...", "start": 0, "duration": 3000},
+		{"id": "00000000000000000000000000000789", "kind": 4, "content": "Hello", "duration": 1500}
 	]
 }
 ```

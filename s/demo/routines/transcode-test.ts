@@ -16,12 +16,12 @@ export function setupTranscodeTest(driver: Driver, source: DecoderSource) {
 			async onFrame(frame) {
 				const composed = await driver.composite([
 					{
-						id: 0,
+						id: "frame",
 						kind: "image",
 						frame
 					},
 					{
-						id: 1,
+						id: "title",
 						kind: "text",
 						content: "omnitool",
 						style: {

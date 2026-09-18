@@ -3,7 +3,7 @@ import {ALL_FORMATS, Input, VideoSampleSink} from "mediabunny"
 
 import {ms, Ms} from "../../../../units/ms.js"
 import {Driver} from "../../../../driver/driver.js"
-import {TimelineFile} from "../../../parts/basics.js"
+import {Id, TimelineFile} from "../../../parts/basics.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
@@ -16,7 +16,7 @@ type StreamCursor<T> = {
 type VideoFrameCursor = StreamCursor<VideoFrame>
 
 abstract class BaseVisualSampler {
-	readonly #videoCursors = new Map<number, VideoFrameCursor>()
+	readonly #videoCursors = new Map<Id, VideoFrameCursor>()
 	readonly #sampler
 
 	constructor(

@@ -5,8 +5,8 @@ import {AudioSettings} from "./audio.js"
 /** Media resource identity. Omnitool generates a BLAKE3 hash by default. */
 export type Hash = string
 
-/** item identifier */
-export type Id = number
+/** Opaque 128-bit hexadecimal item identifier. */
+export type Id = string
 
 export type TimelineFile = {
 	info: "https://omniclip.app/"

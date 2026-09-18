@@ -1,6 +1,6 @@
 ---
 name: timeline
-description: Create and edit Omnitool timeline JSON for downstream video editors and apps. Use for Omnitool composition, media timing, text, captions, transforms, animation, and effects; not for unrelated timeline formats.
+description: Inspect, explain, create, or edit Omnitool timeline JSON, including its available filters and transitions, media timing, text, captions, transforms, and animation. Use for Omnitool's model and catalogs, not unrelated timeline formats.
 ---
 
 # Omnitool timelines
@@ -24,7 +24,7 @@ Read references for features affected by the edit, including existing attachment
 
 - Position, scale, rotation, crop, or nested transforms: [spatial.md](references/spatial.md).
 - Text or caption styling: [text.md](references/text.md).
-- Adding or changing filters: [filters.md](references/filters.md).
+- Filters, including listing available filter types: [filters.md](references/filters.md).
 - Keyframes or editing animated items: [animation.md](references/animation.md).
 - Captions or editing captioned media: [captions.md](references/captions.md).
 - Adding/changing transitions, or trimming/reordering their neighbors: [transitions.md](references/transitions.md).

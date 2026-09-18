@@ -11,10 +11,6 @@
 			"types": "./x/index.d.ts",
 			"default": "./x/index.js"
 		},
-		"./skill": {
-			"types": "./x/skill.d.ts",
-			"default": "./x/skill.js"
-		},
 		"./*": "./*"
 	},
 	"files": [
@@ -23,7 +19,7 @@
 		"skills"
 	],
 	"scripts": {
-		"build": "run-s _clean _tsc _ln _scute _skills",
+		"build": "run-s _clean _tsc _ln _scute _catalog",
 		"start": "octo 'scute -vw' 'tsc -w' 'node --watch x/tests.test.js' 'http-server x'",
 		"_clean": "rm -rf x && mkdir x",
 		"_tsc": "tsc",
@@ -31,9 +27,7 @@
 		"_ln-s": "ln -s \"$(realpath s)\" x/s",
 		"_ln-assets": "ln -s \"$(realpath assets)\" x/assets",
 		"_scute": "scute -v",
-		"_skills": "run-s _catalog _skill",
 		"_catalog": "node scripts/catalog.js",
-		"_skill": "node scripts/skill.js",
 		"test": "echo \"node tests disabled for now\"",
 		"test-debug": "node inspect x/tests.test.js"
 	},

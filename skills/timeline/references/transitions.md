@@ -2,7 +2,7 @@
 
 A Transition has `id`, `kind: 8`, `name`, and positive `duration` in milliseconds; optional `label` and `enabled` follow the core rules. Place it directly between two visual content items in a Sequence, never at an end or adjacent to another Transition.
 
-`name` is case-sensitive. Before adding or changing one, read `transitions` in [transitions.json](../assets/transitions.json) and use a listed name exactly. Transitions have no serialized parameter object—do not invent one. If the host supplies a catalog for a different Omnitool version, prefer that catalog; otherwise do not guess.
+`name` is case-sensitive. Before listing, adding, or changing one, read `transitions` at skill path `assets/transitions.json` and use a listed name exactly. Transitions have no serialized parameter object—do not invent one. If the host supplies a catalog for a different Omnitool version, prefer that catalog; otherwise do not guess.
 
 `[A (3000), fade (500), B (2000)]` lasts **5500 ms**. A occupies `[0,3000)`, the transition `[3000,3500)`, and B `[3500,5500)`.
 

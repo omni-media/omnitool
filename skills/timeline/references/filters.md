@@ -11,7 +11,7 @@ Attach filters to a visual item with `filterIds`, in application order:
 }
 ```
 
-Read [filters/index.json](../assets/filters/index.json) to choose an exact case-sensitive filter `type`, then read only the matching `filters/<type>.json` file for its parameter schema. In a schema, `type` is `number`, `boolean`, `color`, `choice`, `object`, or `array`; numeric entries include authoring `min`, `max`, `default`, and sometimes `step`. Object properties become nested JSON objects, not dotted keys. Array `items` describe entries in order.
+Read skill path `assets/filters/index.json` to choose an exact case-sensitive filter `type`, then read only the matching `assets/filters/<type>.json` file for its parameter schema. In a schema, `type` is `number`, `boolean`, `color`, `choice`, `object`, or `array`; numeric entries include authoring `min`, `max`, `default`, and sometimes `step`. Object properties become nested JSON objects, not dotted keys. Array `items` describe entries in order.
 
 Use only cataloged types and fields. `params` and its fields are optional; omitted values use the underlying filter library's runtime defaults, which can differ from schema authoring defaults. An empty schema means Omnitool exposes no safe raw parameter schema for that filter, so omit `params` rather than guessing. If the host supplies a catalog for a different Omnitool version, prefer that catalog.
 

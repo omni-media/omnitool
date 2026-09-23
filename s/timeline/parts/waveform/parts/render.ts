@@ -1,11 +1,14 @@
 
+import type {WaveformTileRenderer} from "./types.js"
+
 export function renderTile(
 	peaks: Float32Array,
 	opts: {
 		width: number
 		height: number
 		color: string
-	}
+	},
+	draw?: WaveformTileRenderer,
 ) {
 	const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1
 	const canvas = document.createElement("canvas")
@@ -18,10 +21,25 @@ export function renderTile(
 	if (!ctx) return canvas
 
 	ctx.scale(dpr, dpr)
-	ctx.fillStyle = opts.color
+	const input = {
+		context: ctx,
+		peaks,
+		bounds: {width: opts.width, height: opts.height},
+	}
+	if (draw)
+		draw(input)
+	else
+		drawDefaultWaveformTile(input, opts.color)
 
-	const centerY = opts.height / 2
-	const columns = Math.max(1, opts.width)
+	return canvas
+}
+
+function drawDefaultWaveformTile({context, peaks, bounds}: Parameters<WaveformTileRenderer>[0], color: string) {
+	const {width, height} = bounds
+	context.fillStyle = color
+
+	const centerY = height / 2
+	const columns = Math.max(1, width)
 	const peaksPerPixel = peaks.length / columns
 
 	for (let px = 0; px < columns; px++) {
@@ -36,10 +54,8 @@ export function renderTile(
 			if (peaks[i]! > maxPeak) maxPeak = peaks[i]!
 		}
 
-		const barHeight = maxPeak * opts.height
-		ctx.fillRect(px, centerY - barHeight / 2, 1, barHeight)
+		const barHeight = maxPeak * height
+		context.fillRect(px, centerY - barHeight / 2, 1, barHeight)
 	}
-
-	return canvas
 }
 

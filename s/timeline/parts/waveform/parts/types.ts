@@ -5,6 +5,17 @@ export interface WaveformTileData {
 	canvas: HTMLCanvasElement
 }
 
+export type WaveformTileRenderInput = {
+	context: CanvasRenderingContext2D
+	peaks: Float32Array
+	bounds: {
+		width: number
+		height: number
+	}
+}
+
+export type WaveformTileRenderer = (input: WaveformTileRenderInput) => void
+
 export interface WaveformOptions {
 	tileSize?: number
 	zoom?: number
@@ -12,6 +23,7 @@ export interface WaveformOptions {
 	tileHeight?: number
 	preloadMargin?: number
 	color?: string
+	drawTile?: WaveformTileRenderer
 	onChange?: (tiles: WaveformTileData[]) => void
 }
 

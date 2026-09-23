@@ -22,6 +22,7 @@ export * from "./parts/waveform/waveform.js"
 export * from "./parts/waveform/parts/types.js"
 export * from "./renderers/player/player.js"
 export * from "./renderers/export/produce.js"
+export * from "./renderers/export/parts/produce-audio.js"
 
 export * from "./sugar/o.js"
 export * from "./sugar/helpers.js"

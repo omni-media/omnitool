@@ -21,22 +21,30 @@ export function produceAudio({
 	const writer = stream.writable.getWriter()
 
 	async function produce() {
-		for await (const chunk of mixer.mix(audio)) {
-			const data = new AudioData({
-				format: 'f32-planar',
-				sampleRate: chunk.sampleRate,
-				numberOfFrames: chunk.frames,
-				numberOfChannels: chunk.channels,
-				timestamp: Math.round(
-					(chunk.startFrame / chunk.sampleRate) * 1_000_000
-				),
-				data: new Float32Array(chunk.planar)
-			})
+		try {
+			for await (const chunk of mixer.mix(audio)) {
+				const data = new AudioData({
+					format: 'f32-planar',
+					sampleRate: chunk.sampleRate,
+					numberOfFrames: chunk.frames,
+					numberOfChannels: chunk.channels,
+					timestamp: Math.round(
+						(chunk.startFrame / chunk.sampleRate) * 1_000_000
+					),
+					data: new Float32Array(chunk.planar)
+				})
 
-			await writer.write(data)
+				await writer.write(data)
+			}
+
+			await writer.close()
 		}
-
-		await writer.close()
+		catch (error) {
+			try {
+				await writer.abort(error)
+			}
+			catch {}
+		}
 	}
 
 	produce()

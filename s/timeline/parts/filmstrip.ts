@@ -1,3 +1,5 @@
+
+import {queue} from "@e280/stz"
 import {
 	ALL_FORMATS,
 	CanvasSink,
@@ -14,6 +16,8 @@ export class Filmstrip {
 	#sink
 	#activeRange: TimeRange = [0, 0]
 	#cache: Map<number, WrappedCanvas> = new Map()
+
+	static #generate = queue((job: () => Promise<void>) => job())
 
 	private constructor(
 		videoTrack: InputVideoTrack,
@@ -75,14 +79,17 @@ export class Filmstrip {
 		const missingTimestamps = [...neededTimestamps]
 			.filter(t => !this.#cache.has(t))
 
-		let i = 0
-		for await (const canvas of this.#sink.canvasesAtTimestamps(missingTimestamps)) {
-			const requestedTime = missingTimestamps[i++]
-			if(canvas) {
-				this.#cache.set(requestedTime, canvas)
+		// Generate thumbnails one clip at a time to keep the UI responsive.
+		await Filmstrip.#generate(async () => {
+			let i = 0
+			for await (const canvas of this.#sink.canvasesAtTimestamps(missingTimestamps)) {
+				const requestedTime = missingTimestamps[i++]
+				if(canvas) {
+					this.#cache.set(requestedTime, canvas)
+				}
+				await new Promise<void>(resolve => setTimeout(resolve))
 			}
-			await new Promise<void>(resolve => setTimeout(resolve))
-		}
+		})
 
 		// Dispose canvases outside the new range
 		for (const key of this.#cache.keys()) {
@@ -165,3 +172,4 @@ interface FilmstripOptions {
 		canvas: WrappedCanvas
 	}[]) => void
 }
+

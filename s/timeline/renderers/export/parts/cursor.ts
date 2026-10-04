@@ -4,6 +4,7 @@ import {ALL_FORMATS, Input, VideoSampleSink} from "mediabunny"
 import {ms, Ms} from "../../../../units/ms.js"
 import {Driver} from "../../../../driver/driver.js"
 import {Id, TimelineFile} from "../../../parts/basics.js"
+import {transitionDurationAfter} from "../../parts/handy.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
@@ -30,7 +31,7 @@ abstract class BaseVisualSampler {
 
 			if (!cursor) {
 				const source = this.resolveMedia(item.mediaHash)
-				const endUs = toUs(ms(item.start + item.duration))
+				const endUs = toUs(ms(item.start + item.duration + transitionDurationAfter(timeline, item.id)))
 				cursor = this.createCursor(source, targetUs, endUs)
 				this.#videoCursors.set(item.id, cursor)
 			}
@@ -68,8 +69,8 @@ export class CursorVisualSampler extends BaseVisualSampler {
 		return this.sample(timecode)
 	}
 
-	protected createCursor(source: DecoderSource, startUs: number, _endUs: number): VideoFrameCursor {
-		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000})
+	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
+		const video = this.driver.decodeVideo({source, start: startUs / 1_000_000, end: endUs / 1_000_000})
 		const reader = video.readable.getReader()
 
 		let current: VideoFrame | null = null

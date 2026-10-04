@@ -7,6 +7,14 @@ import {I6, Mat6, mul6, transformToMat6} from '../../utils/matrix.js'
 import {ContainerItem, Item, Kind, PlayableItem} from '../../parts/item.js'
 import {resolveScalarAnimation, resolveTransformAnimation} from '../../utils/anim.js'
 
+export function transitionDurationAfter(timeline: TimelineFile, clipId: Id) {
+	const children = timeline.items
+		.filter(item => item.kind === Kind.Sequence)
+		.find(item => item.childrenIds.includes(clipId))?.childrenIds
+	const next = timeline.items.find(item => item.id === children?.[children.indexOf(clipId) + 1])
+	return next?.kind === Kind.Transition && next.enabled !== false ? next.duration : 0
+}
+
 function isPlayableItem(item: Item.Any): item is PlayableItem {
 	return 'duration' in item
 }

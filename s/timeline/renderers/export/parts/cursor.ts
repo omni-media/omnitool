@@ -82,6 +82,11 @@ export class CursorVisualSampler extends BaseVisualSampler {
 			const {done, value} = await reader.read()
 			if (done) return (ended = true, null)
 
+			if (ended) {
+				value.close()
+				return null
+			}
+
 			const frame = new VideoFrame(value)
 			value.close()
 			return frame
@@ -133,6 +138,13 @@ export class CursorVisualSampler extends BaseVisualSampler {
 				current = null
 
 				video.cancel()
+
+				while (true) {
+					const {done, value} = await reader.read()
+					if (done) break
+					value.close()
+				}
+				reader.releaseLock()
 			}
 		}
 	}

@@ -1,4 +1,6 @@
 
+import {AudioSampleSink} from "mediabunny"
+
 import {AudioSinkPool} from "./sink.js"
 import {ActiveStream} from "./types.js"
 import {itemsFrom} from "../../../handy.js"
@@ -25,7 +27,7 @@ export async function initStreams(
 			const mediaTime = item.start + localTime
 			const mediaEnd = item.start + item.duration
 			const offset = seconds((timelineStart - item.start) / 1000)
-			const iter = sink.samples(mediaTime / 1000, mediaEnd / 1000)
+			const iter = trimmedSamples(sink, mediaTime / 1000, mediaEnd / 1000)
 
 			const first = await iter.next()
 			if (first.done)
@@ -62,5 +64,31 @@ export async function initStreams(
 	)
 
 	return streams.filter((stream): stream is ActiveStream => !!stream)
+}
+
+async function* trimmedSamples(sink: AudioSampleSink, start: number, end: number) {
+	for await (const sample of sink.samples(Math.max(0, start - 0.1), end)) {
+		const frameAt = (time: number) => clamp(
+			Math.round((time - sample.timestamp) * sample.sampleRate), 0, sample.numberOfFrames
+		)
+
+		const from = frameAt(start)
+		const to = frameAt(end)
+
+		if (!from && to === sample.numberOfFrames) {
+			yield sample
+			continue
+		}
+
+		const trimmed = to > from && sample.trim(from, to)
+		sample.close()
+
+		if (trimmed)
+			yield trimmed
+	}
+}
+
+function clamp(value: number, min: number, max: number) {
+	return Math.min(max, Math.max(min, value))
 }
 

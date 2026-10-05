@@ -211,6 +211,15 @@ export class Playback {
 			while (timestamp - (ctx.currentTime - this.#audioStartSec + from) > 0.75)
 				await new Promise(r => setTimeout(r, 25))
 
+			const startAt = this.#audioStartSec + timestamp - from
+			const offset = Math.max(0, ctx.currentTime - startAt)
+			const duration = sample.duration - offset
+
+			if (duration <= 0) {
+				sample.close()
+				continue
+			}
+
 			const node = ctx.createBufferSource()
 			const itemGain = ctx.createGain()
 			node.buffer = sample.toAudioBuffer()
@@ -227,11 +236,7 @@ export class Playback {
 			this.audioNodes.set(node, itemGain)
 			this.audioLevels.attach(itemId, itemGain)
 
-			const startAt = this.#audioStartSec + timestamp - from
-
-			startAt >= ctx.currentTime
-				? node.start(startAt)
-				: node.start(ctx.currentTime, ctx.currentTime - startAt)
+			node.start(startAt + offset, offset, duration)
 
 		}
 	}

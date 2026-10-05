@@ -15,4 +15,5 @@ export type ActiveStream = {
 		gain: number
 	}
 	advance: () => Promise<boolean>
+	cancel: () => Promise<void>
 }

@@ -17,16 +17,20 @@ export function createAudioSampler(resolveMedia: (hash: string) => DecoderSource
 			const items = itemsFrom({timeline, from})
 			const streams = await initStreams(sinkPool, items)
 
-			while (streams.length > 0) {
-				const {stream, index} = findEarliestStream(streams)
+			try {
+				while (streams.length > 0) {
+					const {stream, index} = findEarliestStream(streams)
 
-				yield stream.output()
+					yield stream.output()
 
-				const advancing = await stream.advance()
+					const advancing = await stream.advance()
 
-				if (!advancing) {
-					streams.splice(index, 1)
+					if (!advancing) {
+						streams.splice(index, 1)
+					}
 				}
+			} finally {
+				await Promise.all(streams.map(stream => stream.cancel()))
 			}
 
 		}

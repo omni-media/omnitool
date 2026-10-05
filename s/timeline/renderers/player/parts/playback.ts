@@ -214,6 +214,7 @@ export class Playback {
 			const node = ctx.createBufferSource()
 			const itemGain = ctx.createGain()
 			node.buffer = sample.toAudioBuffer()
+			sample.close()
 			itemGain.gain.value = gain
 			node.connect(itemGain)
 			itemGain.connect(this.#masterGain)

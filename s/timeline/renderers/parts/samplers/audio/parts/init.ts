@@ -32,7 +32,6 @@ export async function initStreams(
 				return
 
 			let currentSample = first.value
-			let nextPromise = iter.next()
 
 			return {
 				offset,
@@ -46,14 +45,17 @@ export async function initStreams(
 					gain: item.gain ?? 1
 				}),
 				advance: async () => {
-					const result = await nextPromise
+					const result = await iter.next()
 					if (result.done)
 						return false
 
 					currentSample = result.value
-					nextPromise = iter.next()
 
 					return true
+				},
+				cancel: async () => {
+					currentSample.close()
+					await iter.return()
 				}
 			}
 		})

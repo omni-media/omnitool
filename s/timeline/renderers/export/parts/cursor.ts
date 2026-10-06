@@ -2,22 +2,21 @@
 import {ALL_FORMATS, Input, VideoSampleSink} from "mediabunny"
 
 import {ms, Ms} from "../../../../units/ms.js"
+import {Item, Kind} from "../../../parts/item.js"
 import {Driver} from "../../../../driver/driver.js"
 import {Id, TimelineFile} from "../../../parts/basics.js"
-import {transitionDurationAfter} from "../../parts/handy.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
-import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
+import {itemsFrom, transitionDurationAfter} from "../../parts/handy.js"
 import {createVisualSampler} from "../../parts/samplers/visual/sampler.js"
+import {loadDecoderSource} from "../../../../driver/utils/load-decoder-source.js"
 
-type StreamCursor<T> = {
-	next(target: number): Promise<T | undefined>
+type VideoFrameCursor = {
+	next(target: number): Promise<VideoFrame | undefined>
 	cancel(): Promise<void>
 }
 
-type VideoFrameCursor = StreamCursor<VideoFrame>
-
 abstract class BaseVisualSampler {
-	readonly #videoCursors = new Map<Id, VideoFrameCursor>()
+	protected readonly videoCursors = new Map<Id, {cursor: VideoFrameCursor, ready?: Promise<void>}>()
 	readonly #sampler
 
 	constructor(
@@ -25,19 +24,23 @@ abstract class BaseVisualSampler {
 		protected resolveMedia: (hash: string) => DecoderSource,
 		protected timeline: TimelineFile
 	) {
-		this.#sampler = createVisualSampler(this.resolveMedia, (item, time) => {
+		this.#sampler = createVisualSampler(this.resolveMedia, async (item, time) => {
 			const targetUs = toUs(ms(item.start + time))
-			let cursor = this.#videoCursors.get(item.id)
-
-			if (!cursor) {
-				const source = this.resolveMedia(item.mediaHash)
-				const endUs = toUs(ms(item.start + item.duration + transitionDurationAfter(timeline, item.id)))
-				cursor = this.createCursor(source, targetUs, endUs)
-				this.#videoCursors.set(item.id, cursor)
-			}
-
-			return cursor.next(targetUs)
+			const entry = this.getCursor(item, targetUs)
+			await entry.ready
+			return entry.cursor.next(targetUs)
 		})
+	}
+
+	protected getCursor(item: Item.Video | Item.Clip, startUs: number) {
+		let entry = this.videoCursors.get(item.id)
+		if (!entry) {
+			const source = this.resolveMedia(item.mediaHash)
+			const endUs = toUs(ms(item.start + item.duration + transitionDurationAfter(this.timeline, item.id)))
+			entry = {cursor: this.createCursor(source, startUs, endUs)}
+			this.videoCursors.set(item.id, entry)
+		}
+		return entry
 	}
 
 	protected abstract createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor
@@ -47,8 +50,8 @@ abstract class BaseVisualSampler {
 	}
 
 	async cancel() {
-		await Promise.all([...this.#videoCursors.values()].map(c => c.cancel()))
-		this.#videoCursors.clear()
+		await Promise.all([...this.videoCursors.values()].map(({cursor}) => cursor.cancel()))
+		this.videoCursors.clear()
 	}
 }
 
@@ -60,13 +63,45 @@ abstract class BaseVisualSampler {
 
 export class CursorVisualSampler extends BaseVisualSampler {
 	#lastTimecode = -Infinity
+	#preparing: Promise<void> | null = null
+	#canceled = false
+	#upcoming = upcomingVideos(this.timeline)
 
 	next(timecode: Ms) {
 		if (timecode < this.#lastTimecode)
 			throw new Error(`Forward-only cursor regression: ${timecode}ms < ${this.#lastTimecode}ms`)
 
 		this.#lastTimecode = timecode
+		for (const {item, end} of this.#upcoming) {
+			const entry = end <= timecode && this.videoCursors.get(item.id)
+			if (!entry) continue
+			this.videoCursors.delete(item.id)
+			entry.cursor.cancel().catch(error => console.error("Video cursor cleanup failed", error))
+		}
+		if (!this.#preparing && !this.#canceled) {
+			this.#preparing = this.#prepareAhead()
+				.catch(error => console.error("Video lookahead preparation failed", error))
+				.finally(() => this.#preparing = null)
+		}
 		return this.sample(timecode)
+	}
+
+	async #prepareAhead() {
+		while (!this.#canceled) {
+			const next = this.#upcoming.find(({item, start}) => start > this.#lastTimecode &&
+				start <= this.#lastTimecode + 500 && !this.videoCursors.has(item.id))
+			if (!next) return
+			const targetUs = toUs(ms(next.mediaStart))
+			const entry = this.getCursor(next.item, targetUs)
+			entry.ready = entry.cursor.next(targetUs).then(frame => frame?.close())
+			await entry.ready
+		}
+	}
+
+	async cancel() {
+		this.#canceled = true
+		await super.cancel()
+		await this.#preparing
 	}
 
 	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
@@ -100,20 +135,15 @@ export class CursorVisualSampler extends BaseVisualSampler {
 				while (true) {
 					nextPromise ??= readNext()
 					const nextFrame = await nextPromise
+					if (!current) return undefined
 
 					if (!nextFrame) return new VideoFrame(current)
 
-					const currentUs = current.timestamp ?? -Infinity
-					const nextUs = nextFrame.timestamp ?? currentUs
+					const currentUs = current.timestamp
+					const nextUs = nextFrame.timestamp
 
-					if (nextUs < targetUs) {
-						current.close()
-						current = nextFrame
-						nextPromise = null
-						continue
-					}
-
-					const useNext = Math.abs(nextUs - targetUs) < Math.abs(currentUs - targetUs)
+					const useNext = nextUs < targetUs ||
+						Math.abs(nextUs - targetUs) < Math.abs(currentUs - targetUs)
 
 					if (useNext) {
 						current.close()
@@ -272,7 +302,7 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 				let bestDistance = Infinity
 
 				for (const frame of frames) {
-					const distance = Math.abs((frame.timestamp ?? targetUs) - targetUs)
+					const distance = Math.abs(frame.timestamp - targetUs)
 					if (distance < bestDistance) {
 						best = frame
 						bestDistance = distance
@@ -302,3 +332,51 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 }
 
 const toUs = (ms: Ms) => Math.round(ms * 1_000)
+
+type UpcomingVideo = {
+	item: Item.Video | Item.Clip
+	start: number
+	end: number
+	mediaStart: number
+}
+
+const upcomingVideos = (timeline: TimelineFile): UpcomingVideo[] => {
+	const items = new Map(timeline.items.map(item => [item.id, item]))
+	const incomingHandles = new Map<Id, number>()
+
+	for (const sequence of timeline.items.filter(item => item.kind === Kind.Sequence)) {
+		for (const [index, id] of sequence.childrenIds.entries()) {
+			const previous = items.get(sequence.childrenIds[index - 1])
+			if (previous?.kind === Kind.Transition && previous.enabled !== false)
+				incomingHandles.set(id, previous.duration)
+		}
+	}
+
+	const upcoming: UpcomingVideo[] = []
+
+	for (const {item, timelineStart, ancestors} of itemsFrom({timeline, from: ms(0)})) {
+		if (
+			(item.kind !== Kind.Video && item.kind !== Kind.Clip) ||
+			item.duration <= 0 ||
+			item.enabled === false ||
+			ancestors.some(({item}) => item.enabled === false)
+		)
+			continue
+
+		const handle = incomingHandles.get(item.id) ?? 0
+		const ancestorHandles = ancestors.reduce(
+			(duration, {item}) => duration + transitionDurationAfter(timeline, item.id),
+			0
+		)
+
+		upcoming.push({
+			item,
+			start: timelineStart - handle,
+			end: timelineStart + item.duration + transitionDurationAfter(timeline, item.id) + ancestorHandles,
+			mediaStart: Math.max(0, item.start - handle)
+		})
+	}
+
+	return upcoming.sort((a, b) => a.start - b.start)
+}
+

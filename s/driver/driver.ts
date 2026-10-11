@@ -1,5 +1,5 @@
 
-import {is} from "@e280/stz"
+import {isHappy} from "@e280/stz"
 import {Comrade, tune, Thread} from "@e280/comrade"
 import {ALL_FORMATS, Input, type StreamTargetChunk} from "mediabunny"
 
@@ -110,7 +110,7 @@ export class Driver {
 
 	encode({audio, video, config}: EncoderInput) {
 		const {readable, writable} = new TransformStream<StreamTargetChunk, StreamTargetChunk>()
-		const transfer = [audio, video, writable].filter(is.happy)
+		const transfer = [audio, video, writable].filter(isHappy)
 		const done = this.thread.work.encode[tune]({transfer})({audio, video, config, writable})
 		return {readable, done}
 	}

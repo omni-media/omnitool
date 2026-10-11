@@ -1,32 +1,33 @@
 
-import {ssg, html} from "@e280/scute"
+import {template, html, socialCard} from "@e280/scute"
 
 const title = "omnitool"
 const domain = "omnitool.omniclip.app"
 const favicon = "/assets/favicon.png"
 
-export default ssg.page(import.meta.url, async orb => ({
-	title,
-	// favicon,
-	dark: true,
-	css: "demo/demo.css",
-	js: "demo/demo.bundle.min.js",
-
-	head: html`
+export default template(import.meta.url, async orb => html`
+	<!doctype html>
+	<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<meta name="darkreader-lock">
+		<style>@layer base{html{background:#000}}</style>
+		<title>${title}</title>
+		<link rel="stylesheet" href="${orb.hashurl("demo/demo.css")}">
+		<script type="module" src="${orb.hashurl("demo/demo.bundle.min.js")}"></script>
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Share+Tech&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
-	`,
-
-	socialCard: {
+		${socialCard({
 		title,
 		description: "video processing toolkit",
 		themeColor: "#3cff9c",
 		siteName: domain,
 		image: `https://${domain}${favicon}`,
-	},
-
-	body: html`
+		})}
+	</head>
+	<body>
 		<section>
 			<header class="hero">
 				<div>
@@ -132,5 +133,6 @@ export default ssg.page(import.meta.url, async orb => ({
 			</div>
 
 		</section>
-	`,
-}))
+	</body>
+	</html>
+`)

@@ -12,7 +12,8 @@
 		"esModuleInterop": true,
 		"sourceMap": true,
 		"declaration": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"types": ["node", "wicg-file-system-access"]
 	},
 	"include": [
 		"s/**/*.ts",

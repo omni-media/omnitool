@@ -1,4 +1,3 @@
-//@ts-ignore
 import transitions from "gl-transitions"
 import {Filter, GlProgram, RenderTexture, Sprite, Texture} from "pixi.js"
 
@@ -8,7 +7,7 @@ import {fragment} from "./parts/fragment.js"
 import {GLTransition, TransitionOptions, TransitionRendererOptions} from "./parts/types.js"
 
 export function makeTransition({name, renderer}: TransitionOptions) {
-	const transition = transitions.find((t: GLTransition) => t.name === name) as GLTransition
+	const transition = (transitions as unknown as GLTransition[]).find(t => t.name === name) as GLTransition
 	const transitionSprite = new Sprite(Texture.WHITE)
 	const output = RenderTexture.create({width: 1, height: 1})
 

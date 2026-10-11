@@ -8,8 +8,9 @@ export async function loadPipe(options: PipeOptions) {
 	const pipe = await pipeline(options.task, spec.model, {
 		device: spec.device,
 		dtype: spec.dtype,
-		progress_callback: (data: any) => {
-			onLoading({total: data.total, progress: data.progress})
+		progress_callback: data => {
+			if (data.status === "progress_total")
+				onLoading({total: data.total, progress: data.progress})
 		},
 	})
 

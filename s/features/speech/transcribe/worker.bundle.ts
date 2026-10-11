@@ -1,14 +1,14 @@
 
 import {defer, once} from "@e280/stz"
 import {Comrade, Host} from "@e280/comrade"
-import {AutomaticSpeechRecognitionPipeline, Pipeline} from "@huggingface/transformers"
+import {AutomaticSpeechRecognitionPipeline} from "@huggingface/transformers"
 
 import {loadPipe} from "../../parts/load-pipe.js"
 import {transcribe} from "./parts/transcribe.js"
 import {exposeErrors} from "../../parts/expose-errors.js"
 import {TranscriberSchematic, TranscriberSpec} from "./types.js"
 
-const deferred = defer<{pipe: Pipeline, spec: TranscriberSpec}>()
+const deferred = defer<{pipe: AutomaticSpeechRecognitionPipeline, spec: TranscriberSpec}>()
 
 const makePrepare = (host: Host<TranscriberSchematic>) => once(async(spec: TranscriberSpec) => {
 	deferred.resolve({

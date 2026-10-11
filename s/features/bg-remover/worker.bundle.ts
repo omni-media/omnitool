@@ -34,8 +34,7 @@ await Comrade.worker<BgRemoverSchematic>(shell => {
 			canvas.height = request.displayHeight
 			ctx?.drawImage(request, 0, 0)
 
-			const output = await pipe(canvas)
-			const mask = output[0]
+			const mask = await pipe(canvas)
 
 			const frame = new VideoFrame(mask.toCanvas(), {
 				timestamp: request.timestamp,

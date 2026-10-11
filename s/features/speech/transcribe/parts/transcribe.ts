@@ -1,6 +1,6 @@
 
 import {WhisperTextStreamer} from "@huggingface/transformers"
-import {TranscribeOptions} from "../types.js"
+import {TranscribeOptions, Transcription} from "../types.js"
 
 export async function transcribe(options: TranscribeOptions) {
 	const {pipe, spec, request, callbacks} = options
@@ -55,12 +55,12 @@ export async function transcribe(options: TranscribeOptions) {
 		do_sample: false,
 		chunk_length_s: spec.chunkLength,
 		stride_length_s: spec.strideLength,
-		language: request.language,
+		language: request.language ?? undefined,
 		task: "transcribe",
 		return_timestamps: "word", // if using "word" the on_chunk_start & end is not called thus we cant retrieve timestamps, only after whole thing finishes
 		force_full_sequences: false,
 		streamer,
-	})
+	}) as Transcription
 
 	return {
 		text: result.text,

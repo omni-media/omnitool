@@ -1,6 +1,6 @@
 
 import {AsSchematic} from "@e280/comrade"
-import {Pipeline} from "@huggingface/transformers"
+import {AutomaticSpeechRecognitionPipeline} from "@huggingface/transformers"
 
 import {Loading, PipelineSpec} from "../../parts/types.js"
 import {Driver} from "../../../driver/driver.js"
@@ -19,7 +19,7 @@ export type TranscriberSchematic = AsSchematic<{
 }>
 
 export type TranscribeOptions = {
-	pipe: Pipeline
+	pipe: AutomaticSpeechRecognitionPipeline
 	spec: TranscriberSpec
 	request: TranscriptionRequest
 	callbacks: TranscriptionCallbacks

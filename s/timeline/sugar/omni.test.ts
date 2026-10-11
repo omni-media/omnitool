@@ -9,7 +9,7 @@ import {Datafile} from "../utils/datafile.js"
 import {loadVideo} from "../../demo/routines/load-video.js"
 import {computeItemDuration} from "../renderers/parts/handy.js"
 
-const workerUrl = new URL("../driver/driver.worker.bundle.min.js", import.meta.url)
+const workerUrl = new URL("../../demo/driver.worker.bundle.min.js", import.meta.url)
 export async function setupTest() {
 	const driver = await Driver.setup({workerUrl})
 	const omni = new Omni(driver)
@@ -22,7 +22,7 @@ export async function setupTest() {
 
 export default Science.suite({
 	"basic demo": test(async () => {
-		const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
+		const driver = await Driver.setup({workerUrl})
 		const omni = new Omni(driver)
 
 		const testVideo = await loadVideo("/assets/temp/test.mp4")

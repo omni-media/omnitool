@@ -27,12 +27,23 @@ npx skills add omni-media/omnitool
 
 ## 📦 Quick Start
 
-#### Loading media
+#### Setup
+
+Create a worker entry in your app:
+
+```js
+// driver.worker.js
+import {setupDriverWorker} from "@omnimedia/omnitool/worker"
+
+await setupDriverWorker()
+```
+
+Pass its browser-loadable URL to the Driver:
 
 ```ts
 import {Driver, Omni, Datafile} from "@omnimedia/omnitool"
 
-const driver = await Driver.setup()
+const driver = await Driver.setup({workerUrl: "/driver.worker.js"})
 const omni = new Omni(driver)
 
 const {clip} = await omni.load({
@@ -89,7 +100,7 @@ import {
 	timeline, sequence, stack, clip, text, gap, transition, filter
 } from "@omnimedia/omnitool"
 
-const driver = await Driver.setup()
+const driver = await Driver.setup({workerUrl: "/driver.worker.js"})
 const omni = new Omni(driver)
 const {footage} = await omni.load({footage: Datafile.make(file)})
 
@@ -536,18 +547,6 @@ const options = Object.entries(transitions).map(([key, transition]) => ({
 	key,
 	label: transition.label,
 }))
-```
-
-Worker URL notes:
-- `Driver.setup()` defaults to `/node_modules/@omnimedia/omnitool/x/driver/driver.worker.bundle.min.js`.
-- If you serve the worker from a different location, pass `workerUrl`:
-
-```ts
-const workerUrl = new URL(
-	"/path/to/driver.worker.bundle.min.js",
-	window.location.href
-)
-const driver = await Driver.setup({workerUrl})
 ```
 
 ## ▶️ Playback

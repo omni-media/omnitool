@@ -2,7 +2,7 @@
 import {Driver} from "./driver.js"
 import {Science, test, expect} from "@e280/science"
 
-const workerUrl = new URL("./driver.worker.bundle.js", import.meta.url)
+const workerUrl = new URL("../demo/driver.worker.bundle.min.js", import.meta.url)
 
 export default Science.suite({
 	"driver hello world": test.skip(async() => {

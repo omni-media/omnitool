@@ -17,7 +17,7 @@ import {CursorVisualSampler} from "./export/parts/cursor.js"
 import {applyGainToPlanar} from "./export/parts/audio-gain.js"
 import {createVisualSampler} from "./parts/samplers/visual/sampler.js"
 
-const workerUrl = new URL("../driver/driver.worker.bundle.min.js", import.meta.url)
+const workerUrl = new URL("../../demo/driver.worker.bundle.min.js", import.meta.url)
 export async function setupTest() {
 	const driver = await Driver.setup({workerUrl})
 	const omni = new Omni(driver)

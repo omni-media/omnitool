@@ -7,11 +7,9 @@
 	"type": "module",
 	"main": "x/index.js",
 	"exports": {
-		".": {
-			"types": "./x/index.d.ts",
-			"default": "./x/index.js"
-		},
-		"./*": "./*"
+		".": "./x/index.js",
+		"./worker": "./x/worker.js",
+		"./skills": "./skills"
 	},
 	"files": [
 		"x",

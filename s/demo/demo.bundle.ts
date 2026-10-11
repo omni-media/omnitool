@@ -1,13 +1,13 @@
 
 import {Driver} from "../driver/driver.js"
-import type {Omni, TimelineFile} from "../timeline/index.js"
 import {playbackTest} from "./routines/playback-test.js"
 import {waveformTest} from "./routines/waveform-test.js"
-import {TimelineSchemaTest } from "./routines/timeline-setup.js"
 import {filmstripTest} from "./routines/filmstrip-test.js"
+import type {Omni, TimelineFile} from "../timeline/index.js"
+import {TimelineSchemaTest} from "./routines/timeline-setup.js"
 import {setupTranscodeTest} from "./routines/transcode-test.js"
 
-const driver = await Driver.setup({workerUrl: new URL("../driver/driver.worker.bundle.min.js", import.meta.url)})
+const driver = await Driver.setup({workerUrl: new URL("./driver.worker.bundle.min.js", import.meta.url)})
 
 const transcodeCard = document.querySelector("[data-demo='transcode']") as HTMLElement
 const filmstripCard = document.querySelector("[data-demo='filmstrip']") as HTMLElement

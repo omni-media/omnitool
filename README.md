@@ -196,6 +196,15 @@ const timeline = omni.timeline(o => {
 
 Use omnitool's built in speech-to-text with default model:
 
+Create a separate worker entry:
+
+```js
+// transcriber.worker.js
+import {setupTranscriberWorker} from "@omnimedia/omnitool/worker"
+
+await setupTranscriberWorker()
+```
+
 ```ts
 import {makeTranscriber, defaultTranscriberSpec} from "@omnimedia/omnitool"
 
@@ -203,7 +212,7 @@ import {makeTranscriber, defaultTranscriberSpec} from "@omnimedia/omnitool"
 const transcriber = await makeTranscriber({
 	driver,
 	spec: defaultTranscriberSpec(),
-	workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+	workerUrl: "/transcriber.worker.js",
 	onLoading: loading => console.log("loading", loading),
 })
 
@@ -232,7 +241,7 @@ const transcriber = await makeTranscriber({
 	  chunkLength: 20,
 	  strideLength: 3
 	},
-	workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+	workerUrl: "/transcriber.worker.js",
 	onLoading: loading => console.log("loading", loading),
 })
 ```
@@ -242,7 +251,6 @@ const transcriber = await makeTranscriber({
 > The model must support word-level timestamps because captions use `return_timestamps: "word"`.
 > `device` and `dtype` are passed to Transformers.js and depend on your runtime/model.
 > Browser usage commonly uses `"wasm"` or `"webgpu"`. `"webgpu"` for speed, `"wasm"` for more device support
-> `workerUrl` depends on where you host the worker bundle.
 
 `o.captions(source, transcript, options)` creates a caption for a Video, Audio, or Clip
 and returns a Stack containing the caption and source.
@@ -275,12 +283,21 @@ import `captionPresets` to list available caption looks.
 
 ## 🧼 Background Remover
 
+Create a separate worker entry:
+
+```js
+// bg-remover.worker.js
+import {setupBgRemoverWorker} from "@omnimedia/omnitool/worker"
+
+await setupBgRemoverWorker()
+```
+
 ```ts
 import {makeBgRemover, defaultBgRemoverSpec} from "@omnimedia/omnitool"
 
 const bgRemover = await makeBgRemover({
 	spec: defaultBgRemoverSpec(),
-	workerUrl: new URL("/features/bg-remover/worker.bundle.min.js", import.meta.url),
+	workerUrl: "/bg-remover.worker.js",
 	onLoading: loading => console.log("loading", loading),
 })
 
@@ -294,7 +311,7 @@ Use it on image or while decoding a video:
 ```ts
 const bgRemover = await makeBgRemover({
 	spec: defaultBgRemoverSpec(),
-	workerUrl: new URL("/features/bg-remover/worker.bundle.min.js", import.meta.url),
+	workerUrl: "/bg-remover.worker.js",
 	onLoading: loading => console.log("loading", loading),
 })
 

@@ -11,7 +11,7 @@ export async function transcriberTest(driver: Driver) {
 			chunkLength: 30,
 			dtype: "fp32"
 		},
-		workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+		workerUrl: new URL("../transcriber.worker.bundle.min.js", import.meta.url),
 		onLoading({progress, total}) {
 	  	console.log(progress, total, "total")
 		},

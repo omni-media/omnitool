@@ -6,7 +6,7 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 	const transcriber = await makeTranscriber({
 		driver,
 		spec: defaultTranscriberSpec(),
-		workerUrl: new URL("/features/speech/transcribe/worker.bundle.min.js", import.meta.url),
+		workerUrl: new URL("../transcriber.worker.bundle.min.js", import.meta.url),
 		onLoading: loading => console.log("transcriber loading", loading),
 	})
 

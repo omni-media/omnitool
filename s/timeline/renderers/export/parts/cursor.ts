@@ -18,12 +18,18 @@ type VideoFrameCursor = {
 abstract class BaseVisualSampler {
 	protected readonly videoCursors = new Map<Id, {cursor: VideoFrameCursor, ready?: Promise<void>}>()
 	readonly #sampler
+	#upcoming: UpcomingVideo[]
+	#lastTimecode = 0
+	#direction = 1
+	#preparing: Promise<void> | null = null
+	#canceled = false
 
 	constructor(
 		protected driver: Driver,
 		protected resolveMedia: (hash: string) => DecoderSource,
 		protected timeline: TimelineFile
 	) {
+		this.#upcoming = upcomingVideos(timeline)
 		this.#sampler = createVisualSampler(this.resolveMedia, async (item, time) => {
 			const targetUs = toUs(ms(item.start + time))
 			const entry = this.getCursor(item, targetUs)
@@ -49,31 +55,12 @@ abstract class BaseVisualSampler {
 		return this.#sampler.sample(this.timeline, timecode)
 	}
 
-	async cancel() {
-		await Promise.all([...this.videoCursors.values()].map(({cursor}) => cursor.cancel()))
-		this.videoCursors.clear()
-	}
-}
-
-/**
- * forward-only frame cursor optimized for export purposes.
- * it uses mediabunny internally so the support for non-clients
- * should be done from mediabunny custom decoder/encoder
- */
-
-export class CursorVisualSampler extends BaseVisualSampler {
-	#lastTimecode = -Infinity
-	#preparing: Promise<void> | null = null
-	#canceled = false
-	#upcoming = upcomingVideos(this.timeline)
-
-	next(timecode: Ms) {
-		if (timecode < this.#lastTimecode)
-			throw new Error(`Forward-only cursor regression: ${timecode}ms < ${this.#lastTimecode}ms`)
-
+	protected advance(timecode: Ms, direction: 1 | -1) {
 		this.#lastTimecode = timecode
-		for (const {item, end} of this.#upcoming) {
-			const entry = end <= timecode && this.videoCursors.get(item.id)
+		this.#direction = direction
+		for (const {item, start, end} of this.#upcoming) {
+			const passed = direction === 1 ? end <= timecode : start > timecode
+			const entry = passed && this.videoCursors.get(item.id)
 			if (!entry) continue
 			this.videoCursors.delete(item.id)
 			entry.cursor.cancel().catch(error => console.error("Video cursor cleanup failed", error))
@@ -88,10 +75,16 @@ export class CursorVisualSampler extends BaseVisualSampler {
 
 	async #prepareAhead() {
 		while (!this.#canceled) {
-			const next = this.#upcoming.find(({item, start}) => start > this.#lastTimecode &&
-				start <= this.#lastTimecode + 500 && !this.videoCursors.has(item.id))
+			const next = this.#upcoming.find(({item, start, end}) => {
+				const distance = this.#direction === 1
+					? start - this.#lastTimecode
+					: this.#lastTimecode - end
+				return distance > 0 && distance <= 500 && !this.videoCursors.has(item.id)
+			})
 			if (!next) return
-			const targetUs = toUs(ms(next.mediaStart))
+			const targetUs = this.#direction === 1
+				? toUs(ms(next.mediaStart))
+				: toUs(ms(next.item.start + next.item.duration + transitionDurationAfter(this.timeline, next.item.id))) - 1
 			const entry = this.getCursor(next.item, targetUs)
 			entry.ready = entry.cursor.next(targetUs).then(frame => frame?.close())
 			await entry.ready
@@ -100,8 +93,27 @@ export class CursorVisualSampler extends BaseVisualSampler {
 
 	async cancel() {
 		this.#canceled = true
-		await super.cancel()
+		await Promise.all([...this.videoCursors.values()].map(({cursor}) => cursor.cancel()))
+		this.videoCursors.clear()
 		await this.#preparing
+	}
+}
+
+/**
+ * forward-only frame cursor optimized for export purposes.
+ * it uses mediabunny internally so the support for non-clients
+ * should be done from mediabunny custom decoder/encoder
+ */
+
+export class CursorVisualSampler extends BaseVisualSampler {
+	#lastTimecode = -Infinity
+
+	next(timecode: Ms) {
+		if (timecode < this.#lastTimecode)
+			throw new Error(`Forward-only cursor regression: ${timecode}ms < ${this.#lastTimecode}ms`)
+
+		this.#lastTimecode = timecode
+		return this.advance(timecode, 1)
 	}
 
 	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {
@@ -192,7 +204,7 @@ export class ReverseCursorVisualSampler extends BaseVisualSampler {
 			throw new Error(`Reverse-only cursor regression: ${timecode}ms > ${this.#lastTimecode}ms`)
 
 		this.#lastTimecode = timecode
-		return this.sample(timecode)
+		return this.advance(timecode, -1)
 	}
 
 	protected createCursor(source: DecoderSource, startUs: number, endUs: number): VideoFrameCursor {

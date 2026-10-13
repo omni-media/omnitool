@@ -183,6 +183,10 @@ export class CursorVisualSampler extends BaseVisualSampler {
 export class ReverseCursorVisualSampler extends BaseVisualSampler {
 	#lastTimecode = Infinity
 
+	protected getCursor(item: Item.Video | Item.Clip) {
+		return super.getCursor(item, toUs(ms(item.start)))
+	}
+
 	next(timecode: Ms) {
 		if (timecode > this.#lastTimecode)
 			throw new Error(`Reverse-only cursor regression: ${timecode}ms > ${this.#lastTimecode}ms`)

@@ -26,6 +26,7 @@ export * from "./renderers/export/parts/produce-audio.js"
 
 export * from "./sugar/o.js"
 export * from "./sugar/helpers.js"
+export * from "./sugar/builders.js"
 export * from "./sugar/omni.js"
 
 export * from "./utils/checksum.js"

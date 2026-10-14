@@ -1,6 +1,6 @@
 
 import {Driver} from "../../driver/driver.js"
-import {Datafile, defaultTranscriberSpec, Item, makeTranscriber, Omni} from "../../timeline/index.js"
+import {Datafile, defaultTranscriberSpec, Item, makeTranscriber, Omni, transform} from "../../timeline/index.js"
 
 export async function TimelineSchemaTest(driver: Driver, file: File) {
 	const transcriber = await makeTranscriber({
@@ -30,7 +30,7 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 		])
 		const style = o.textStyle({fill: "green", fontSize: 100})
 		const videoSpatial = o.spatial(
-			o.transform({
+			transform({
 				position: [240, 160],
 				scale: [1.4, 1.4],
 				rotation: 0.08,
@@ -39,10 +39,10 @@ export async function TimelineSchemaTest(driver: Driver, file: File) {
 		)
 		const textSpatial = o.spatial()
 		const textMotion = o.animate.transform.make("linear", [
-				[0, o.transform({position: [-320, 80], scale: [0.7, 0.7]})],
-				[1000, o.transform({position: [120, 80], scale: [1, 1]})],
-				[2000, o.transform({position: [200, 40], scale: [1.35, 1.35], rotation: 8})],
-				[3000, o.transform({position: [320, 0], scale: [1.15, 1.15], rotation: 0})],
+				[0, transform({position: [-320, 80], scale: [0.7, 0.7]})],
+				[1000, transform({position: [120, 80], scale: [1, 1]})],
+				[2000, transform({position: [200, 40], scale: [1.35, 1.35], rotation: 8})],
+				[3000, transform({position: [320, 0], scale: [1.15, 1.15], rotation: 0})],
 		])
 
 		const video = o.video(videoA, {duration: 6000, start: 3000})

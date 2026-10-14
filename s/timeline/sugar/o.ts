@@ -2,6 +2,7 @@ import {hex} from "@e280/stz"
 import {TextStyleOptions} from "pixi.js"
 
 import {Media} from "../parts/media.js"
+import {anim, transform} from "./helpers.js"
 import {Id, TimelineFile} from "../parts/basics.js"
 import {FilterAction, FilterActions} from "../parts/filters.js"
 import {ContainerArgs, parseContainerArgs} from "./container.js"
@@ -12,7 +13,7 @@ import {animationPresets, makeAnimationPresets, visualAnimations} from "../parts
 import {TransitionAction, TransitionActions, transitions, TransitionName} from "../parts/transitions.js"
 import {AnimationPreset, PresetAnimateAction, PresetAnimateActions, PresetAnimation, PresetOptions} from "../parts/animations/types.js"
 import {CaptionAction, CaptionActions, captionDuration, CaptionOptions, CaptionPreset, captionPresets, CaptionSourceItem} from "../parts/captions.js"
-import {Anim, AnimateAction, Interpolation, Keyframes, ScalarAnimation, TrackTransform, Transform, TransformAnimation, TransformOptions, Vec2, VisualAnimationInput, VisualAnimationValue, VisualAnimations} from "../types.js"
+import {AnimateAction, Interpolation, Keyframes, ScalarAnimation, Transform, TransformAnimation, VisualAnimationInput, VisualAnimationValue, VisualAnimations} from "../types.js"
 
 type VisualAnimateActions = {
 	[TKey in keyof VisualAnimations]-?: AnimateAction<TKey>
@@ -26,6 +27,8 @@ type ContainerFactory<T extends Item.Sequence | Item.Stack> = {
 export class O {
 	constructor(public state: {timeline: TimelineFile}) {}
 
+	#getId() { return hex.random(16) }
+
 	require<T extends Item.Any>(id: Id | undefined) {
     if (id === undefined)
     	return undefined
@@ -35,10 +38,6 @@ export class O {
 
 	get timeline() {
 		return this.state.timeline
-	}
-
-	getId() {
-		return hex.random(16)
 	}
 
   #mutate(fn: (project: TimelineFile) => TimelineFile) {
@@ -54,7 +53,7 @@ export class O {
 
   textStyle = (style: TextStyleOptions): Item.TextStyle => {
 		const item = {
-			id: this.getId(),
+			id: this.#getId(),
 			kind: Kind.TextStyle,
 			style,
 		} as Item.TextStyle
@@ -62,20 +61,20 @@ export class O {
 		return item
   }
 
-  spatial = (transform?: Transform, crop?: Crop): Item.Spatial => {
-  	const item: Item.Spatial = {
-  		id: this.getId(),
-  		kind: Kind.Spatial,
-  		transform: transform ?? this.transform(),
-  		crop,
-  	}
+	spatial = (value?: Transform, crop?: Crop): Item.Spatial => {
+		const item: Item.Spatial = {
+			id: this.#getId(),
+			kind: Kind.Spatial,
+			transform: value ?? transform(),
+			crop,
+		}
 		this.register(item)
-  	return item
-  }
+		return item
+	}
 
 	#registerAnimation = (anims: VisualAnimations): Item.Animation => {
 		const item: Item.Animation = {
-			id: this.getId(),
+			id: this.#getId(),
 			kind: Kind.Animation,
 			anims,
 		}
@@ -92,49 +91,16 @@ export class O {
 		return next
 	}
 
-	anim = {
-		scalar: (terp: Interpolation, track: Keyframes): Anim<Keyframes> => ({terp, track}),
-
-		vec2: (terp: Interpolation, source: Keyframes<Vec2>) => {
-			const track = {x: [] as Keyframes, y: [] as Keyframes}
-
-			for (const [time, [x, y]] of source) {
-				track.x.push([time, x])
-				track.y.push([time, y])
-			}
-
-			return {terp, track}
-		},
-
-		transform: (terp: Interpolation, source: Keyframes<Transform>): Anim<TrackTransform> => {
-			const track: TrackTransform = {
-				position: {x: [], y: []},
-				scale: {x: [], y: []},
-				rotation: [],
-			}
-
-			for (const [time, [position, scale, rotation]] of source) {
-				track.position.x.push([time, position[0]])
-				track.position.y.push([time, position[1]])
-				track.scale.x.push([time, scale[0]])
-				track.scale.y.push([time, scale[1]])
-				track.rotation.push([time, rotation])
-			}
-
-			return {terp, track}
-		},
-	}
-
 	#animationPresets = makeAnimationPresets(
-		(terp, track) => ({terp, track}),
-		(terp, source) => this.anim.transform(terp, source),
-		options => this.transform(options),
+		anim.scalar,
+		anim.transform,
+		transform,
 	)
 
 	#makeFilter = <TFilter extends FilterType>(type: TFilter) => {
 		const make = (params?: FilterParams<TFilter>) => {
 			const item: Item.Filter<TFilter> = {
-				id: this.getId(),
+				id: this.#getId(),
 				kind: Kind.Filter,
 				type,
 				params,
@@ -172,8 +138,8 @@ export class O {
 	): VisualAnimationValue<TKey> =>
 		(
 			key === "transform"
-				? this.anim.transform(terp, track as Keyframes<Transform>)
-				: this.anim.scalar(terp, track as Keyframes)
+				? anim.transform(terp, track as Keyframes<Transform>)
+				: anim.scalar(terp, track as Keyframes)
 		) as VisualAnimationValue<TKey>
 
 	#makeAnimate = <TKey extends keyof VisualAnimations>(key: TKey): AnimateAction<TKey> => {
@@ -236,7 +202,7 @@ export class O {
 		const {options, children} = parseContainerArgs(args)
 		const item =  {
 			...options,
-			id: this.getId(),
+			id: this.#getId(),
 			kind: Kind.Sequence,
 			childrenIds: children.map(item => item.id)
 		} as Item.Sequence
@@ -248,7 +214,7 @@ export class O {
 		const {options, children} = parseContainerArgs(args)
 		const item = {
 			...options,
-			id: this.getId(),
+			id: this.#getId(),
 			kind: Kind.Stack,
 			childrenIds: children.map(item => item.id)
 		} as Item.Stack
@@ -270,7 +236,7 @@ export class O {
 
 		const item: Item.Video = {
 			kind: Kind.Video,
-			id: this.getId(),
+			id: this.#getId(),
 			label: options?.label,
 			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
@@ -296,7 +262,7 @@ export class O {
 
 		const item: Item.Clip = {
 			kind: Kind.Clip,
-			id: this.getId(),
+			id: this.#getId(),
 			label: options?.label,
 			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
@@ -321,7 +287,7 @@ export class O {
 
 		const item: Item.Image = {
 			kind: Kind.Image,
-			id: this.getId(),
+			id: this.#getId(),
 			label: options?.label,
 			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
@@ -346,7 +312,7 @@ export class O {
 
 		const item: Item.Audio = {
 			kind: Kind.Audio,
-			id: this.getId(),
+			id: this.#getId(),
 			label: options?.label,
 			enabled: options?.enabled,
 			mediaHash: media.datafile.checksum.hash,
@@ -366,7 +332,7 @@ export class O {
 		}): Item.Text => {
 
 		const item = {
-			id: this.getId(),
+			id: this.#getId(),
 			label: options?.label,
 			enabled: options?.enabled,
 			content,
@@ -389,7 +355,7 @@ export class O {
 		const start = options?.start ?? 0
 		const duration = options?.duration ?? Math.max(0, captionDuration(transcript, options) - start)
 		const item: Item.Caption = {
-			id: this.getId(),
+			id: this.#getId(),
 			kind: Kind.Caption,
 			label: options?.label,
 			enabled: options?.enabled,
@@ -403,7 +369,7 @@ export class O {
 		}
 
 		item.styleId = this.textStyle(options?.styles ?? preset.styles).id
-		item.spatialId = this.spatial(this.transform(preset.transform)).id
+		item.spatialId = this.spatial(transform(preset.transform)).id
 
 		this.register(item)
 		return item
@@ -440,7 +406,7 @@ export class O {
 
 	gap = (duration: number, options?: ItemBase): Item.Gap => {
 		const item = {
-			id: this.getId(),
+			id: this.#getId(),
 			kind: Kind.Gap,
 			label: options?.label,
 			enabled: options?.enabled,
@@ -453,7 +419,7 @@ export class O {
 	#makeTransition = (key: TransitionName): TransitionAction => {
 		return (duration: number, options?: ItemBase): Item.Transition => {
 			const item: Item.Transition = {
-				id: this.getId(),
+				id: this.#getId(),
 				kind: Kind.Transition,
 				label: options?.label,
 				enabled: options?.enabled,
@@ -472,19 +438,6 @@ export class O {
 	}
 
 	transition = this.#makeTransitions()
-
-  transform = (options?: TransformOptions): Transform => {
-    const position: Vec2 = [
-    	options?.position?.[0] ?? 0,
-    	options?.position?.[1] ?? 0
-    ]
-    const scale: Vec2 = [
-    	options?.scale?.[0] ?? 1,
-    	options?.scale?.[1] ?? 1
-    ]
-    const rotation = options?.rotation ?? 0
-    return [position, scale, rotation]
-  }
 
   addChildren(parent: Item.Stack | Item.Sequence, ...items: Item.Any[]) {
 		this.#mutate(state => {

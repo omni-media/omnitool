@@ -373,8 +373,10 @@ const schema = blur.schema
 ## 🧭 Spatial Transforms
 
 ```ts
+import {transform} from "@omnimedia/omnitool"
+
 const timeline = omni.timeline(o => {
-	const move = o.spatial(o.transform({
+	const move = o.spatial(transform({
 		position: [120, 40],
 		scale: [0.6, 0.6],
 		rotation: 12
@@ -402,8 +404,8 @@ const timeline = omni.timeline(o => {
 		[700, 1],
 	])
 	const slideOut = o.animate.transform.make("linear", [
-		[0, o.transform({position: [0, 0]})],
-		[1000, o.transform({position: [400, 0]})],
+		[0, transform({position: [0, 0]})],
+		[1000, transform({position: [400, 0]})],
 	])
 
 	const title = o.text("Lower third", {

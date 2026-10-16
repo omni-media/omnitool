@@ -108,7 +108,6 @@ export class Compositor {
 			case 'transition':
 				return this.#renderTransitionLayer(layer, parent)
 			case 'gap': {
-				this.pixi?.renderer.clear()
 				return {dispose: () => {}}
 			}
 			default:

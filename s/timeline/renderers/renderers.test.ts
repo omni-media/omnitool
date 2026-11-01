@@ -16,6 +16,7 @@ import {produceVideo} from "./export/parts/produce-video.js"
 import {CursorVisualSampler} from "./export/parts/cursor.js"
 import {applyGainToPlanar} from "./export/parts/audio-gain.js"
 import {createVisualSampler} from "./parts/samplers/visual/sampler.js"
+import {findEarliestStream} from "./parts/samplers/audio/parts/find.js"
 
 const workerUrl = new URL("../../demo/driver.worker.bundle.min.js", import.meta.url)
 export async function setupTest() {
@@ -288,11 +289,13 @@ export default Science.suite({
 
 		const result = resampleToPlanar(sample as any, 2)
 
-		expect(result.frames).is(4)
-		expect(near(result.data[0][0], 10)).ok()
-		expect(near(result.data[0][1], 15)).ok()
-		expect(near(result.data[0][2], 20)).ok()
+		expect(result.frames).is(5)
+		expect(result.timestamp).is(-0.5)
+		expect(near(result.data[0][0], 5)).ok()
+		expect(near(result.data[0][1], 10)).ok()
+		expect(near(result.data[0][2], 15)).ok()
 		expect(near(result.data[0][3], 20)).ok()
+		expect(near(result.data[0][4], 10)).ok()
 	}),
 
 	"resampleToPlanar downsamples correctly": test(async () => {
@@ -328,8 +331,8 @@ export default Science.suite({
 		const result = resampleToPlanar(sample, 2)
 
 		expect(result.data.length).is(2)
-		expect(near(result.data[0][1], 1.5)).ok()
-		expect(near(result.data[1][1], 3.5)).ok()
+		expect(near(result.data[0][2], 1.5)).ok()
+		expect(near(result.data[1][2], 3.5)).ok()
 	}),
 
 	"resampleToPlanar handles zero channels gracefully": test(async () => {
@@ -346,7 +349,7 @@ export default Science.suite({
 		expect(result.frames).is(0)
 	}),
 
-	"resampleToPlanar enforces minimum of 1 frame on aggressive downsample": test(async () => {
+	"resampleToPlanar preserves the initial frame on aggressive downsample": test(async () => {
 		const sample = {
 			numberOfFrames: 1,
 			numberOfChannels: 1,
@@ -357,8 +360,58 @@ export default Science.suite({
 		const result = resampleToPlanar(sample, 8000)
 
 		expect(result.frames).is(1)
-		expect(result.data[0].length).is(1)
 		expect(near(result.data[0][0], 0.8)).ok()
+	}),
+
+	"resampling consecutive chunks and overlapping tracks mixes correctly": test(async () => {
+		const makeSample = (values: number[]) => ({
+			numberOfFrames: values.length, numberOfChannels: 1, sampleRate: 4,
+			copyTo: (dest: Float32Array) => dest.set(values)
+		})
+		const first = resampleToPlanar(makeSample([0, 1]), 6, 0)
+		const second = resampleToPlanar(makeSample([2, 3]), 6, 0.5)
+		async function* inputs() {
+			for (const result of [first, first, second, second])
+				yield {planes: result.data, sampleRate: 6, timestamp: result.timestamp}
+		}
+		const chunks = await collect(new AudioMix({chunkFrames: 1, clamp: false}).mix(inputs()))
+		for (let i = 0; i < 5; i++)
+			expect(near(chunks[i].planar[0], 2 * i * 4 / 6)).ok()
+	}),
+
+	"resampling orders tracks by earliest contribution": test(async () => {
+		const streams = [
+			{timelineTime: () => 1, currentSample: {sampleRate: 48000}},
+			{timelineTime: () => 1.00005, currentSample: {sampleRate: 8000}}
+		] as any
+		expect(findEarliestStream(streams).index).is(0)
+		expect(findEarliestStream(streams, true).index).is(1)
+	}),
+
+	"44.1 kHz chunks match continuous interpolation at 48 kHz": test(async () => {
+		async function* inputs() {
+			for (let chunk = 0; chunk < 8; chunk++) {
+				const start = chunk * 1024
+				const sample = {
+					numberOfFrames: 1024, numberOfChannels: 1, sampleRate: 44100,
+					copyTo: (dest: Float32Array) => {
+						for (let i = 0; i < dest.length; i++) dest[i] = Math.sin((start + i) * 0.03)
+					}
+				}
+				const result = resampleToPlanar(sample, 48000, start / 44100)
+				yield {planes: result.data, sampleRate: 48000, timestamp: result.timestamp}
+			}
+		}
+		const chunks = await collect(new AudioMix({clamp: false}).mix(inputs()))
+		for (const chunk of chunks) for (let i = 0; i < chunk.frames; i++) {
+			const frame = chunk.startFrame + i
+			const position = frame * 44100 / 48000
+			if (position >= 8191) break
+			const lower = Math.floor(position)
+			const fraction = position - lower
+			const expected = Math.sin(lower * 0.03) * (1 - fraction) + Math.sin((lower + 1) * 0.03) * fraction
+			expect(near(chunk.planar[i], expected)).ok()
+		}
 	}),
 
 	"resampleToPlanar calls copyTo with strict contract shape": test(async () => {

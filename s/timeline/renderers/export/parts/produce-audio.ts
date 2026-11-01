@@ -57,15 +57,15 @@ async function *streamAudio(timeline: TimelineFile, resolveMedia: (hash: string)
 	const masterGain = resolveAudioGain(timeline.audio)
 
 	for await (const {sample, timestamp, gain}
-		of audioSampler.sampleAudio(timeline, ms(0))) {
+		of audioSampler.sampleAudio(timeline, ms(0), true)) {
 
-		const {data} = resampleToPlanar(sample, 48000)
+		const {data, timestamp: outputTimestamp} = resampleToPlanar(sample, 48000, timestamp)
 		applyGainToPlanar(data, gain * masterGain)
 
 		yield {
 			planes: data,
 			sampleRate: 48000,
-			timestamp
+			timestamp: outputTimestamp
 		}
 
 		sample.close()

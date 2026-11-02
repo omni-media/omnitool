@@ -6,7 +6,7 @@ export type AudioPlanesInput = {
 }
 
 export type MixedChunk = {
-	planar: Float32Array
+	planar: Float32Array<ArrayBuffer>
 	sampleRate: number
 	channels: number
 	frames: number
@@ -69,7 +69,7 @@ export class AudioMix {
 
 		if (channels !== null && sampleRate !== null) {
 			while (nextFrame < maxEnd) {
-				yield this.#processChunk(active, nextFrame, channels, sampleRate)
+				yield this.#processChunk(active, nextFrame, channels, sampleRate, Math.min(chunkFrames, maxEnd - nextFrame))
 				nextFrame += chunkFrames
 			}
 		}
@@ -79,9 +79,9 @@ export class AudioMix {
 		active: ActiveSample[],
 		currentStartFrame: number,
 		channels: number,
-		sampleRate: number
+		sampleRate: number,
+		chunkFrames = this.#chunkFrames
 	): MixedChunk {
-		const chunkFrames = this.#chunkFrames
 		const outputBuffer = new Float32Array(channels * chunkFrames)
 		const chunkEnd = currentStartFrame + chunkFrames
 

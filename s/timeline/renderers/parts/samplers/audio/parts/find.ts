@@ -1,10 +1,15 @@
 
 import type {ActiveStream} from "./types.js"
+import {resampleRadius} from "../../../../export/parts/resamplers.js"
 
-export function findEarliestStream(streams: ActiveStream[], resampling = false) {
+export function findEarliestStream(streams: ActiveStream[], targetSampleRate?: number) {
 	// Resampling can produce contributions before the sample's timestamp.
-	const timeOf = (stream: ActiveStream) => stream.timelineTime()
-		- (resampling ? 1 / stream.currentSample.sampleRate : 0)
+	const timeOf = (stream: ActiveStream) => {
+		const sampleRate = stream.currentSample.sampleRate
+		const radius = targetSampleRate ? resampleRadius(sampleRate, targetSampleRate) : 0
+		return stream.timelineTime() - radius / sampleRate
+	}
+
 	let earliest = {
 		index: 0,
 		stream: streams[0],

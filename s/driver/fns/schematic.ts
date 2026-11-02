@@ -1,7 +1,7 @@
 
 import {TextStyleOptions} from "pixi.js"
 import {AsSchematic} from "@e280/comrade"
-import type {AudioEncodingConfig, StreamTargetChunk, VideoEncodingConfig} from "mediabunny"
+import type {AudioCodec, StreamTargetChunk, VideoCodec} from "mediabunny"
 
 import {Id} from "../../timeline/index.js"
 import {Crop} from "../../timeline/parts/item.js"
@@ -46,15 +46,25 @@ export interface EncoderInput {
 	config: RenderConfig
 }
 
-type WorkerEncodingConfig<T> = Omit<T, "onEncodedPacket" | "onEncoderConfig">
+export type AudioRenderConfig = {
+	codec: AudioCodec
+	bitrate?: number
+	sampleRate?: number
+	numberOfChannels?: 1 | 2 | 6
+}
+
+export type VideoRenderConfig = {
+	codec: VideoCodec
+	bitrate?: number
+}
 
 export type RenderContainer = "mp4" | "webm" | "mov" | "mkv"
 
 export interface RenderConfig {
 	container: RenderContainer
 	framerate: number
-	video: WorkerEncodingConfig<VideoEncodingConfig>
-	audio: WorkerEncodingConfig<AudioEncodingConfig>
+	video: VideoRenderConfig
+	audio: AudioRenderConfig
 }
 
 export type DecoderSource = Blob | string | URL

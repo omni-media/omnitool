@@ -15,6 +15,7 @@ import {loadVideo} from "../../demo/routines/load-video.js"
 import {produceVideo} from "./export/parts/produce-video.js"
 import {CursorVisualSampler} from "./export/parts/cursor.js"
 import {applyGainToPlanar} from "./export/parts/audio-gain.js"
+import {convertAudioChannels} from "./export/parts/audio-channels.js"
 import {createVisualSampler} from "./parts/samplers/visual/sampler.js"
 import {findEarliestStream} from "./parts/samplers/audio/parts/find.js"
 
@@ -133,10 +134,10 @@ export default Science.suite({
 		expect(mixed[0].planar[2]).is(0.75)
 		expect(mixed[0].planar[3]).is(0.75)
 		expect(mixed[1].startFrame).is(4)
+		expect(mixed[1].frames).is(2)
 		expect(mixed[1].planar[0]).is(0.5)
 		expect(mixed[1].planar[1]).is(0.5)
-		expect(mixed[1].planar[2]).is(0)
-		expect(mixed[1].planar[3]).is(0)
+		expect(mixed[1].planar.length).is(2)
 	}),
 
 	"audio mix clamps output to [-1, 1]": test(async () => {
@@ -205,8 +206,20 @@ export default Science.suite({
 		expect(mixed[0].startFrame).is(0)
 		expect(mixed[0].planar[0]).is(3)
 		expect(mixed[0].planar[1]).is(4)
-		expect(mixed[0].planar[2]).is(0)
-		expect(mixed[0].planar[3]).is(0)
+		expect(mixed[0].frames).is(2)
+		expect(mixed[0].planar.length).is(2)
+	}),
+
+	"audio mix packs the final partial stereo chunk": test(async () => {
+		async function *samples() {
+			yield {planes: [new Float32Array([1, 2, 3, 4, 5, 6]), new Float32Array([7, 8, 9, 10, 11, 12])], sampleRate: 4, timestamp: 0}
+		}
+		const mixed = await collect(new AudioMix({chunkFrames: 4, clamp: false}).mix(samples()))
+		expect(mixed.length).is(2)
+		expect(mixed[1].startFrame).is(4)
+		expect(mixed[1].frames).is(2)
+		expect(mixed[1].planar.length).is(4)
+		expect(Array.from(mixed[1].planar).join(",")).is("5,6,11,12")
 	}),
 
 	"audio mix handles stereo planar layout": test(async () => {
@@ -298,19 +311,16 @@ export default Science.suite({
 		expect(near(result.data[0][4], 10)).ok()
 	}),
 
-	"resampleToPlanar downsamples correctly": test(async () => {
+	"resampleToPlanar preserves a constant signal when downsampling": test(async () => {
 		const sample = {
-			numberOfFrames: 4,
+			numberOfFrames: 256,
 			numberOfChannels: 1,
-			sampleRate: 4,
-			copyTo: (dest: Float32Array) => dest.set([1, 2, 3, 4])
+			sampleRate: 96000,
+			copyTo: (dest: Float32Array) => dest.fill(1)
 		}
-
-		const result = resampleToPlanar(sample, 2)
-
-		expect(result.frames).is(2)
-		expect(near(result.data[0][0], 1)).ok()
-		expect(near(result.data[0][1], 3)).ok()
+		const result = resampleToPlanar(sample, 48000)
+		const offset = Math.round(-result.timestamp * 48000)
+		expect(near(result.data[0][offset + 32], 1)).ok()
 	}),
 
 	"resampleToPlanar processes multi-channel planar data": test(async () => {
@@ -349,7 +359,7 @@ export default Science.suite({
 		expect(result.frames).is(0)
 	}),
 
-	"resampleToPlanar preserves the initial frame on aggressive downsample": test(async () => {
+	"resampleToPlanar retains a short input during downsampling": test(async () => {
 		const sample = {
 			numberOfFrames: 1,
 			numberOfChannels: 1,
@@ -359,8 +369,68 @@ export default Science.suite({
 
 		const result = resampleToPlanar(sample, 8000)
 
-		expect(result.frames).is(1)
-		expect(near(result.data[0][0], 0.8)).ok()
+		expect(result.frames > 0).ok()
+		expect(result.data[0].some(value => value > 0)).ok()
+	}),
+
+	"audio channel conversion handles mono stereo and surround": test(async () => {
+		const mono = [new Float32Array([0.5])]
+		const stereo = convertAudioChannels(mono, 2)
+		expect(stereo[0][0]).is(0.5)
+		expect(stereo[1][0]).is(0.5)
+		const surround = convertAudioChannels(mono, 6)
+		expect(surround[2][0]).is(0.5)
+		expect(surround[0][0]).is(0)
+		expect(convertAudioChannels([new Float32Array([1]), new Float32Array([-1])], 1)[0][0]).is(0)
+		const downmix = convertAudioChannels([0.1, 0.2, 0.3, 0.4, 0.5, 0.6].map(v => new Float32Array([v])), 2)
+		expect(near(downmix[0][0], 0.1 + Math.SQRT1_2 * 0.8)).ok()
+		expect(near(downmix[1][0], 0.2 + Math.SQRT1_2 * 0.9)).ok()
+	}),
+
+	"mono and stereo tracks can be mixed into the same stereo output": test(async () => {
+		async function* inputs() {
+			yield {planes: convertAudioChannels([new Float32Array([0.2])], 2), sampleRate: 48000, timestamp: 0}
+			yield {planes: convertAudioChannels([new Float32Array([0.1]), new Float32Array([0.3])], 2), sampleRate: 48000, timestamp: 0}
+		}
+		const [chunk] = await collect(new AudioMix({chunkFrames: 1, clamp: false}).mix(inputs()))
+		expect(near(chunk.planar[0], 0.3)).ok()
+		expect(near(chunk.planar[1], 0.5)).ok()
+	}),
+
+	"downsampling attenuates frequencies above the output Nyquist limit": test(async () => {
+		const sample = {
+			numberOfFrames: 4096, numberOfChannels: 1, sampleRate: 96000,
+			copyTo: (dest: Float32Array) => {
+				for (let i = 0; i < dest.length; i++) dest[i] = Math.sin(2 * Math.PI * 30000 * i / 96000)
+			}
+		}
+		const result = resampleToPlanar(sample, 48000)
+		const offset = Math.round(-result.timestamp * 48000)
+		let power = 0
+		for (let i = 100; i < 1900; i++) power += result.data[0][offset + i] ** 2
+		expect(Math.sqrt(power / 1800) < 0.01).ok()
+	}),
+
+	"filtered downsampling is continuous across chunk boundaries": test(async () => {
+		const source = Float32Array.from({length: 4096}, (_, i) => Math.sin(2 * Math.PI * 1000 * i / 96000))
+		async function render(chunkSize: number) {
+			async function* inputs() {
+				for (let start = 0; start < source.length; start += chunkSize) {
+					const plane = source.subarray(start, start + chunkSize)
+					const sample = {numberOfFrames: plane.length, numberOfChannels: 1, sampleRate: 96000,
+						copyTo: (dest: Float32Array) => dest.set(plane)}
+					const result = resampleToPlanar(sample, 44100, start / 96000)
+					yield {planes: result.data, sampleRate: 44100, timestamp: result.timestamp}
+				}
+			}
+			return collect(new AudioMix({clamp: false}).mix(inputs()))
+		}
+		const whole = await render(source.length)
+		const split = await render(257)
+		expect(split.length).is(whole.length)
+		for (let chunk = 0; chunk < whole.length; chunk++)
+			for (let i = 0; i < whole[chunk].frames; i++)
+				expect(near(split[chunk].planar[i], whole[chunk].planar[i])).ok()
 	}),
 
 	"resampling consecutive chunks and overlapping tracks mixes correctly": test(async () => {
@@ -385,7 +455,10 @@ export default Science.suite({
 			{timelineTime: () => 1.00005, currentSample: {sampleRate: 8000}}
 		] as any
 		expect(findEarliestStream(streams).index).is(0)
-		expect(findEarliestStream(streams, true).index).is(1)
+		expect(findEarliestStream(streams, 48000).index).is(1)
+		streams[0].currentSample.sampleRate = 44100
+		streams[1].currentSample.sampleRate = 96000
+		expect(findEarliestStream(streams, 44100).index).is(1)
 	}),
 
 	"44.1 kHz chunks match continuous interpolation at 48 kHz": test(async () => {
@@ -458,7 +531,7 @@ export default Science.suite({
 			o.audio(videoA, {duration: 500})
 		))})
 
-		const readable = produceAudio({timeline, resolveMedia})
+		const readable = produceAudio({timeline, resolveMedia, sampleRate: 48000, numberOfChannels: 2})
 		let totalFrames = 0
 
 		for await (const chunk of readable) {

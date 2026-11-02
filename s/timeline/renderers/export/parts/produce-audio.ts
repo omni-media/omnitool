@@ -4,19 +4,24 @@ import {ms} from "../../../../units/ms.js"
 import {resampleToPlanar} from "./resamplers.js"
 import {applyGainToPlanar} from "./audio-gain.js"
 import {TimelineFile} from "../../../parts/basics.js"
+import {convertAudioChannels} from "./audio-channels.js"
 import {resolveAudioGain} from "../../../parts/audio.js"
 import {DecoderSource} from "../../../../driver/fns/schematic.js"
 import {createAudioSampler} from "../../parts/samplers/audio/sampler.js"
 
 export function produceAudio({
 	timeline,
-	resolveMedia
+	resolveMedia,
+	sampleRate,
+	numberOfChannels
 }: {
 	timeline: TimelineFile,
-	resolveMedia: (hash: string) => DecoderSource
+	resolveMedia: (hash: string) => DecoderSource,
+	sampleRate: number,
+	numberOfChannels: 1 | 2 | 6
 }) {
 	const mixer = new AudioMix()
-	const audio = streamAudio(timeline, resolveMedia)
+	const audio = streamAudio(timeline, resolveMedia, sampleRate, numberOfChannels)
 	const stream = new TransformStream<AudioData, AudioData>()
 	const writer = stream.writable.getWriter()
 
@@ -31,7 +36,7 @@ export function produceAudio({
 					timestamp: Math.round(
 						(chunk.startFrame / chunk.sampleRate) * 1_000_000
 					),
-					data: new Float32Array(chunk.planar)
+					data: chunk.planar
 				})
 
 				await writer.write(data)
@@ -40,10 +45,7 @@ export function produceAudio({
 			await writer.close()
 		}
 		catch (error) {
-			try {
-				await writer.abort(error)
-			}
-			catch {}
+			await writer.abort(error).catch(() => {})
 		}
 	}
 
@@ -52,23 +54,28 @@ export function produceAudio({
 	return stream.readable
 }
 
-async function *streamAudio(timeline: TimelineFile, resolveMedia: (hash: string) => DecoderSource) {
+async function *streamAudio(
+	timeline: TimelineFile,
+	resolveMedia: (hash: string) => DecoderSource,
+	sampleRate: number,
+	numberOfChannels: 1 | 2 | 6
+) {
 	const audioSampler = createAudioSampler(resolveMedia)
 	const masterGain = resolveAudioGain(timeline.audio)
 
 	for await (const {sample, timestamp, gain}
-		of audioSampler.sampleAudio(timeline, ms(0), true)) {
+		of audioSampler.sampleAudio(timeline, ms(0), sampleRate)) {
 
-		const {data, timestamp: outputTimestamp} = resampleToPlanar(sample, 48000, timestamp)
-		applyGainToPlanar(data, gain * masterGain)
-
-		yield {
-			planes: data,
-			sampleRate: 48000,
-			timestamp: outputTimestamp
+		try {
+			const {data, timestamp: outputTimestamp} = resampleToPlanar(sample, sampleRate, timestamp)
+			applyGainToPlanar(data, gain * masterGain)
+			yield {
+				planes: convertAudioChannels(data, numberOfChannels),
+				sampleRate,
+				timestamp: outputTimestamp
+			}
 		}
-
-		sample.close()
+		finally { sample.close() }
 	}
 }
 

@@ -4,7 +4,7 @@ import {Driver} from "../../../driver/driver.js"
 import {TimelineFile} from "../../parts/basics.js"
 import {produceAudio} from "./parts/produce-audio.js"
 import {produceVideo} from "./parts/produce-video.js"
-import {DecoderSource, RenderConfig} from "../../../driver/fns/schematic.js"
+import type {DecoderSource, RenderConfig} from "../../../driver/fns/schematic.js"
 
 export type {RenderContainer} from "../../../driver/fns/schematic.js"
 
@@ -28,14 +28,20 @@ export function produce(opts: {
 	resolveMedia: (hash: string) => DecoderSource
 	onProgress?: (progress: ExportProgress) => void
 }) {
+	const sampleRate = opts.config?.audio?.sampleRate ?? 48000
+	const numberOfChannels = opts.config?.audio?.numberOfChannels ?? 2
+
+	if (!Number.isInteger(sampleRate) || sampleRate <= 0)
+		throw new RangeError(`Invalid audio sample rate: ${sampleRate}`)
+
 	const config: RenderConfig = {
 		container: opts.config?.container ?? "webm",
 		framerate: opts.config?.framerate ?? 30,
-		audio: {codec: "opus", bitrate: 128000, ...opts.config?.audio},
+		audio: {codec: "opus", bitrate: 128000, ...opts.config?.audio, sampleRate, numberOfChannels},
 		video: {codec: "vp9", bitrate: 1000000, ...opts.config?.video}
 	}
 
-	const audio = produceAudio({...opts})
+	const audio = produceAudio({...opts, sampleRate, numberOfChannels})
 	const video = produceVideo({...opts, fps: fps(config.framerate)})
 
 	return opts.driver.encode({

@@ -45,10 +45,11 @@
 		"@e280/renraku": "^0.5.3",
 		"@e280/stz": "^0.4.10",
 		"@huggingface/transformers": "^4.3.1",
+		"@mediabunny/aac-encoder": "^1.65.0",
 		"@noble/hashes": "~2.2.0",
 		"gl-transitions": "^1.74.0",
 		"lit": "^3.3.2",
-		"mediabunny": "^1.61.1",
+		"mediabunny": "^1.65.0",
 		"pixi-filters": "^6.1.5",
 		"pixi.js": "^8.18.1"
 	},

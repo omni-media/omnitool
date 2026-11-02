@@ -2,7 +2,7 @@ import {Comrade} from "@e280/comrade"
 
 import {Input, ALL_FORMATS, VideoSampleSink, Output, Mp4OutputFormat, WebMOutputFormat, MovOutputFormat,
 	MkvOutputFormat, VideoSampleSource, VideoSample, AudioSampleSink, AudioSampleSource, AudioSample, StreamTarget,
-	BlobSource, UrlSource} from "mediabunny"
+	BlobSource, UrlSource, canEncodeAudio} from "mediabunny"
 
 import {DecoderSource, DriverSchematic, RenderContainer} from "./schematic.js"
 
@@ -95,6 +95,11 @@ export const setupDriverWork = (
 		},
 
 		async encode({video, audio, config, writable}) {
+			const {sampleRate, numberOfChannels, ...audioEncodingConfig} = config.audio
+			if (audio && config.audio.codec === "aac" && !await canEncodeAudio("aac", config.audio)) {
+				const {registerAacEncoder} = await import("@mediabunny/aac-encoder")
+				registerAacEncoder()
+			}
 			const output = new Output({
 				format: makeOutputFormat(config.container),
 				target: new StreamTarget(writable, {chunked: true})
@@ -114,7 +119,7 @@ export const setupDriverWork = (
 
 			async function encodeAudio() {
 				if(!audio) return
-				const audioSource = new AudioSampleSource(config.audio)
+				const audioSource = new AudioSampleSource(audioEncodingConfig)
 				output.addAudioTrack(audioSource)
 				for await (const data of audio) {
 					const sample = new AudioSample(data)

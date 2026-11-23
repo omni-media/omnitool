@@ -22,12 +22,16 @@ Derive other edits from the composition and reference rules below. If the model 
 
 Read references for features affected by the edit, including existing attachments and neighboring transitions:
 
-- Position, scale, rotation, crop, or nested transforms: [spatial.md](references/spatial.md).
+- Before changing position, scale, rotation, crop, or nested transforms, read [spatial.md](references/spatial.md) before constructing the patch.
 - Text or caption styling: [text.md](references/text.md).
 - Filters, including listing available filter types: [filters.md](references/filters.md).
 - Keyframes or editing animated items: [animation.md](references/animation.md).
 - Captions or editing captioned media: [captions.md](references/captions.md).
 - Adding/changing transitions, or trimming/reordering their neighbors: [transitions.md](references/transitions.md).
+
+## Source media inspection
+
+Timeline JSON describes arrangement and references, not the actual pictures or sounds. When an edit depends on media content, use the host's available video or audio inspection tools before editing; do not infer content from filenames or other metadata. Source analysis is not a rendered timeline or final audio mix: account for trims, enabled state, gain, effects and overlapping items.
 
 ## Document and references
 

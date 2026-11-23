@@ -37,7 +37,8 @@ export function makeTransition({name, renderer}: TransitionOptions) {
 
 	return {
 		dispose() {
-			transitionSprite.destroy(true)
+			transitionSprite.destroy()
+			filter.destroy()
 			output.destroy(true)
 		},
 		render({from, to, width, height, progress}: TransitionRendererOptions) {
